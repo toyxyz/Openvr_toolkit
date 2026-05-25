@@ -29,7 +29,12 @@ namespace {
 
 constexpr std::int64_t kFbxTicksPerSecond = 46'186'158'000LL;
 constexpr double kPi = 3.14159265358979323846;
+constexpr double kTwoPi = kPi * 2.0;
+constexpr double kDegreesToRadians = 0.017453292519943295769;
 constexpr double kRadiansToDegrees = 57.295779513082320876;
+constexpr double kEulerHypotEpsilon = 0.0000375;
+
+using Matrix3 = std::array<double, 9>;
 
 struct FbxVertex {
     std::array<double, 3> position{0.0, 0.0, 0.0};
@@ -45,7 +50,13 @@ struct FbxGeometry {
 struct PoseKey {
     double timeSeconds = 0.0;
     std::array<double, 3> translation{0.0, 0.0, 0.0};
+    std::array<float, 4> rotationQuaternion{0.0f, 0.0f, 0.0f, 1.0f};
     std::array<double, 3> rotationDegrees{0.0, 0.0, 0.0};
+    Matrix3 rotationMatrix{
+        1.0, 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0,
+    };
 };
 
 struct DeviceExport {
@@ -59,6 +70,14 @@ struct DeviceExport {
     std::array<std::int64_t, 3> rotationCurveIds{0, 0, 0};
     std::vector<PoseKey> keys;
     FbxGeometry geometry;
+};
+
+struct FbxTimelineSettings {
+    double frameRate = 0.0;
+    int timeMode = 0;
+    double customFrameRate = -1.0;
+    std::int64_t startTime = 0;
+    std::int64_t stopTime = 0;
 };
 
 std::string deviceClassPrefix(const DeviceClass deviceClass)
@@ -126,6 +145,169 @@ std::int64_t toFbxTime(const double seconds)
     return static_cast<std::int64_t>(std::llround(seconds * static_cast<double>(kFbxTicksPerSecond)));
 }
 
+bool nearlyEqual(const double left, const double right)
+{
+    return std::fabs(left - right) < 0.0001;
+}
+
+double clamp01(const double value)
+{
+    return std::clamp(value, 0.0, 1.0);
+}
+
+std::array<double, 3> lerpVector(
+    const std::array<double, 3>& from,
+    const std::array<double, 3>& to,
+    const double factor
+)
+{
+    return {
+        from[0] + (to[0] - from[0]) * factor,
+        from[1] + (to[1] - from[1]) * factor,
+        from[2] + (to[2] - from[2]) * factor,
+    };
+}
+
+std::array<double, 3> eulerDegreesToRadians(const std::array<double, 3>& eulerDegrees)
+{
+    return {
+        eulerDegrees[0] * kDegreesToRadians,
+        eulerDegrees[1] * kDegreesToRadians,
+        eulerDegrees[2] * kDegreesToRadians,
+    };
+}
+
+std::array<double, 3> eulerRadiansToDegrees(const std::array<double, 3>& eulerRadians)
+{
+    return {
+        eulerRadians[0] * kRadiansToDegrees,
+        eulerRadians[1] * kRadiansToDegrees,
+        eulerRadians[2] * kRadiansToDegrees,
+    };
+}
+
+Matrix3 quaternionToMatrix3(const std::array<float, 4>& quaternion)
+{
+    const std::array<float, 4> q = normalizeQuaternion(quaternion);
+    const double x = q[0];
+    const double y = q[1];
+    const double z = q[2];
+    const double w = q[3];
+
+    return {
+        1.0 - 2.0 * (y * y + z * z), 2.0 * (x * y - z * w), 2.0 * (x * z + y * w),
+        2.0 * (x * y + z * w), 1.0 - 2.0 * (x * x + z * z), 2.0 * (y * z - x * w),
+        2.0 * (x * z - y * w), 2.0 * (y * z + x * w), 1.0 - 2.0 * (x * x + y * y),
+    };
+}
+
+std::array<std::array<double, 3>, 2> matrix3ToEulerXyzCandidates(const Matrix3& matrix)
+{
+    const double cy = std::hypot(matrix[0], matrix[3]);
+    std::array<double, 3> primary{};
+    std::array<double, 3> secondary{};
+
+    if (cy > kEulerHypotEpsilon) {
+        primary = {
+            std::atan2(matrix[7], matrix[8]),
+            std::atan2(-matrix[6], cy),
+            std::atan2(matrix[3], matrix[0]),
+        };
+        secondary = {
+            std::atan2(-matrix[7], -matrix[8]),
+            std::atan2(-matrix[6], -cy),
+            std::atan2(-matrix[3], -matrix[0]),
+        };
+    } else {
+        primary = {
+            std::atan2(-matrix[5], matrix[4]),
+            std::atan2(-matrix[6], cy),
+            0.0,
+        };
+        secondary = primary;
+    }
+
+    return {primary, secondary};
+}
+
+double squaredEulerDistance(const std::array<double, 3>& left, const std::array<double, 3>& right)
+{
+    double distance = 0.0;
+    for (int axis = 0; axis < 3; ++axis) {
+        const double delta = left[axis] - right[axis];
+        distance += delta * delta;
+    }
+    return distance;
+}
+
+std::array<double, 3> nearestEulerPeriod(const std::array<double, 3>& euler, const std::array<double, 3>& reference)
+{
+    std::array<double, 3> nearest = euler;
+    for (int axis = 0; axis < 3; ++axis) {
+        nearest[axis] += std::round((reference[axis] - nearest[axis]) / kTwoPi) * kTwoPi;
+    }
+    return nearest;
+}
+
+std::array<double, 3> compatibleEulerFromMatrix(const Matrix3& matrix, const std::array<double, 3>& previous)
+{
+    const auto baseCandidates = matrix3ToEulerXyzCandidates(matrix);
+    std::array<double, 3> best = nearestEulerPeriod(baseCandidates[0], previous);
+    double bestDistance = squaredEulerDistance(best, previous);
+
+    for (const std::array<double, 3>& baseCandidate : baseCandidates) {
+        const std::array<double, 3> centered = nearestEulerPeriod(baseCandidate, previous);
+        for (int xOffset = -1; xOffset <= 1; ++xOffset) {
+            for (int yOffset = -1; yOffset <= 1; ++yOffset) {
+                for (int zOffset = -1; zOffset <= 1; ++zOffset) {
+                    const std::array<double, 3> candidate{
+                        centered[0] + static_cast<double>(xOffset) * kTwoPi,
+                        centered[1] + static_cast<double>(yOffset) * kTwoPi,
+                        centered[2] + static_cast<double>(zOffset) * kTwoPi,
+                    };
+                    const double distance = squaredEulerDistance(candidate, previous);
+                    if (distance < bestDistance) {
+                        best = candidate;
+                        bestDistance = distance;
+                    }
+                }
+            }
+        }
+    }
+
+    return best;
+}
+
+void applyEulerDiscontinuityFilter(std::vector<PoseKey>& keys)
+{
+    if (keys.size() < 2) {
+        return;
+    }
+
+    std::vector<std::array<double, 3>> eulers;
+    eulers.reserve(keys.size());
+    for (const PoseKey& key : keys) {
+        eulers.push_back(eulerDegreesToRadians(key.rotationDegrees));
+    }
+
+    for (std::size_t index = 1; index < eulers.size(); ++index) {
+        eulers[index] = compatibleEulerFromMatrix(keys[index].rotationMatrix, eulers[index - 1]);
+    }
+
+    for (std::size_t index = 1; index < eulers.size(); ++index) {
+        for (int axis = 0; axis < 3; ++axis) {
+            const double diff = eulers[index][axis] - eulers[index - 1][axis];
+            if (std::fabs(diff) > kPi) {
+                eulers[index][axis] -= std::round(diff / kTwoPi) * kTwoPi;
+            }
+        }
+    }
+
+    for (std::size_t index = 0; index < keys.size(); ++index) {
+        keys[index].rotationDegrees = eulerRadiansToDegrees(eulers[index]);
+    }
+}
+
 std::array<double, 3> convertVector(const std::array<double, 3>& value, const FbxCoordinatePolicy policy)
 {
     if (policy == FbxCoordinatePolicy::Blender) {
@@ -163,6 +345,197 @@ std::array<float, 4> convertQuaternion(const std::array<float, 4>& quaternion, c
     constexpr std::array<float, 4> openVrToBlender{halfSqrt, 0.0f, 0.0f, halfSqrt};
     constexpr std::array<float, 4> blenderToOpenVr{-halfSqrt, 0.0f, 0.0f, halfSqrt};
     return normalizeQuaternion(multiplyQuaternions(multiplyQuaternions(openVrToBlender, source), blenderToOpenVr));
+}
+
+std::array<float, 4> slerpQuaternion(
+    const std::array<float, 4>& from,
+    const std::array<float, 4>& to,
+    const double factor
+)
+{
+    std::array<float, 4> start = normalizeQuaternion(from);
+    std::array<float, 4> end = normalizeQuaternion(to);
+    double dot =
+        static_cast<double>(start[0]) * end[0] +
+        static_cast<double>(start[1]) * end[1] +
+        static_cast<double>(start[2]) * end[2] +
+        static_cast<double>(start[3]) * end[3];
+
+    if (dot < 0.0) {
+        for (float& component : end) {
+            component = -component;
+        }
+        dot = -dot;
+    }
+
+    if (dot > 0.9995) {
+        std::array<float, 4> result{};
+        for (int axis = 0; axis < 4; ++axis) {
+            result[axis] = static_cast<float>(start[axis] + (end[axis] - start[axis]) * factor);
+        }
+        return normalizeQuaternion(result);
+    }
+
+    dot = std::clamp(dot, -1.0, 1.0);
+    const double theta = std::acos(dot);
+    const double sinTheta = std::sin(theta);
+    const double startWeight = std::sin((1.0 - factor) * theta) / sinTheta;
+    const double endWeight = std::sin(factor * theta) / sinTheta;
+
+    return normalizeQuaternion({
+        static_cast<float>(start[0] * startWeight + end[0] * endWeight),
+        static_cast<float>(start[1] * startWeight + end[1] * endWeight),
+        static_cast<float>(start[2] * startWeight + end[2] * endWeight),
+        static_cast<float>(start[3] * startWeight + end[3] * endWeight),
+    });
+}
+
+PoseKey makeInterpolatedPoseKey(const PoseKey& from, const PoseKey& to, const double timeSeconds)
+{
+    const double duration = to.timeSeconds - from.timeSeconds;
+    const double factor = duration > 0.0 ? clamp01((timeSeconds - from.timeSeconds) / duration) : 0.0;
+
+    PoseKey key;
+    key.timeSeconds = timeSeconds;
+    key.translation = lerpVector(from.translation, to.translation, factor);
+    key.rotationQuaternion = slerpQuaternion(from.rotationQuaternion, to.rotationQuaternion, factor);
+    key.rotationMatrix = quaternionToMatrix3(key.rotationQuaternion);
+    key.rotationDegrees = eulerRadiansToDegrees(matrix3ToEulerXyzCandidates(key.rotationMatrix)[0]);
+    return key;
+}
+
+void resamplePoseKeys(std::vector<PoseKey>& keys, const double sampleRate)
+{
+    if (sampleRate <= 0.0 || keys.size() < 2) {
+        return;
+    }
+
+    const double interval = 1.0 / sampleRate;
+    const double startTime = keys.front().timeSeconds;
+    const double endTime = keys.back().timeSeconds;
+    if (!std::isfinite(interval) || interval <= 0.0 || endTime <= startTime) {
+        return;
+    }
+
+    std::vector<PoseKey> source = std::move(keys);
+    std::vector<PoseKey> resampled;
+    const std::size_t estimatedCount = static_cast<std::size_t>(std::floor((endTime - startTime) / interval)) + 2;
+    resampled.reserve(estimatedCount);
+
+    std::size_t upperIndex = 1;
+    constexpr double epsilon = 1.0e-9;
+    for (double time = startTime; time <= endTime + epsilon; time += interval) {
+        const double sampleTime = std::min(time, endTime);
+        while (upperIndex + 1 < source.size() && source[upperIndex].timeSeconds < sampleTime) {
+            ++upperIndex;
+        }
+        resampled.push_back(makeInterpolatedPoseKey(source[upperIndex - 1], source[upperIndex], sampleTime));
+    }
+
+    if (!resampled.empty() && endTime - resampled.back().timeSeconds > interval * 0.25) {
+        resampled.push_back(source.back());
+    }
+
+    keys = std::move(resampled);
+}
+
+int fbxTimeModeForFrameRate(const double frameRate)
+{
+    if (nearlyEqual(frameRate, 120.0)) {
+        return 1;
+    }
+    if (nearlyEqual(frameRate, 100.0)) {
+        return 2;
+    }
+    if (nearlyEqual(frameRate, 60.0)) {
+        return 3;
+    }
+    if (nearlyEqual(frameRate, 50.0)) {
+        return 4;
+    }
+    if (nearlyEqual(frameRate, 48.0)) {
+        return 5;
+    }
+    if (nearlyEqual(frameRate, 30.0)) {
+        return 6;
+    }
+    if (nearlyEqual(frameRate, 25.0)) {
+        return 10;
+    }
+    if (nearlyEqual(frameRate, 24.0)) {
+        return 11;
+    }
+    if (nearlyEqual(frameRate, 1000.0)) {
+        return 12;
+    }
+    if (nearlyEqual(frameRate, 96.0)) {
+        return 15;
+    }
+    if (nearlyEqual(frameRate, 72.0)) {
+        return 16;
+    }
+    if (nearlyEqual(frameRate, 60000.0 / 1001.0)) {
+        return 17;
+    }
+    return 14;
+}
+
+double inferFrameRateFromKeys(const std::vector<DeviceExport>& devices)
+{
+    for (const DeviceExport& device : devices) {
+        if (device.keys.size() < 2) {
+            continue;
+        }
+
+        const double interval = device.keys[1].timeSeconds - device.keys[0].timeSeconds;
+        if (interval > 0.0 && std::isfinite(interval)) {
+            return 1.0 / interval;
+        }
+    }
+
+    return 0.0;
+}
+
+FbxTimelineSettings makeTimelineSettings(
+    const std::vector<DeviceExport>& devices,
+    const double requestedFrameRate,
+    const double sessionFrameRate
+)
+{
+    FbxTimelineSettings settings;
+    if (requestedFrameRate > 0.0) {
+        settings.frameRate = requestedFrameRate;
+    } else if (sessionFrameRate > 0.0) {
+        settings.frameRate = sessionFrameRate;
+    } else {
+        settings.frameRate = inferFrameRateFromKeys(devices);
+    }
+
+    if (settings.frameRate > 0.0 && std::isfinite(settings.frameRate)) {
+        settings.timeMode = fbxTimeModeForFrameRate(settings.frameRate);
+        settings.customFrameRate = settings.timeMode == 14 ? settings.frameRate : -1.0;
+    }
+
+    double startSeconds = 0.0;
+    double stopSeconds = 0.0;
+    bool hasKey = false;
+    for (const DeviceExport& device : devices) {
+        if (device.keys.empty()) {
+            continue;
+        }
+        if (!hasKey) {
+            startSeconds = device.keys.front().timeSeconds;
+            stopSeconds = device.keys.back().timeSeconds;
+            hasKey = true;
+        } else {
+            startSeconds = std::min(startSeconds, device.keys.front().timeSeconds);
+            stopSeconds = std::max(stopSeconds, device.keys.back().timeSeconds);
+        }
+    }
+
+    settings.startTime = toFbxTime(hasKey ? startSeconds : 0.0);
+    settings.stopTime = toFbxTime(hasKey ? stopSeconds : 0.0);
+    return settings;
 }
 
 std::string joinedDoubles(const std::vector<double>& values)
@@ -309,7 +682,7 @@ FbxGeometry loadSteamVRGeometry(const std::string& renderModelName, const FbxCoo
     return geometry;
 }
 
-void writeHeader(std::ostream& out, const FbxCoordinatePolicy policy)
+void writeHeader(std::ostream& out, const FbxCoordinatePolicy policy, const FbxTimelineSettings& timeline)
 {
     out << "; FBX 7.4.0 project file\n";
     out << "; Created by OpenVR Tracker Recorder\n";
@@ -337,6 +710,17 @@ void writeHeader(std::ostream& out, const FbxCoordinatePolicy policy)
         out << "        P: \"CoordAxisSign\", \"int\", \"Integer\", \"\",1\n";
     }
     out << "        P: \"UnitScaleFactor\", \"double\", \"Number\", \"\",1\n";
+    out << "        P: \"OriginalUnitScaleFactor\", \"double\", \"Number\", \"\",1\n";
+    out << "        P: \"AmbientColor\", \"ColorRGB\", \"Color\", \"\",0,0,0\n";
+    out << "        P: \"DefaultCamera\", \"KString\", \"\", \"\", \"Producer Perspective\"\n";
+    out << "        P: \"TimeMode\", \"enum\", \"\", \"\"," << timeline.timeMode << "\n";
+    out << "        P: \"TimeProtocol\", \"enum\", \"\", \"\",2\n";
+    out << "        P: \"SnapOnFrameMode\", \"enum\", \"\", \"\",0\n";
+    out << "        P: \"TimeSpanStart\", \"KTime\", \"Time\", \"\"," << timeline.startTime << "\n";
+    out << "        P: \"TimeSpanStop\", \"KTime\", \"Time\", \"\"," << timeline.stopTime << "\n";
+    out << "        P: \"CustomFrameRate\", \"double\", \"Number\", \"\"," << timeline.customFrameRate << "\n";
+    out << "        P: \"TimeMarker\", \"Compound\", \"\", \"\"\n";
+    out << "        P: \"CurrentTimeMarker\", \"int\", \"Integer\", \"\",-1\n";
     out << "    }\n";
     out << "}\n";
 }
@@ -369,6 +753,18 @@ void writeRootModel(std::ostream& out, const std::int64_t rootModelId)
     out << "        }\n";
     out << "        Shading: T\n";
     out << "        Culling: \"CullingOff\"\n";
+    out << "    }\n";
+}
+
+void writeAnimationStack(std::ostream& out, const std::int64_t stackId, const FbxTimelineSettings& timeline)
+{
+    out << "    AnimationStack: " << stackId << ", \"AnimStack::Recorded Motion\", \"\" {\n";
+    out << "        Properties70:  {\n";
+    out << "            P: \"LocalStart\", \"KTime\", \"Time\", \"\"," << timeline.startTime << "\n";
+    out << "            P: \"LocalStop\", \"KTime\", \"Time\", \"\"," << timeline.stopTime << "\n";
+    out << "            P: \"ReferenceStart\", \"KTime\", \"Time\", \"\"," << timeline.startTime << "\n";
+    out << "            P: \"ReferenceStop\", \"KTime\", \"Time\", \"\"," << timeline.stopTime << "\n";
+    out << "        }\n";
     out << "    }\n";
 }
 
@@ -499,32 +895,8 @@ std::string makeFbxSafeName(const DeviceDescriptor& device)
 
 std::array<double, 3> quaternionToEulerXyzDegrees(const std::array<float, 4>& quaternion)
 {
-    const std::array<float, 4> q = normalizeQuaternion(quaternion);
-    const double x = q[0];
-    const double y = q[1];
-    const double z = q[2];
-    const double w = q[3];
-
-    const double sinPitchRaw = 2.0 * (w * y - z * x);
-    double roll = 0.0;
-    double pitch = 0.0;
-    double yaw = 0.0;
-
-    if (std::fabs(sinPitchRaw) >= 1.0 - 1.0e-8) {
-        pitch = std::copysign(kPi * 0.5, sinPitchRaw);
-    } else {
-        const double sinRollCosPitch = 2.0 * (w * x + y * z);
-        const double cosRollCosPitch = 1.0 - 2.0 * (x * x + y * y);
-        roll = std::atan2(sinRollCosPitch, cosRollCosPitch);
-
-        pitch = std::asin(std::clamp(sinPitchRaw, -1.0, 1.0));
-
-        const double sinYawCosPitch = 2.0 * (w * z + x * y);
-        const double cosYawCosPitch = 1.0 - 2.0 * (y * y + z * z);
-        yaw = std::atan2(sinYawCosPitch, cosYawCosPitch);
-    }
-
-    return {roll * kRadiansToDegrees, pitch * kRadiansToDegrees, yaw * kRadiansToDegrees};
+    const Matrix3 matrix = quaternionToMatrix3(quaternion);
+    return eulerRadiansToDegrees(matrix3ToEulerXyzCandidates(matrix)[0]);
 }
 
 ExportResult exportSessionToFbxAscii(const RecordingSession& session, const FbxExportOptions& options)
@@ -603,10 +975,23 @@ ExportResult exportSessionToFbxAscii(const RecordingSession& session, const FbxE
                 static_cast<double>(translation[1]),
                 static_cast<double>(translation[2]),
             };
-            key.rotationDegrees = quaternionToEulerXyzDegrees(convertQuaternion(pose.rotation, options.coordinatePolicy));
+            const std::array<float, 4> rotation = convertQuaternion(pose.rotation, options.coordinatePolicy);
+            key.rotationQuaternion = rotation;
+            key.rotationMatrix = quaternionToMatrix3(rotation);
+            key.rotationDegrees = quaternionToEulerXyzDegrees(rotation);
             devices[found->second].keys.push_back(key);
         }
     }
+
+    for (DeviceExport& device : devices) {
+        resamplePoseKeys(device.keys, options.exportSampleRate);
+        applyEulerDiscontinuityFilter(device.keys);
+    }
+    const FbxTimelineSettings timeline = makeTimelineSettings(
+        devices,
+        options.exportSampleRate,
+        session.targetSampleRate
+    );
 
     std::error_code error;
     std::filesystem::create_directories(options.outputPath.parent_path(), error);
@@ -625,15 +1010,14 @@ ExportResult exportSessionToFbxAscii(const RecordingSession& session, const FbxE
     const std::int64_t stackId = nextId++;
     const std::int64_t layerId = nextId++;
 
-    writeHeader(out, options.coordinatePolicy);
+    writeHeader(out, options.coordinatePolicy, timeline);
     out << "Objects:  {\n";
     writeRootModel(out, rootModelId);
     for (const DeviceExport& device : devices) {
         writeGeometry(out, device);
         writeModel(out, device);
     }
-    out << "    AnimationStack: " << stackId << ", \"AnimStack::Recorded Motion\", \"\" {\n";
-    out << "    }\n";
+    writeAnimationStack(out, stackId, timeline);
     out << "    AnimationLayer: " << layerId << ", \"AnimLayer::BaseLayer\", \"\" {\n";
     out << "    }\n";
     for (const DeviceExport& device : devices) {

@@ -223,6 +223,13 @@ std::array<float, 4> axisAngleQuaternionZ(const double degrees)
     return {0.0f, 0.0f, static_cast<float>(std::sin(halfAngle)), static_cast<float>(std::cos(halfAngle))};
 }
 
+std::array<float, 4> axisAngleQuaternionY(const double degrees)
+{
+    constexpr double degreesToRadians = 3.14159265358979323846 / 180.0;
+    const double halfAngle = degrees * degreesToRadians * 0.5;
+    return {0.0f, static_cast<float>(std::sin(halfAngle)), 0.0f, static_cast<float>(std::cos(halfAngle))};
+}
+
 void testFbxQuaternionToEuler()
 {
     const auto identity = ovtr::quaternionToEulerXyzDegrees({0.0f, 0.0f, 0.0f, 1.0f});
@@ -350,9 +357,9 @@ void testFbxAsciiExport()
     std::filesystem::remove_all(testDir, ignored);
 }
 
-void testFbxRawEulerExport()
+void testFbxEulerDiscontinuityFilter()
 {
-    const std::filesystem::path testDir = std::filesystem::current_path() / ".tmp_ovtr_fbx_raw_euler_tests";
+    const std::filesystem::path testDir = std::filesystem::current_path() / ".tmp_ovtr_fbx_euler_filter_tests";
     std::error_code ignored;
     std::filesystem::remove_all(testDir, ignored);
     std::filesystem::create_directories(testDir);
@@ -367,20 +374,20 @@ void testFbxRawEulerExport()
     frame1.poses[0].rotation = ovtr::normalizeQuaternion(axisAngleQuaternionZ(190.0));
 
     ovtr::BinarySessionWriter writer;
-    require(writer.open(framesPath, indexPath), "FBX raw Euler writer open failed: " + writer.lastError());
-    require(writer.appendFrame(frame0), "FBX raw Euler append frame 0 failed: " + writer.lastError());
-    require(writer.appendFrame(frame1), "FBX raw Euler append frame 1 failed: " + writer.lastError());
+    require(writer.open(framesPath, indexPath), "FBX Euler filter writer open failed: " + writer.lastError());
+    require(writer.appendFrame(frame0), "FBX Euler filter append frame 0 failed: " + writer.lastError());
+    require(writer.appendFrame(frame1), "FBX Euler filter append frame 1 failed: " + writer.lastError());
     writer.close();
 
     ovtr::DeviceDescriptor tracker;
     tracker.id = 1;
     tracker.runtimeIndex = 3;
-    tracker.serial = "LHR-RAW";
+    tracker.serial = "LHR-FILTER";
     tracker.deviceClass = ovtr::DeviceClass::GenericTracker;
 
     ovtr::RecordingSession session;
-    session.sessionId = "fbx-raw-euler-test";
-    session.sessionName = "FBX Raw Euler Test";
+    session.sessionId = "fbx-euler-filter-test";
+    session.sessionName = "FBX Euler Filter Test";
     session.framesPath = framesPath;
     session.frameIndexPath = indexPath;
     session.devices = {tracker};
@@ -390,17 +397,139 @@ void testFbxRawEulerExport()
     options.includeGeometry = false;
     options.coordinatePolicy = ovtr::FbxCoordinatePolicy::OpenVRNative;
     const ovtr::ExportResult result = ovtr::exportSessionToFbxAscii(session, options);
-    require(result.success, "FBX raw Euler export failed: " + result.error);
+    require(result.success, "FBX Euler filter export failed: " + result.error);
 
     const std::string fbx = readTextFile(fbxPath);
-    const std::string rotationZCurve = findFbxObjectSection(fbx, "AnimCurve::Tracker_LHR_RAW_R_Z");
-    require(rotationZCurve.find("170.0000") != std::string::npos, "FBX raw Euler first Z key mismatch");
+    const std::string rotationZCurve = findFbxObjectSection(fbx, "AnimCurve::Tracker_LHR_FILTER_R_Z");
+    require(rotationZCurve.find("170.0000") != std::string::npos, "FBX Euler filter first Z key mismatch");
     require(
-        rotationZCurve.find("-170.0000") != std::string::npos ||
-            rotationZCurve.find("-169.999") != std::string::npos,
-        "FBX raw Euler export should keep wrapped quaternion-to-Euler value"
+        rotationZCurve.find("190.0000") != std::string::npos ||
+            rotationZCurve.find("189.999") != std::string::npos,
+        "FBX Euler filter should continue through 180 degrees"
     );
-    require(rotationZCurve.find("190.0000") == std::string::npos, "FBX raw Euler export should not unroll to 190 degrees");
+    require(rotationZCurve.find("-170.0000") == std::string::npos, "FBX Euler filter should remove wrapped -170 degree key");
+
+    std::filesystem::remove_all(testDir, ignored);
+}
+
+void testFbxEulerTripletCompatibilityFilter()
+{
+    const std::filesystem::path testDir = std::filesystem::current_path() / ".tmp_ovtr_fbx_euler_triplet_tests";
+    std::error_code ignored;
+    std::filesystem::remove_all(testDir, ignored);
+    std::filesystem::create_directories(testDir);
+
+    const std::filesystem::path framesPath = testDir / "frames.bin";
+    const std::filesystem::path indexPath = testDir / "frame_index.bin";
+    const std::filesystem::path fbxPath = testDir / "export.fbx";
+
+    ovtr::FrameSample frame0 = makeTestFrame(0);
+    ovtr::FrameSample frame1 = makeTestFrame(1);
+    frame0.poses[0].rotation = ovtr::normalizeQuaternion(axisAngleQuaternionY(89.0));
+    frame1.poses[0].rotation = ovtr::normalizeQuaternion(axisAngleQuaternionY(91.0));
+
+    ovtr::BinarySessionWriter writer;
+    require(writer.open(framesPath, indexPath), "FBX Euler triplet writer open failed: " + writer.lastError());
+    require(writer.appendFrame(frame0), "FBX Euler triplet append frame 0 failed: " + writer.lastError());
+    require(writer.appendFrame(frame1), "FBX Euler triplet append frame 1 failed: " + writer.lastError());
+    writer.close();
+
+    ovtr::DeviceDescriptor tracker;
+    tracker.id = 1;
+    tracker.runtimeIndex = 3;
+    tracker.serial = "LHR-TRIPLET";
+    tracker.deviceClass = ovtr::DeviceClass::GenericTracker;
+
+    ovtr::RecordingSession session;
+    session.sessionId = "fbx-euler-triplet-test";
+    session.sessionName = "FBX Euler Triplet Test";
+    session.framesPath = framesPath;
+    session.frameIndexPath = indexPath;
+    session.devices = {tracker};
+
+    ovtr::FbxExportOptions options;
+    options.outputPath = fbxPath;
+    options.includeGeometry = false;
+    options.coordinatePolicy = ovtr::FbxCoordinatePolicy::OpenVRNative;
+    const ovtr::ExportResult result = ovtr::exportSessionToFbxAscii(session, options);
+    require(result.success, "FBX Euler triplet export failed: " + result.error);
+
+    const std::string fbx = readTextFile(fbxPath);
+    const std::string rotationXCurve = findFbxObjectSection(fbx, "AnimCurve::Tracker_LHR_TRIPLET_R_X");
+    const std::string rotationYCurve = findFbxObjectSection(fbx, "AnimCurve::Tracker_LHR_TRIPLET_R_Y");
+    const std::string rotationZCurve = findFbxObjectSection(fbx, "AnimCurve::Tracker_LHR_TRIPLET_R_Z");
+    require(rotationXCurve.find("180.0000") == std::string::npos, "FBX Euler triplet filter should avoid X 180-degree flip");
+    require(rotationZCurve.find("180.0000") == std::string::npos, "FBX Euler triplet filter should avoid Z 180-degree flip");
+    require(
+        rotationYCurve.find("89.0000") != std::string::npos ||
+            rotationYCurve.find("88.999") != std::string::npos,
+        "FBX Euler triplet first Y key mismatch"
+    );
+    require(
+        rotationYCurve.find("91.0000") != std::string::npos ||
+            rotationYCurve.find("91.000") != std::string::npos ||
+            rotationYCurve.find("90.999") != std::string::npos,
+        "FBX Euler triplet filter should keep Y continuous past 90 degrees"
+    );
+
+    std::filesystem::remove_all(testDir, ignored);
+}
+
+void testFbxExportSampleRate()
+{
+    const std::filesystem::path testDir = std::filesystem::current_path() / ".tmp_ovtr_fbx_sample_rate_tests";
+    std::error_code ignored;
+    std::filesystem::remove_all(testDir, ignored);
+    std::filesystem::create_directories(testDir);
+
+    const std::filesystem::path framesPath = testDir / "frames.bin";
+    const std::filesystem::path indexPath = testDir / "frame_index.bin";
+    const std::filesystem::path fbxPath = testDir / "export.fbx";
+
+    ovtr::BinarySessionWriter writer;
+    require(writer.open(framesPath, indexPath), "FBX sample-rate writer open failed: " + writer.lastError());
+    require(writer.appendFrame(makeTestFrame(0)), "FBX sample-rate append frame 0 failed: " + writer.lastError());
+    require(writer.appendFrame(makeTestFrame(1)), "FBX sample-rate append frame 1 failed: " + writer.lastError());
+    require(writer.appendFrame(makeTestFrame(2)), "FBX sample-rate append frame 2 failed: " + writer.lastError());
+    require(writer.appendFrame(makeTestFrame(3)), "FBX sample-rate append frame 3 failed: " + writer.lastError());
+    writer.close();
+
+    ovtr::DeviceDescriptor tracker;
+    tracker.id = 1;
+    tracker.runtimeIndex = 3;
+    tracker.serial = "LHR-SAMPLE-RATE";
+    tracker.deviceClass = ovtr::DeviceClass::GenericTracker;
+
+    ovtr::RecordingSession session;
+    session.sessionId = "fbx-sample-rate-test";
+    session.sessionName = "FBX Sample Rate Test";
+    session.framesPath = framesPath;
+    session.frameIndexPath = indexPath;
+    session.devices = {tracker};
+
+    ovtr::FbxExportOptions options;
+    options.outputPath = fbxPath;
+    options.includeGeometry = false;
+    options.coordinatePolicy = ovtr::FbxCoordinatePolicy::OpenVRNative;
+    options.exportSampleRate = 60.0;
+    const ovtr::ExportResult result = ovtr::exportSessionToFbxAscii(session, options);
+    require(result.success, "FBX sample-rate export failed: " + result.error);
+
+    const std::string fbx = readTextFile(fbxPath);
+    require(fbx.find("P: \"TimeMode\", \"enum\", \"\", \"\",3") != std::string::npos, "FBX sample-rate export should declare 60 FPS time mode");
+    require(fbx.find("P: \"CustomFrameRate\", \"double\", \"Number\", \"\",-1") != std::string::npos, "FBX standard 60 FPS should not use a custom frame rate");
+    require(fbx.find("P: \"LocalStop\", \"KTime\", \"Time\", \"\",1539538585") != std::string::npos, "FBX animation stack should declare the resampled time span");
+    const std::string translationXCurve = findFbxObjectSection(fbx, "AnimCurve::Tracker_LHR_SAMPLE_RATE_T_X");
+    require(translationXCurve.find("KeyTime: *3") != std::string::npos, "FBX sample-rate export should write 3 keys");
+    require(translationXCurve.find("KeyValueFloat: *3") != std::string::npos, "FBX sample-rate values should have 3 keys");
+    require(
+        translationXCurve.find("a: 1.000000000,2.500") != std::string::npos,
+        "FBX sample-rate export should interpolate middle translation key"
+    );
+    require(
+        translationXCurve.find(",4.000000000") != std::string::npos,
+        "FBX sample-rate export should keep final translation key"
+    );
 
     std::filesystem::remove_all(testDir, ignored);
 }
@@ -460,7 +589,9 @@ int main()
         testFbxQuaternionToEuler();
         testFbxSafeName();
         testFbxAsciiExport();
-        testFbxRawEulerExport();
+        testFbxEulerDiscontinuityFilter();
+        testFbxEulerTripletCompatibilityFilter();
+        testFbxExportSampleRate();
         testRecordingController();
         testMockVRProvider();
     } catch (const std::exception& error) {

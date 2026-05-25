@@ -30,6 +30,7 @@ namespace {
 constexpr UINT_PTR kStatusTimerId = 1;
 constexpr UINT kStatusIntervalMs = 1000;
 constexpr double kTargetViewportFps = 90.0;
+constexpr double kFbxExportSampleRate = 60.0;
 constexpr std::uint32_t kNoSelectedRuntimeIndex = 0xffffffffu;
 constexpr const wchar_t* kMainWindowClassName = L"OpenVRTrackerRecorderBootstrapWindow";
 constexpr const wchar_t* kViewportWindowClassName = L"OpenVRTrackerRecorderGLViewport";
@@ -1297,6 +1298,7 @@ void exportCurrentSession(HWND hwnd)
     options.outputPath = std::filesystem::current_path() / "exports" / (session.sessionId + ".fbx");
     options.includeGeometry = true;
     options.includeTrackingReference = true;
+    options.exportSampleRate = kFbxExportSampleRate;
 
     const ovtr::ExportResult result = ovtr::exportSessionToFbxAscii(session, options);
     if (result.success) {
