@@ -1,0 +1,13 @@
+build/
+.vs/
+out/
+*.user
+*.suo
+*.obj
+*.lib
+!third_party/openvr/lib/**/*.lib
+*.exe
+*.pdb
+*.ilk
+*.log
+.tmp_ovtr_core_tests/

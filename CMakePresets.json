@@ -1,0 +1,70 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/default",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "OVTR_BUILD_TESTS": "ON",
+        "OVTR_BUILD_DESKTOP_APP": "OFF"
+      }
+    },
+    {
+      "name": "desktop",
+      "displayName": "Desktop App Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/desktop",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "OVTR_BUILD_TESTS": "ON",
+        "OVTR_BUILD_DESKTOP_APP": "ON"
+      }
+    },
+    {
+      "name": "vs2022",
+      "displayName": "Visual Studio 2022 Debug",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build/vs2022",
+      "cacheVariables": {
+        "OVTR_BUILD_TESTS": "ON",
+        "OVTR_BUILD_DESKTOP_APP": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default"
+    },
+    {
+      "name": "desktop",
+      "configurePreset": "desktop"
+    },
+    {
+      "name": "vs2022",
+      "configurePreset": "vs2022",
+      "configuration": "Debug"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "vs2022",
+      "configurePreset": "vs2022",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}
