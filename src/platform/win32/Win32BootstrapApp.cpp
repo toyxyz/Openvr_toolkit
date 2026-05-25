@@ -74,6 +74,7 @@ struct AppWindowState {
     std::uint64_t renderFrames = 0;
     double posePollFps = 0.0;
     double renderFps = 0.0;
+    std::chrono::steady_clock::time_point lastDeviceEnumeration{};
     double targetViewportFps = kTargetViewportFps;
     float cameraYawDegrees = 42.0f;
     float cameraPitchDegrees = 28.0f;
@@ -1138,7 +1139,28 @@ void updateFpsCounters(AppWindowState& state)
     state.lastFpsUpdate = now;
 }
 
-void refreshStatus(HWND hwnd)
+bool deviceListEventReceived(const std::vector<ovtr::VREvent>& events)
+{
+    for (const ovtr::VREvent& event : events) {
+        if (event.type == ovtr::VREventType::DeviceActivated ||
+            event.type == ovtr::VREventType::DeviceDeactivated ||
+            event.type == ovtr::VREventType::DeviceUpdated) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void invalidateStatusPanel(HWND hwnd)
+{
+    RECT clientRect;
+    GetClientRect(hwnd, &clientRect);
+    const int leftPanelWidth = leftPanelWidthForClient(clientRect.right - clientRect.left);
+    RECT statusRect{0, 0, leftPanelWidth, clientRect.bottom};
+    InvalidateRect(hwnd, &statusRect, FALSE);
+}
+
+void refreshStatus(HWND hwnd, const bool forceDeviceEnumeration = false)
 {
     auto* state = reinterpret_cast<AppWindowState*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
     if (!state) {
@@ -1155,17 +1177,29 @@ void refreshStatus(HWND hwnd)
     if (state->provider.isInitialized()) {
         std::vector<ovtr::VREvent> events;
         state->provider.pollEvents(events);
-        state->devices = state->provider.enumerateDevices();
+
+        const auto now = std::chrono::steady_clock::now();
+        const bool deviceRefreshDue =
+            state->lastDeviceEnumeration.time_since_epoch().count() == 0 ||
+            std::chrono::duration<double>(now - state->lastDeviceEnumeration).count() >= 10.0;
+        if (forceDeviceEnumeration ||
+            state->devices.empty() ||
+            deviceRefreshDue ||
+            deviceListEventReceived(events)) {
+            state->devices = state->provider.enumerateDevices();
+            state->lastDeviceEnumeration = now;
+        }
         ensureOriginSelection(*state);
     } else {
         state->devices.clear();
+        state->lastDeviceEnumeration = {};
         state->poses = {};
         ensureOriginSelection(*state);
         state->providerError = state->provider.lastError();
     }
 
     updateFpsCounters(*state);
-    InvalidateRect(hwnd, nullptr, TRUE);
+    invalidateStatusPanel(hwnd);
 }
 
 void refreshPoseAndViewport(HWND hwnd)
@@ -1225,7 +1259,7 @@ void toggleRecording(HWND hwnd)
         if (!state->recorder.stop(durationSeconds, state->recordingDroppedFrames)) {
             state->recordingError = state->recorder.lastError();
         }
-        InvalidateRect(hwnd, nullptr, TRUE);
+        invalidateStatusPanel(hwnd);
         return;
     }
 
@@ -1257,7 +1291,7 @@ void toggleRecording(HWND hwnd)
         state->recordingError = state->recorder.lastError();
     }
 
-    InvalidateRect(hwnd, nullptr, TRUE);
+    invalidateStatusPanel(hwnd);
 }
 
 void exportCurrentSession(HWND hwnd, const ExportFormat format)
@@ -1275,13 +1309,13 @@ void exportCurrentSession(HWND hwnd, const ExportFormat format)
         state->recorder.state() == ovtr::RecorderState::Stopping ||
         state->recorder.state() == ovtr::RecorderState::Finalizing) {
         state->exportStatusMessage = "stop recording before exporting";
-        InvalidateRect(hwnd, nullptr, TRUE);
+        invalidateStatusPanel(hwnd);
         return;
     }
 
     if (state->currentSessionFolder.empty()) {
         state->exportStatusMessage = "no recorded session available";
-        InvalidateRect(hwnd, nullptr, TRUE);
+        invalidateStatusPanel(hwnd);
         return;
     }
 
@@ -1325,23 +1359,38 @@ void exportCurrentSession(HWND hwnd, const ExportFormat format)
             result.error;
     }
 
-    InvalidateRect(hwnd, nullptr, TRUE);
+    invalidateStatusPanel(hwnd);
 }
 
 void paintWindow(HWND hwnd)
 {
     PAINTSTRUCT paint;
-    HDC dc = BeginPaint(hwnd, &paint);
+    HDC paintDc = BeginPaint(hwnd, &paint);
 
     RECT clientRect;
     GetClientRect(hwnd, &clientRect);
+    const int clientWidth = clientRect.right - clientRect.left;
+    const int clientHeight = clientRect.bottom - clientRect.top;
+    if (clientWidth <= 0 || clientHeight <= 0) {
+        EndPaint(hwnd, &paint);
+        return;
+    }
+
+    HDC bufferDc = CreateCompatibleDC(paintDc);
+    HBITMAP bufferBitmap = bufferDc ? CreateCompatibleBitmap(paintDc, clientWidth, clientHeight) : nullptr;
+    HGDIOBJ previousBitmap = nullptr;
+    HDC drawDc = paintDc;
+    if (bufferDc && bufferBitmap) {
+        previousBitmap = SelectObject(bufferDc, bufferBitmap);
+        drawDc = bufferDc;
+    }
 
     HBRUSH background = CreateSolidBrush(RGB(24, 26, 30));
-    FillRect(dc, &clientRect, background);
+    FillRect(drawDc, &clientRect, background);
     DeleteObject(background);
 
-    SetBkMode(dc, TRANSPARENT);
-    SetTextColor(dc, RGB(230, 234, 240));
+    SetBkMode(drawDc, TRANSPARENT);
+    SetTextColor(drawDc, RGB(230, 234, 240));
 
     HFONT titleFont = CreateFontW(
         26,
@@ -1383,13 +1432,26 @@ void paintWindow(HWND hwnd)
 
     int y = 28;
     for (std::size_t i = 0; i < lines.size(); ++i) {
-        SelectObject(dc, i == 0 ? titleFont : bodyFont);
+        SelectObject(drawDc, i == 0 ? titleFont : bodyFont);
         const int lineHeight = i == 0 ? 34 : 25;
         RECT lineRect{32, y, textRight, y + lineHeight};
-        DrawTextW(dc, lines[i].c_str(), static_cast<int>(lines[i].size()), &lineRect, DT_LEFT | DT_TOP | DT_SINGLELINE | DT_END_ELLIPSIS);
+        DrawTextW(drawDc, lines[i].c_str(), static_cast<int>(lines[i].size()), &lineRect, DT_LEFT | DT_TOP | DT_SINGLELINE | DT_END_ELLIPSIS);
         y += lineHeight;
     }
 
+    if (drawDc == bufferDc) {
+        BitBlt(paintDc, 0, 0, clientWidth, clientHeight, bufferDc, 0, 0, SRCCOPY);
+    }
+
+    if (previousBitmap) {
+        SelectObject(bufferDc, previousBitmap);
+    }
+    if (bufferBitmap) {
+        DeleteObject(bufferBitmap);
+    }
+    if (bufferDc) {
+        DeleteDC(bufferDc);
+    }
     DeleteObject(titleFont);
     DeleteObject(bodyFont);
     EndPaint(hwnd, &paint);
@@ -1449,6 +1511,8 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
         PostQuitMessage(0);
         return 0;
     }
+    case WM_ERASEBKGND:
+        return 1;
     case WM_TIMER:
         if (wparam == kStatusTimerId) {
             refreshStatus(hwnd);
@@ -1525,7 +1589,7 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
             return 0;
         }
         if (wparam == VK_F5) {
-            refreshStatus(hwnd);
+            refreshStatus(hwnd, true);
             refreshPoseAndViewport(hwnd);
             return 0;
         }
@@ -1533,7 +1597,7 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
             auto* state = reinterpret_cast<AppWindowState*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
             if (state) {
                 selectNextOriginDevice(*state);
-                InvalidateRect(hwnd, nullptr, TRUE);
+                invalidateStatusPanel(hwnd);
             }
             return 0;
         }
@@ -1542,7 +1606,7 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
             if (state) {
                 setOriginFromSelectedDevice(*state);
                 refreshPoseAndViewport(hwnd);
-                InvalidateRect(hwnd, nullptr, TRUE);
+                invalidateStatusPanel(hwnd);
             }
             return 0;
         }
@@ -1551,7 +1615,7 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
             if (state) {
                 clearOrigin(*state);
                 refreshPoseAndViewport(hwnd);
-                InvalidateRect(hwnd, nullptr, TRUE);
+                invalidateStatusPanel(hwnd);
             }
             return 0;
         }
@@ -1570,12 +1634,6 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
         break;
     case WM_PAINT:
         paintWindow(hwnd);
-        {
-            auto* state = reinterpret_cast<AppWindowState*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
-            if (state && state->glWindow) {
-                renderViewport(state->glWindow);
-            }
-        }
         return 0;
     default:
         break;
@@ -1657,7 +1715,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand)
         0,
         kMainWindowClassName,
         L"OpenVR Tracker Recorder",
-        WS_OVERLAPPEDWINDOW,
+        WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
         1480,
@@ -1675,7 +1733,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand)
     ShowWindow(hwnd, showCommand);
     UpdateWindow(hwnd);
     layoutChildWindows(hwnd);
-    refreshStatus(hwnd);
+    refreshStatus(hwnd, true);
     refreshPoseAndViewport(hwnd);
     RedrawWindow(hwnd, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN);
 
