@@ -126,6 +126,31 @@ std::int64_t toFbxTime(const double seconds)
     return static_cast<std::int64_t>(std::llround(seconds * static_cast<double>(kFbxTicksPerSecond)));
 }
 
+double unrollAngleNearPrevious(double angle, const double previous)
+{
+    while (angle - previous > 180.0) {
+        angle -= 360.0;
+    }
+    while (angle - previous < -180.0) {
+        angle += 360.0;
+    }
+    return angle;
+}
+
+void applyEulerUnroll(std::vector<PoseKey>& keys)
+{
+    if (keys.size() < 2) {
+        return;
+    }
+
+    for (std::size_t keyIndex = 1; keyIndex < keys.size(); ++keyIndex) {
+        for (std::size_t axis = 0; axis < keys[keyIndex].rotationDegrees.size(); ++axis) {
+            keys[keyIndex].rotationDegrees[axis] =
+                unrollAngleNearPrevious(keys[keyIndex].rotationDegrees[axis], keys[keyIndex - 1].rotationDegrees[axis]);
+        }
+    }
+}
+
 std::array<double, 3> convertVector(const std::array<double, 3>& value, const FbxCoordinatePolicy policy)
 {
     if (policy == FbxCoordinatePolicy::Blender) {
@@ -605,6 +630,12 @@ ExportResult exportSessionToFbxAscii(const RecordingSession& session, const FbxE
             };
             key.rotationDegrees = quaternionToEulerXyzDegrees(convertQuaternion(pose.rotation, options.coordinatePolicy));
             devices[found->second].keys.push_back(key);
+        }
+    }
+
+    if (options.applyEulerUnroll) {
+        for (DeviceExport& device : devices) {
+            applyEulerUnroll(device.keys);
         }
     }
 

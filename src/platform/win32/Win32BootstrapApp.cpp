@@ -30,6 +30,7 @@ namespace {
 constexpr UINT_PTR kStatusTimerId = 1;
 constexpr UINT kStatusIntervalMs = 1000;
 constexpr double kTargetViewportFps = 90.0;
+constexpr std::uint32_t kNoSelectedRuntimeIndex = 0xffffffffu;
 constexpr const wchar_t* kMainWindowClassName = L"OpenVRTrackerRecorderBootstrapWindow";
 constexpr const wchar_t* kViewportWindowClassName = L"OpenVRTrackerRecorderGLViewport";
 
@@ -84,6 +85,10 @@ struct AppWindowState {
     std::filesystem::path currentSessionFolder;
     std::string recordingError;
     std::string exportStatusMessage;
+    bool originEnabled = false;
+    std::array<float, 3> originOffset{0.0f, 0.0f, 0.0f};
+    std::uint32_t selectedOriginRuntimeIndex = kNoSelectedRuntimeIndex;
+    std::string originStatusMessage;
     std::unordered_map<std::string, RenderModelMesh> renderModelCache;
 };
 
@@ -169,7 +174,8 @@ std::string utcTimestampIso()
 
 std::string poseSummaryForDevice(
     const ovtr::PosePollResult& poses,
-    const std::uint32_t runtimeIndex
+    const std::uint32_t runtimeIndex,
+    const std::array<float, 3>& originOffset
 )
 {
     for (const ovtr::PoseSample& pose : poses.poses) {
@@ -177,9 +183,15 @@ std::string poseSummaryForDevice(
             continue;
         }
 
+        const std::array<float, 3> position{
+            pose.position[0] - originOffset[0],
+            pose.position[1] - originOffset[1],
+            pose.position[2] - originOffset[2],
+        };
+
         std::ostringstream stream;
         stream << std::fixed << std::setprecision(3)
-               << "pos=(" << pose.position[0] << ", " << pose.position[1] << ", " << pose.position[2] << ") "
+               << "pos=(" << position[0] << ", " << position[1] << ", " << position[2] << ") "
                << "rot=(" << pose.rotation[0] << ", " << pose.rotation[1] << ", "
                << pose.rotation[2] << ", " << pose.rotation[3] << ")";
         if ((pose.flags & ovtr::PoseFlagPoseValid) == 0) {
@@ -248,21 +260,54 @@ std::vector<std::wstring> makeStatusLines(const AppWindowState& state)
         lines.emplace_back(L"Export: " + widen(state.exportStatusMessage));
     }
 
+    {
+        std::wostringstream stream;
+        stream << L"Origin: " << (state.originEnabled ? L"Enabled" : L"Disabled");
+        const ovtr::DeviceDescriptor* selected = nullptr;
+        for (const ovtr::DeviceDescriptor& device : state.devices) {
+            if (device.runtimeIndex == state.selectedOriginRuntimeIndex) {
+                selected = &device;
+                break;
+            }
+        }
+        if (selected != nullptr) {
+            std::ostringstream name;
+            name << "#" << selected->runtimeIndex << " " << ovtr::toString(selected->deviceClass);
+            if (!selected->serial.empty()) {
+                name << " " << selected->serial;
+            }
+            stream << L"   Selected: " << widen(name.str());
+        }
+        if (state.originEnabled) {
+            stream << std::fixed << std::setprecision(3)
+                   << L"   Offset: (" << state.originOffset[0]
+                   << L", " << state.originOffset[1]
+                   << L", " << state.originOffset[2] << L")";
+        }
+        lines.emplace_back(stream.str());
+    }
+    if (!state.originStatusMessage.empty()) {
+        lines.emplace_back(L"Origin status: " + widen(state.originStatusMessage));
+    }
+
     lines.emplace_back(L"");
     lines.emplace_back(L"Tracked devices: " + std::to_wstring(state.devices.size()));
+    const std::array<float, 3> activeOriginOffset = state.originEnabled
+        ? state.originOffset
+        : std::array<float, 3>{0.0f, 0.0f, 0.0f};
     for (const ovtr::DeviceDescriptor& device : state.devices) {
         std::ostringstream stream;
         stream << "#" << device.runtimeIndex
                << " " << ovtr::toString(device.deviceClass)
                << " serial=" << (device.serial.empty() ? "(none)" : device.serial)
                << " model=" << (device.modelName.empty() ? "(unknown)" : device.modelName)
-               << " " << poseSummaryForDevice(state.poses, device.runtimeIndex);
+               << " " << poseSummaryForDevice(state.poses, device.runtimeIndex, activeOriginOffset);
         lines.emplace_back(L"  " + widen(stream.str()));
     }
 
     lines.emplace_back(L"");
     lines.emplace_back(L"Viewport: perspective 3D, X red, Y green, Z blue.");
-    lines.emplace_back(L"Left drag orbit, middle drag pan, wheel zoom, R record, E export FBX, Esc exit.");
+    lines.emplace_back(L"Left drag orbit, middle drag pan, wheel zoom, Tab select origin, O set, C clear, R record, E export FBX, Esc exit.");
     return lines;
 }
 
@@ -443,6 +488,131 @@ const ovtr::DeviceDescriptor* deviceForRuntimeIndex(
         }
     }
     return nullptr;
+}
+
+const ovtr::PoseSample* poseForRuntimeIndex(
+    const ovtr::PosePollResult& poses,
+    const std::uint32_t runtimeIndex
+)
+{
+    for (const ovtr::PoseSample& pose : poses.poses) {
+        if (pose.runtimeIndex == runtimeIndex) {
+            return &pose;
+        }
+    }
+    return nullptr;
+}
+
+bool isPoseValid(const ovtr::PoseSample& pose)
+{
+    return (pose.flags & ovtr::PoseFlagPoseValid) != 0;
+}
+
+ovtr::PoseSample applyOriginToPose(
+    ovtr::PoseSample pose,
+    const bool originEnabled,
+    const std::array<float, 3>& originOffset
+)
+{
+    if (originEnabled) {
+        pose.position[0] -= originOffset[0];
+        pose.position[1] -= originOffset[1];
+        pose.position[2] -= originOffset[2];
+    }
+    return pose;
+}
+
+ovtr::PosePollResult applyOriginToPoses(
+    ovtr::PosePollResult poses,
+    const bool originEnabled,
+    const std::array<float, 3>& originOffset
+)
+{
+    if (!originEnabled) {
+        return poses;
+    }
+
+    for (ovtr::PoseSample& pose : poses.poses) {
+        pose = applyOriginToPose(pose, true, originOffset);
+    }
+    return poses;
+}
+
+std::string deviceDisplayName(const ovtr::DeviceDescriptor& device)
+{
+    std::ostringstream stream;
+    stream << "#" << device.runtimeIndex << " " << ovtr::toString(device.deviceClass);
+    if (!device.serial.empty()) {
+        stream << " " << device.serial;
+    }
+    return stream.str();
+}
+
+const ovtr::DeviceDescriptor* selectedOriginDevice(const AppWindowState& state)
+{
+    return deviceForRuntimeIndex(state.devices, state.selectedOriginRuntimeIndex);
+}
+
+void ensureOriginSelection(AppWindowState& state)
+{
+    if (state.devices.empty()) {
+        state.selectedOriginRuntimeIndex = kNoSelectedRuntimeIndex;
+        return;
+    }
+
+    if (selectedOriginDevice(state) == nullptr) {
+        state.selectedOriginRuntimeIndex = state.devices.front().runtimeIndex;
+    }
+}
+
+void selectNextOriginDevice(AppWindowState& state)
+{
+    if (state.devices.empty()) {
+        state.selectedOriginRuntimeIndex = kNoSelectedRuntimeIndex;
+        state.originStatusMessage = "no devices to select as origin";
+        return;
+    }
+
+    const ovtr::DeviceDescriptor* current = selectedOriginDevice(state);
+    if (current == nullptr) {
+        state.selectedOriginRuntimeIndex = state.devices.front().runtimeIndex;
+    } else {
+        const auto currentIndex = static_cast<std::size_t>(current - state.devices.data());
+        const std::size_t nextIndex = (currentIndex + 1) % state.devices.size();
+        state.selectedOriginRuntimeIndex = state.devices[nextIndex].runtimeIndex;
+    }
+
+    const ovtr::DeviceDescriptor* selected = selectedOriginDevice(state);
+    state.originStatusMessage = selected
+        ? "selected " + deviceDisplayName(*selected)
+        : "origin selection unavailable";
+}
+
+void setOriginFromSelectedDevice(AppWindowState& state)
+{
+    ensureOriginSelection(state);
+    const ovtr::DeviceDescriptor* selected = selectedOriginDevice(state);
+    if (selected == nullptr) {
+        state.originStatusMessage = "no device selected for origin";
+        return;
+    }
+
+    const ovtr::PoseSample* pose = poseForRuntimeIndex(state.poses, selected->runtimeIndex);
+    if (pose == nullptr || !isPoseValid(*pose)) {
+        state.originStatusMessage = "selected device has no valid pose";
+        return;
+    }
+
+    state.originEnabled = true;
+    state.originOffset = pose->position;
+    state.originStatusMessage = "origin set from " + deviceDisplayName(*selected);
+}
+
+void clearOrigin(AppWindowState& state)
+{
+    state.originEnabled = false;
+    state.originOffset = {0.0f, 0.0f, 0.0f};
+    state.originStatusMessage = "origin cleared";
 }
 
 std::string labelForDevice(const ovtr::DeviceDescriptor* device, const ovtr::PoseSample& pose)
@@ -728,16 +898,22 @@ void renderViewport(HWND hwnd)
     drawAxes3D();
 
     for (const ovtr::PoseSample& pose : state->poses.poses) {
-        const ovtr::DeviceDescriptor* device = deviceForRuntimeIndex(state->devices, pose.runtimeIndex);
+        const ovtr::PoseSample displayPose = applyOriginToPose(pose, state->originEnabled, state->originOffset);
+        const ovtr::DeviceDescriptor* device = deviceForRuntimeIndex(state->devices, displayPose.runtimeIndex);
         const ovtr::DeviceClass deviceClass = device ? device->deviceClass : ovtr::DeviceClass::Other;
-        const bool modelDrawn = drawSteamVRRenderModel3D(*state, pose, device);
-        drawDeviceMarker3D(pose, deviceClass, !modelDrawn);
+        const bool modelDrawn = drawSteamVRRenderModel3D(*state, displayPose, device);
+        drawDeviceMarker3D(displayPose, deviceClass, !modelDrawn);
     }
 
     glDisable(GL_DEPTH_TEST);
     glColor3f(0.90f, 0.94f, 1.0f);
     for (const ovtr::PoseSample& pose : state->poses.poses) {
-        drawDeviceLabel3D(pose, deviceForRuntimeIndex(state->devices, pose.runtimeIndex), state->glLabelFontBase);
+        const ovtr::PoseSample displayPose = applyOriginToPose(pose, state->originEnabled, state->originOffset);
+        drawDeviceLabel3D(
+            displayPose,
+            deviceForRuntimeIndex(state->devices, displayPose.runtimeIndex),
+            state->glLabelFontBase
+        );
     }
 
     SwapBuffers(state->glDeviceContext);
@@ -973,9 +1149,11 @@ void refreshStatus(HWND hwnd)
         std::vector<ovtr::VREvent> events;
         state->provider.pollEvents(events);
         state->devices = state->provider.enumerateDevices();
+        ensureOriginSelection(*state);
     } else {
         state->devices.clear();
         state->poses = {};
+        ensureOriginSelection(*state);
         state->providerError = state->provider.lastError();
     }
 
@@ -1005,7 +1183,11 @@ void refreshPoseAndViewport(HWND hwnd)
                         std::chrono::duration_cast<std::chrono::nanoseconds>(now - state->recordingStart).count()
                     );
                     frame.timeSeconds = static_cast<double>(frame.timestampNs) / 1'000'000'000.0;
-                    frame.poses = state->poses.poses;
+                    frame.poses = applyOriginToPoses(
+                        state->poses,
+                        state->originEnabled,
+                        state->originOffset
+                    ).poses;
 
                     if (!state->recorder.appendFrame(frame)) {
                         state->recordingError = state->recorder.lastError();
@@ -1325,6 +1507,32 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
         if (wparam == VK_F5) {
             refreshStatus(hwnd);
             refreshPoseAndViewport(hwnd);
+            return 0;
+        }
+        if (wparam == VK_TAB) {
+            auto* state = reinterpret_cast<AppWindowState*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+            if (state) {
+                selectNextOriginDevice(*state);
+                InvalidateRect(hwnd, nullptr, TRUE);
+            }
+            return 0;
+        }
+        if (wparam == 'O') {
+            auto* state = reinterpret_cast<AppWindowState*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+            if (state) {
+                setOriginFromSelectedDevice(*state);
+                refreshPoseAndViewport(hwnd);
+                InvalidateRect(hwnd, nullptr, TRUE);
+            }
+            return 0;
+        }
+        if (wparam == 'C') {
+            auto* state = reinterpret_cast<AppWindowState*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+            if (state) {
+                clearOrigin(*state);
+                refreshPoseAndViewport(hwnd);
+                InvalidateRect(hwnd, nullptr, TRUE);
+            }
             return 0;
         }
         if (wparam == 'R') {

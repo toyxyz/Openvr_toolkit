@@ -216,6 +216,13 @@ std::string findFbxObjectSection(const std::string& fbx, const std::string& mark
     return fbx.substr(start, nextCurve - start);
 }
 
+std::array<float, 4> axisAngleQuaternionZ(const double degrees)
+{
+    constexpr double degreesToRadians = 3.14159265358979323846 / 180.0;
+    const double halfAngle = degrees * degreesToRadians * 0.5;
+    return {0.0f, 0.0f, static_cast<float>(std::sin(halfAngle)), static_cast<float>(std::cos(halfAngle))};
+}
+
 void testFbxQuaternionToEuler()
 {
     const auto identity = ovtr::quaternionToEulerXyzDegrees({0.0f, 0.0f, 0.0f, 1.0f});
@@ -339,6 +346,61 @@ void testFbxAsciiExport()
     std::filesystem::remove_all(testDir, ignored);
 }
 
+void testFbxEulerUnroll()
+{
+    const std::filesystem::path testDir = std::filesystem::current_path() / ".tmp_ovtr_fbx_unroll_tests";
+    std::error_code ignored;
+    std::filesystem::remove_all(testDir, ignored);
+    std::filesystem::create_directories(testDir);
+
+    const std::filesystem::path framesPath = testDir / "frames.bin";
+    const std::filesystem::path indexPath = testDir / "frame_index.bin";
+    const std::filesystem::path fbxPath = testDir / "export.fbx";
+
+    ovtr::FrameSample frame0 = makeTestFrame(0);
+    ovtr::FrameSample frame1 = makeTestFrame(1);
+    frame0.poses[0].rotation = ovtr::normalizeQuaternion(axisAngleQuaternionZ(170.0));
+    frame1.poses[0].rotation = ovtr::normalizeQuaternion(axisAngleQuaternionZ(190.0));
+
+    ovtr::BinarySessionWriter writer;
+    require(writer.open(framesPath, indexPath), "FBX unroll writer open failed: " + writer.lastError());
+    require(writer.appendFrame(frame0), "FBX unroll append frame 0 failed: " + writer.lastError());
+    require(writer.appendFrame(frame1), "FBX unroll append frame 1 failed: " + writer.lastError());
+    writer.close();
+
+    ovtr::DeviceDescriptor tracker;
+    tracker.id = 1;
+    tracker.runtimeIndex = 3;
+    tracker.serial = "LHR-UNROLL";
+    tracker.deviceClass = ovtr::DeviceClass::GenericTracker;
+
+    ovtr::RecordingSession session;
+    session.sessionId = "fbx-unroll-test";
+    session.sessionName = "FBX Unroll Test";
+    session.framesPath = framesPath;
+    session.frameIndexPath = indexPath;
+    session.devices = {tracker};
+
+    ovtr::FbxExportOptions options;
+    options.outputPath = fbxPath;
+    options.includeGeometry = false;
+    options.coordinatePolicy = ovtr::FbxCoordinatePolicy::OpenVRNative;
+    const ovtr::ExportResult result = ovtr::exportSessionToFbxAscii(session, options);
+    require(result.success, "FBX unroll export failed: " + result.error);
+
+    const std::string fbx = readTextFile(fbxPath);
+    const std::string rotationZCurve = findFbxObjectSection(fbx, "AnimCurve::Tracker_LHR_UNROLL_R_Z");
+    require(rotationZCurve.find("170.0000") != std::string::npos, "FBX unroll first Z key mismatch");
+    require(
+        rotationZCurve.find("190.0000") != std::string::npos ||
+            rotationZCurve.find("189.9999") != std::string::npos,
+        "FBX unroll should continue through 180 degrees"
+    );
+    require(rotationZCurve.find("-170.0000") == std::string::npos, "FBX unroll should not wrap to -170 degrees");
+
+    std::filesystem::remove_all(testDir, ignored);
+}
+
 void testRecordingController()
 {
     const std::filesystem::path testDir = std::filesystem::current_path() / ".tmp_ovtr_controller_tests";
@@ -394,6 +456,7 @@ int main()
         testFbxQuaternionToEuler();
         testFbxSafeName();
         testFbxAsciiExport();
+        testFbxEulerUnroll();
         testRecordingController();
         testMockVRProvider();
     } catch (const std::exception& error) {
