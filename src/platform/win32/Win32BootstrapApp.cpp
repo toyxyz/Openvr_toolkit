@@ -32,6 +32,9 @@ constexpr UINT_PTR kStatusTimerId = 1;
 constexpr UINT kStatusIntervalMs = 1000;
 constexpr double kTargetViewportFps = 90.0;
 constexpr double kFbxExportSampleRate = 60.0;
+constexpr float kMinimumCameraDistance = 0.08f;
+constexpr float kViewportFovDegrees = 48.0f;
+constexpr float kRenderModelOutlinePixels = 2.6f;
 constexpr std::uint32_t kNoSelectedRuntimeIndex = 0xffffffffu;
 constexpr const wchar_t* kMainWindowClassName = L"OpenVRTrackerRecorderBootstrapWindow";
 constexpr const wchar_t* kViewportWindowClassName = L"OpenVRTrackerRecorderGLViewport";
@@ -44,6 +47,7 @@ enum class ExportFormat {
 struct RenderModelVertex {
     std::array<float, 3> position{0.0f, 0.0f, 0.0f};
     std::array<float, 3> normal{0.0f, 1.0f, 0.0f};
+    std::array<float, 2> texCoord{0.0f, 0.0f};
 };
 
 struct RenderModelMesh {
@@ -56,6 +60,10 @@ struct RenderModelMesh {
     LoadState state = LoadState::Pending;
     std::vector<RenderModelVertex> vertices;
     std::vector<std::uint16_t> indices;
+    int diffuseTextureId = -1;
+    GLuint textureId = 0;
+    bool textureAvailable = false;
+    bool textureLoadFailed = false;
 };
 
 struct AppWindowState {
@@ -315,7 +323,7 @@ std::vector<std::wstring> makeStatusLines(const AppWindowState& state)
 
     lines.emplace_back(L"");
     lines.emplace_back(L"Viewport: perspective 3D, X red, Y green, Z blue.");
-    lines.emplace_back(L"Left drag orbit, middle drag pan, wheel zoom, Tab select origin, O set, C clear, R record, E export FBX, G export GLB, Esc exit.");
+    lines.emplace_back(L"Left drag orbit, middle drag pan, wheel dolly, Tab select origin, O set, C clear, R record, E export FBX, G export GLB, Esc exit.");
     return lines;
 }
 
@@ -328,6 +336,11 @@ float clampFloat(const float value, const float minValue, const float maxValue)
         return maxValue;
     }
     return value;
+}
+
+float positiveCameraDistance(const float distance)
+{
+    return distance < kMinimumCameraDistance ? kMinimumCameraDistance : distance;
 }
 
 struct Vec3 {
@@ -375,13 +388,56 @@ void applyScreenSpacePan(AppWindowState& state, const int dx, const int dy)
     const Vec3 right = rotateByInverseViewRotation(state, {1.0f, 0.0f, 0.0f});
     const Vec3 up = rotateByInverseViewRotation(state, {0.0f, 1.0f, 0.0f});
 
-    const float panScale = 0.0018f * state.cameraDistance;
+    const float panScale = 0.0018f * positiveCameraDistance(state.cameraDistance);
     const float moveRight = -static_cast<float>(dx) * panScale;
     const float moveUp = static_cast<float>(dy) * panScale;
 
     state.cameraPanX += right.x * moveRight + up.x * moveUp;
     state.cameraPanY += right.y * moveRight + up.y * moveUp;
     state.cameraPanZ += right.z * moveRight + up.z * moveUp;
+}
+
+void applyCameraDolly(AppWindowState& state, const float distance)
+{
+    const Vec3 forward = rotateByInverseViewRotation(state, {0.0f, 0.0f, -1.0f});
+    state.cameraPanX += forward.x * distance;
+    state.cameraPanY += forward.y * distance;
+    state.cameraPanZ += forward.z * distance;
+}
+
+float cameraDepthForWorldPoint(const AppWindowState& state, const Vec3 point)
+{
+    const float yaw = state.cameraYawDegrees * 3.14159265359f / 180.0f;
+    const float pitch = state.cameraPitchDegrees * 3.14159265359f / 180.0f;
+    const float cosYaw = std::cos(yaw);
+    const float sinYaw = std::sin(yaw);
+    const float cosPitch = std::cos(pitch);
+    const float sinPitch = std::sin(pitch);
+
+    const Vec3 translated{
+        point.x - state.cameraPanX,
+        point.y - state.cameraPanY,
+        point.z - state.cameraPanZ,
+    };
+    const Vec3 afterYaw{
+        translated.x * cosYaw + translated.z * sinYaw,
+        translated.y,
+        -translated.x * sinYaw + translated.z * cosYaw,
+    };
+    const float cameraSpaceZ =
+        afterYaw.y * sinPitch + afterYaw.z * cosPitch - positiveCameraDistance(state.cameraDistance);
+    return cameraSpaceZ < -0.001f ? -cameraSpaceZ : 0.001f;
+}
+
+float outlineExpansionForDepth(const float cameraDepth, const int viewportHeight)
+{
+    if (viewportHeight <= 0) {
+        return 0.0f;
+    }
+
+    const float fovRadians = kViewportFovDegrees * 3.14159265359f / 180.0f;
+    const float worldHeight = 2.0f * cameraDepth * std::tan(fovRadians * 0.5f);
+    return worldHeight * kRenderModelOutlinePixels / static_cast<float>(viewportHeight);
 }
 
 int leftPanelWidthForClient(const int clientWidth)
@@ -415,7 +471,7 @@ void perspectiveMatrix(float fovyDegrees, float aspect, float nearPlane, float f
 void drawGroundGrid3D()
 {
     glLineWidth(1.0f);
-    glColor3f(0.20f, 0.23f, 0.27f);
+    glColor3f(0.78f, 0.79f, 0.82f);
     glBegin(GL_LINES);
     for (int i = -10; i <= 10; ++i) {
         const float value = static_cast<float>(i) * 0.5f;
@@ -711,11 +767,87 @@ void drawDeviceMarker3D(
     glPopMatrix();
 }
 
-bool updateRenderModelMesh(RenderModelMesh& mesh, const std::string& renderModelName)
+bool uploadRenderModelTexture(
+    RenderModelMesh& mesh,
+#ifdef OVTR_HAS_OPENVR_SDK
+    vr::IVRRenderModels* renderModels,
+    const vr::TextureID_t textureId
+#else
+    void*,
+    const int
+#endif
+)
 {
-    if (mesh.state == RenderModelMesh::LoadState::Ready) {
+    if (mesh.textureId != 0 || mesh.textureAvailable) {
         return true;
     }
+    if (mesh.textureLoadFailed) {
+        return false;
+    }
+
+#ifdef OVTR_HAS_OPENVR_SDK
+    if (renderModels == nullptr || textureId < 0) {
+        mesh.textureLoadFailed = true;
+        return false;
+    }
+
+    vr::RenderModel_TextureMap_t* texture = nullptr;
+    const vr::EVRRenderModelError error = renderModels->LoadTexture_Async(textureId, &texture);
+    if (error == vr::VRRenderModelError_Loading) {
+        return false;
+    }
+    if (error != vr::VRRenderModelError_None || texture == nullptr || texture->rubTextureMapData == nullptr) {
+        mesh.textureLoadFailed = true;
+        return false;
+    }
+    if (texture->format != vr::VRRenderModelTextureFormat_RGBA8_SRGB ||
+        texture->unWidth == 0 ||
+        texture->unHeight == 0) {
+        renderModels->FreeTexture(texture);
+        mesh.textureLoadFailed = true;
+        return false;
+    }
+
+    GLuint glTexture = 0;
+    glGenTextures(1, &glTexture);
+    if (glTexture == 0) {
+        renderModels->FreeTexture(texture);
+        mesh.textureLoadFailed = true;
+        return false;
+    }
+
+    glBindTexture(GL_TEXTURE_2D, glTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        GL_RGBA,
+        texture->unWidth,
+        texture->unHeight,
+        0,
+        GL_RGBA,
+        GL_UNSIGNED_BYTE,
+        texture->rubTextureMapData
+    );
+    glBindTexture(GL_TEXTURE_2D, 0);
+    renderModels->FreeTexture(texture);
+
+    mesh.textureId = glTexture;
+    mesh.textureAvailable = true;
+    mesh.textureLoadFailed = false;
+    return true;
+#else
+    mesh.textureLoadFailed = true;
+    return false;
+#endif
+}
+
+bool updateRenderModelMesh(RenderModelMesh& mesh, const std::string& renderModelName)
+{
     if (mesh.state == RenderModelMesh::LoadState::Failed || renderModelName.empty()) {
         return false;
     }
@@ -723,8 +855,18 @@ bool updateRenderModelMesh(RenderModelMesh& mesh, const std::string& renderModel
 #ifdef OVTR_HAS_OPENVR_SDK
     vr::IVRRenderModels* renderModels = vr::VRRenderModels();
     if (renderModels == nullptr) {
-        mesh.state = RenderModelMesh::LoadState::Failed;
-        return false;
+        if (mesh.state != RenderModelMesh::LoadState::Ready) {
+            mesh.state = RenderModelMesh::LoadState::Failed;
+            return false;
+        }
+        return true;
+    }
+
+    if (mesh.state == RenderModelMesh::LoadState::Ready) {
+        if (!mesh.textureAvailable && mesh.diffuseTextureId >= 0) {
+            uploadRenderModelTexture(mesh, renderModels, mesh.diffuseTextureId);
+        }
+        return true;
     }
 
     vr::RenderModel_t* openvrModel = nullptr;
@@ -745,12 +887,15 @@ bool updateRenderModelMesh(RenderModelMesh& mesh, const std::string& renderModel
         RenderModelVertex vertex;
         vertex.position = {source.vPosition.v[0], source.vPosition.v[1], source.vPosition.v[2]};
         vertex.normal = {source.vNormal.v[0], source.vNormal.v[1], source.vNormal.v[2]};
+        vertex.texCoord = {source.rfTextureCoord[0], source.rfTextureCoord[1]};
         mesh.vertices.push_back(vertex);
     }
 
     const std::uint32_t indexCount = openvrModel->unTriangleCount * 3;
     mesh.indices.assign(openvrModel->rIndexData, openvrModel->rIndexData + indexCount);
+    mesh.diffuseTextureId = openvrModel->diffuseTextureId;
     renderModels->FreeRenderModel(openvrModel);
+    uploadRenderModelTexture(mesh, renderModels, mesh.diffuseTextureId);
 
     mesh.state = mesh.vertices.empty() || mesh.indices.empty()
         ? RenderModelMesh::LoadState::Failed
@@ -771,7 +916,26 @@ void drawRenderModelTriangles(const RenderModelMesh& mesh)
         }
         const RenderModelVertex& vertex = mesh.vertices[index];
         glNormal3f(vertex.normal[0], vertex.normal[1], vertex.normal[2]);
+        glTexCoord2f(vertex.texCoord[0], vertex.texCoord[1]);
         glVertex3f(vertex.position[0], vertex.position[1], vertex.position[2]);
+    }
+    glEnd();
+}
+
+void drawRenderModelOutlineTriangles(const RenderModelMesh& mesh, const float expansion)
+{
+    glBegin(GL_TRIANGLES);
+    for (const std::uint16_t index : mesh.indices) {
+        if (index >= mesh.vertices.size()) {
+            continue;
+        }
+        const RenderModelVertex& vertex = mesh.vertices[index];
+        const Vec3 normal = normalizeVec3({vertex.normal[0], vertex.normal[1], vertex.normal[2]});
+        glVertex3f(
+            vertex.position[0] + normal.x * expansion,
+            vertex.position[1] + normal.y * expansion,
+            vertex.position[2] + normal.z * expansion
+        );
     }
     glEnd();
 }
@@ -779,7 +943,8 @@ void drawRenderModelTriangles(const RenderModelMesh& mesh)
 bool drawSteamVRRenderModel3D(
     AppWindowState& state,
     const ovtr::PoseSample& pose,
-    const ovtr::DeviceDescriptor* device
+    const ovtr::DeviceDescriptor* device,
+    const int viewportHeight
 )
 {
     if (device == nullptr || device->renderModelName.empty()) {
@@ -796,6 +961,7 @@ bool drawSteamVRRenderModel3D(
     multiplyOpenGLMatrixFromQuaternion(pose.rotation);
 
     glDisable(GL_LIGHTING);
+    glDisable(GL_TEXTURE_2D);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
     if (device->deviceClass == ovtr::DeviceClass::TrackingReference) {
@@ -805,27 +971,43 @@ bool drawSteamVRRenderModel3D(
     } else {
         glColor3f(1.0f, 0.58f, 0.12f);
     }
-    glPushMatrix();
-    glScalef(1.055f, 1.055f, 1.055f);
-    drawRenderModelTriangles(mesh);
-    glPopMatrix();
+    const float outlineExpansion = outlineExpansionForDepth(
+        cameraDepthForWorldPoint(state, {pose.position[0], pose.position[1], pose.position[2]}),
+        viewportHeight
+    );
+    drawRenderModelOutlineTriangles(mesh, outlineExpansion);
     glCullFace(GL_BACK);
     glDisable(GL_CULL_FACE);
 
     const GLfloat lightPosition[4] = {0.35f, 0.85f, 0.45f, 0.0f};
     const GLfloat lightDiffuse[4] = {0.85f, 0.88f, 0.92f, 1.0f};
     const GLfloat lightAmbient[4] = {0.24f, 0.26f, 0.30f, 1.0f};
+    const GLfloat materialSpecular[4] = {0.92f, 0.96f, 1.0f, 1.0f};
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     glEnable(GL_COLOR_MATERIAL);
     glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
     glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, materialSpecular);
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 72.0f);
     glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 
-    glColor3f(0.72f, 0.76f, 0.82f);
+    if (mesh.textureAvailable && mesh.textureId != 0) {
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, mesh.textureId);
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        glColor3f(1.0f, 1.0f, 1.0f);
+    } else {
+        glDisable(GL_TEXTURE_2D);
+        glColor3f(0.72f, 0.76f, 0.82f);
+    }
     drawRenderModelTriangles(mesh);
 
+    if (mesh.textureAvailable && mesh.textureId != 0) {
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDisable(GL_TEXTURE_2D);
+    }
     glDisable(GL_COLOR_MATERIAL);
     glDisable(GL_LIGHT0);
     glDisable(GL_LIGHTING);
@@ -888,16 +1070,16 @@ void renderViewport(HWND hwnd)
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     float projection[16];
-    perspectiveMatrix(48.0f, static_cast<float>(width) / static_cast<float>(height), 0.05f, 100.0f, projection);
+    perspectiveMatrix(kViewportFovDegrees, static_cast<float>(width) / static_cast<float>(height), 0.05f, 100.0f, projection);
     glLoadMatrixf(projection);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    glClearColor(0.07f, 0.08f, 0.09f, 1.0f);
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 
-    glTranslatef(0.0f, -0.55f, -state->cameraDistance);
+    glTranslatef(0.0f, -0.55f, -positiveCameraDistance(state->cameraDistance));
     glRotatef(state->cameraPitchDegrees, 1.0f, 0.0f, 0.0f);
     glRotatef(state->cameraYawDegrees, 0.0f, 1.0f, 0.0f);
     glTranslatef(-state->cameraPanX, -state->cameraPanY, -state->cameraPanZ);
@@ -909,12 +1091,12 @@ void renderViewport(HWND hwnd)
         const ovtr::PoseSample displayPose = applyOriginToPose(pose, state->originEnabled, state->originOffset);
         const ovtr::DeviceDescriptor* device = deviceForRuntimeIndex(state->devices, displayPose.runtimeIndex);
         const ovtr::DeviceClass deviceClass = device ? device->deviceClass : ovtr::DeviceClass::Other;
-        const bool modelDrawn = drawSteamVRRenderModel3D(*state, displayPose, device);
+        const bool modelDrawn = drawSteamVRRenderModel3D(*state, displayPose, device, height);
         drawDeviceMarker3D(displayPose, deviceClass, !modelDrawn);
     }
 
     glDisable(GL_DEPTH_TEST);
-    glColor3f(0.90f, 0.94f, 1.0f);
+    glColor3f(0.08f, 0.10f, 0.14f);
     for (const ovtr::PoseSample& pose : state->poses.poses) {
         const ovtr::PoseSample displayPose = applyOriginToPose(pose, state->originEnabled, state->originOffset);
         drawDeviceLabel3D(
@@ -1020,7 +1202,7 @@ LRESULT CALLBACK viewportProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpa
         if (state) {
             const int wheelDelta = GET_WHEEL_DELTA_WPARAM(wparam);
             const float zoomSteps = static_cast<float>(wheelDelta) / static_cast<float>(WHEEL_DELTA);
-            state->cameraDistance = clampFloat(state->cameraDistance - zoomSteps * 0.45f, 1.4f, 14.0f);
+            applyCameraDolly(*state, zoomSteps * 0.45f);
             renderViewport(hwnd);
         }
         return 0;
@@ -1493,6 +1675,14 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
             state->provider.shutdown();
             if (state->glContext) {
                 wglMakeCurrent(state->glDeviceContext, state->glContext);
+                for (auto& entry : state->renderModelCache) {
+                    RenderModelMesh& mesh = entry.second;
+                    if (mesh.textureId != 0) {
+                        glDeleteTextures(1, &mesh.textureId);
+                        mesh.textureId = 0;
+                        mesh.textureAvailable = false;
+                    }
+                }
                 if (state->glLabelFontBase != 0) {
                     glDeleteLists(state->glLabelFontBase, 128);
                     state->glLabelFontBase = 0;
@@ -1562,7 +1752,7 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
         if (wparam == VK_OEM_PLUS || wparam == VK_ADD) {
             auto* state = reinterpret_cast<AppWindowState*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
             if (state) {
-                state->cameraDistance = clampFloat(state->cameraDistance - 0.35f, 1.6f, 12.0f);
+                applyCameraDolly(*state, 0.35f);
                 refreshPoseAndViewport(hwnd);
             }
             return 0;
@@ -1570,7 +1760,7 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
         if (wparam == VK_OEM_MINUS || wparam == VK_SUBTRACT) {
             auto* state = reinterpret_cast<AppWindowState*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
             if (state) {
-                state->cameraDistance = clampFloat(state->cameraDistance + 0.35f, 1.6f, 12.0f);
+                applyCameraDolly(*state, -0.35f);
                 refreshPoseAndViewport(hwnd);
             }
             return 0;
