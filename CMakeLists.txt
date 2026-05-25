@@ -37,6 +37,8 @@ add_library(openvr_tracker_recorder_core STATIC
     src/app/Application.cpp
     src/data/SessionTypes.cpp
     src/export/FbxAsciiExporter.cpp
+    src/export/GltfExporter.cpp
+    src/export/RenderModelGeometry.cpp
     src/math/QuaternionUtils.cpp
     src/recording/BinarySessionReader.cpp
     src/recording/BinarySessionWriter.cpp

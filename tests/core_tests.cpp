@@ -1,5 +1,6 @@
 #include "data/SessionTypes.h"
 #include "export/FbxAsciiExporter.h"
+#include "export/GltfExporter.h"
 #include "math/QuaternionUtils.h"
 #include "recording/BinarySessionReader.h"
 #include "recording/BinarySessionWriter.h"
@@ -11,6 +12,7 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cstdint>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -18,6 +20,7 @@
 #include <iterator>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -200,6 +203,45 @@ std::string readTextFile(const std::filesystem::path& path)
 {
     std::ifstream input(path);
     return std::string(std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>());
+}
+
+std::vector<std::uint8_t> readBinaryFile(const std::filesystem::path& path)
+{
+    std::ifstream input(path, std::ios::binary);
+    return std::vector<std::uint8_t>(std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>());
+}
+
+std::uint32_t readLittleEndianUint32(const std::vector<std::uint8_t>& bytes, const std::size_t offset)
+{
+    require(offset + 4 <= bytes.size(), "binary file is too small for uint32");
+    return static_cast<std::uint32_t>(bytes[offset]) |
+           (static_cast<std::uint32_t>(bytes[offset + 1]) << 8u) |
+           (static_cast<std::uint32_t>(bytes[offset + 2]) << 16u) |
+           (static_cast<std::uint32_t>(bytes[offset + 3]) << 24u);
+}
+
+ovtr::RenderModelGeometry makeTriangleGeometry()
+{
+    ovtr::RenderModelGeometry geometry;
+    ovtr::RenderModelVertex v0;
+    v0.position = {0.0f, 0.0f, 0.0f};
+    v0.normal = {0.0f, 0.0f, 1.0f};
+    v0.texCoord = {0.0f, 0.0f};
+
+    ovtr::RenderModelVertex v1;
+    v1.position = {1.0f, 0.0f, 0.0f};
+    v1.normal = {0.0f, 0.0f, 1.0f};
+    v1.texCoord = {1.0f, 0.0f};
+
+    ovtr::RenderModelVertex v2;
+    v2.position = {0.0f, 1.0f, 0.0f};
+    v2.normal = {0.0f, 0.0f, 1.0f};
+    v2.texCoord = {0.0f, 1.0f};
+
+    geometry.available = true;
+    geometry.vertices = {v0, v1, v2};
+    geometry.indices = {0, 1, 2};
+    return geometry;
 }
 
 std::string findFbxObjectSection(const std::string& fbx, const std::string& marker)
@@ -534,6 +576,122 @@ void testFbxExportSampleRate()
     std::filesystem::remove_all(testDir, ignored);
 }
 
+void testGltfExport()
+{
+    const std::filesystem::path testDir = std::filesystem::current_path() / ".tmp_ovtr_gltf_tests";
+    std::error_code ignored;
+    std::filesystem::remove_all(testDir, ignored);
+    std::filesystem::create_directories(testDir);
+
+    const std::filesystem::path framesPath = testDir / "frames.bin";
+    const std::filesystem::path indexPath = testDir / "frame_index.bin";
+    const std::filesystem::path gltfPath = testDir / "export.gltf";
+    const std::filesystem::path binPath = testDir / "export.bin";
+
+    ovtr::BinarySessionWriter writer;
+    require(writer.open(framesPath, indexPath), "glTF writer open failed: " + writer.lastError());
+    require(writer.appendFrame(makeTestFrame(0)), "glTF append frame 0 failed: " + writer.lastError());
+    require(writer.appendFrame(makeTestFrame(1)), "glTF append frame 1 failed: " + writer.lastError());
+    writer.close();
+
+    ovtr::DeviceDescriptor tracker;
+    tracker.id = 1;
+    tracker.runtimeIndex = 3;
+    tracker.serial = "LHR-GLTF";
+    tracker.deviceClass = ovtr::DeviceClass::GenericTracker;
+
+    ovtr::RecordingSession session;
+    session.sessionId = "gltf-test";
+    session.sessionName = "glTF Test";
+    session.framesPath = framesPath;
+    session.frameIndexPath = indexPath;
+    session.devices = {tracker};
+
+    ovtr::GltfExportOptions options;
+    options.outputPath = gltfPath;
+    options.format = ovtr::GltfExportFormat::Gltf;
+    const ovtr::ExportResult result = ovtr::exportSessionToGltf(session, options);
+    require(result.success, "glTF export failed: " + result.error);
+
+    const std::string gltf = readTextFile(gltfPath);
+    require(std::filesystem::exists(binPath), "glTF export should write sibling bin file");
+    require(gltf.find("\"version\": \"2.0\"") != std::string::npos, "glTF asset version missing");
+    require(gltf.find("\"uri\": \"export.bin\"") != std::string::npos, "glTF buffer URI missing");
+    require(gltf.find("\"path\": \"rotation\"") != std::string::npos, "glTF rotation animation channel missing");
+    require(gltf.find("\"type\": \"VEC4\"") != std::string::npos, "glTF rotation accessor should be VEC4 quaternion");
+    require(gltf.find("\"interpolation\": \"LINEAR\"") != std::string::npos, "glTF animation interpolation missing");
+    require(gltf.find("\"serial\": \"LHR-GLTF\"") != std::string::npos, "glTF device extras should include serial");
+
+    const std::vector<std::uint8_t> bin = readBinaryFile(binPath);
+    require(!bin.empty(), "glTF binary buffer should not be empty");
+
+    std::filesystem::remove_all(testDir, ignored);
+}
+
+void testGlbExport()
+{
+    const std::filesystem::path testDir = std::filesystem::current_path() / ".tmp_ovtr_glb_tests";
+    std::error_code ignored;
+    std::filesystem::remove_all(testDir, ignored);
+    std::filesystem::create_directories(testDir);
+
+    const std::filesystem::path framesPath = testDir / "frames.bin";
+    const std::filesystem::path indexPath = testDir / "frame_index.bin";
+    const std::filesystem::path glbPath = testDir / "export.glb";
+
+    ovtr::BinarySessionWriter writer;
+    require(writer.open(framesPath, indexPath), "GLB writer open failed: " + writer.lastError());
+    require(writer.appendFrame(makeTestFrame(0)), "GLB append frame 0 failed: " + writer.lastError());
+    require(writer.appendFrame(makeTestFrame(1)), "GLB append frame 1 failed: " + writer.lastError());
+    writer.close();
+
+    ovtr::DeviceDescriptor tracker;
+    tracker.id = 1;
+    tracker.runtimeIndex = 3;
+    tracker.serial = "LHR-GLB";
+    tracker.deviceClass = ovtr::DeviceClass::GenericTracker;
+    tracker.renderModelName = "test_render_model";
+
+    ovtr::RecordingSession session;
+    session.sessionId = "glb-test";
+    session.sessionName = "GLB Test";
+    session.framesPath = framesPath;
+    session.frameIndexPath = indexPath;
+    session.devices = {tracker};
+
+    ovtr::GltfExportOptions options;
+    options.outputPath = glbPath;
+    options.format = ovtr::GltfExportFormat::Glb;
+    options.exportSampleRate = 60.0;
+    options.geometryProvider = [](const ovtr::DeviceDescriptor&) {
+        return makeTriangleGeometry();
+    };
+    const ovtr::ExportResult result = ovtr::exportSessionToGltf(session, options);
+    require(result.success, "GLB export failed: " + result.error);
+
+    const std::vector<std::uint8_t> glb = readBinaryFile(glbPath);
+    require(glb.size() > 28, "GLB output should contain a header and chunks");
+    require(readLittleEndianUint32(glb, 0) == 0x46546c67u, "GLB magic mismatch");
+    require(readLittleEndianUint32(glb, 4) == 2u, "GLB version mismatch");
+    require(readLittleEndianUint32(glb, 12) + 20 <= glb.size(), "GLB JSON chunk length invalid");
+    require(readLittleEndianUint32(glb, 16) == 0x4e4f534au, "GLB first chunk should be JSON");
+
+    const std::uint32_t jsonLength = readLittleEndianUint32(glb, 12);
+    const std::string json(reinterpret_cast<const char*>(glb.data() + 20), jsonLength);
+    require(json.find("\"path\": \"rotation\"") != std::string::npos, "GLB JSON should contain rotation animation");
+    require(json.find("\"type\": \"VEC4\"") != std::string::npos, "GLB rotation accessor should be VEC4 quaternion");
+    require(json.find("\"meshes\"") != std::string::npos, "GLB JSON should contain mesh data");
+    require(json.find("\"mesh\": 0") != std::string::npos, "GLB device node should reference the mesh");
+    require(json.find("\"POSITION\"") != std::string::npos, "GLB mesh should contain positions");
+    require(json.find("\"NORMAL\"") != std::string::npos, "GLB mesh should contain normals");
+    require(json.find("\"indices\"") != std::string::npos, "GLB mesh should contain indices");
+    require(json.find("\"componentType\": 5123") != std::string::npos, "GLB mesh indices should be unsigned short");
+    require(json.find("\"target\": 34963") != std::string::npos, "GLB index bufferView should use element-array target");
+    require(json.find("\"uri\"") == std::string::npos, "GLB embedded buffer should not use an external URI");
+
+    std::filesystem::remove_all(testDir, ignored);
+}
+
 void testRecordingController()
 {
     const std::filesystem::path testDir = std::filesystem::current_path() / ".tmp_ovtr_controller_tests";
@@ -592,6 +750,8 @@ int main()
         testFbxEulerDiscontinuityFilter();
         testFbxEulerTripletCompatibilityFilter();
         testFbxExportSampleRate();
+        testGltfExport();
+        testGlbExport();
         testRecordingController();
         testMockVRProvider();
     } catch (const std::exception& error) {

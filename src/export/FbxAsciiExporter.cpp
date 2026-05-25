@@ -1,15 +1,11 @@
 #include "export/FbxAsciiExporter.h"
 
+#include "export/RenderModelGeometry.h"
 #include "math/QuaternionUtils.h"
 #include "recording/BinarySessionReader.h"
 
-#ifdef OVTR_HAS_OPENVR_SDK
-#include <openvr.h>
-#endif
-
 #include <algorithm>
 #include <array>
-#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <filesystem>
@@ -18,7 +14,6 @@
 #include <map>
 #include <sstream>
 #include <string>
-#include <thread>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -35,17 +30,6 @@ constexpr double kRadiansToDegrees = 57.295779513082320876;
 constexpr double kEulerHypotEpsilon = 0.0000375;
 
 using Matrix3 = std::array<double, 9>;
-
-struct FbxVertex {
-    std::array<double, 3> position{0.0, 0.0, 0.0};
-    std::array<double, 3> normal{0.0, 1.0, 0.0};
-};
-
-struct FbxGeometry {
-    bool available = false;
-    std::vector<FbxVertex> vertices;
-    std::vector<std::uint16_t> indices;
-};
 
 struct PoseKey {
     double timeSeconds = 0.0;
@@ -69,7 +53,7 @@ struct DeviceExport {
     std::array<std::int64_t, 3> translationCurveIds{0, 0, 0};
     std::array<std::int64_t, 3> rotationCurveIds{0, 0, 0};
     std::vector<PoseKey> keys;
-    FbxGeometry geometry;
+    RenderModelGeometry geometry;
 };
 
 struct FbxTimelineSettings {
@@ -575,11 +559,11 @@ std::string joinedInt32(const std::vector<std::int32_t>& values)
     return stream.str();
 }
 
-std::vector<double> collectGeometryVertices(const FbxGeometry& geometry)
+std::vector<double> collectGeometryVertices(const RenderModelGeometry& geometry)
 {
     std::vector<double> values;
     values.reserve(geometry.vertices.size() * 3);
-    for (const FbxVertex& vertex : geometry.vertices) {
+    for (const RenderModelVertex& vertex : geometry.vertices) {
         values.push_back(vertex.position[0]);
         values.push_back(vertex.position[1]);
         values.push_back(vertex.position[2]);
@@ -587,7 +571,7 @@ std::vector<double> collectGeometryVertices(const FbxGeometry& geometry)
     return values;
 }
 
-std::vector<double> collectGeometryNormals(const FbxGeometry& geometry)
+std::vector<double> collectGeometryNormals(const RenderModelGeometry& geometry)
 {
     std::vector<double> values;
     values.reserve(geometry.indices.size() * 3);
@@ -595,7 +579,7 @@ std::vector<double> collectGeometryNormals(const FbxGeometry& geometry)
         if (index >= geometry.vertices.size()) {
             continue;
         }
-        const FbxVertex& vertex = geometry.vertices[index];
+        const RenderModelVertex& vertex = geometry.vertices[index];
         values.push_back(vertex.normal[0]);
         values.push_back(vertex.normal[1]);
         values.push_back(vertex.normal[2]);
@@ -603,7 +587,7 @@ std::vector<double> collectGeometryNormals(const FbxGeometry& geometry)
     return values;
 }
 
-std::vector<std::int32_t> collectPolygonVertexIndex(const FbxGeometry& geometry)
+std::vector<std::int32_t> collectPolygonVertexIndex(const RenderModelGeometry& geometry)
 {
     std::vector<std::int32_t> values;
     values.reserve(geometry.indices.size());
@@ -615,69 +599,21 @@ std::vector<std::int32_t> collectPolygonVertexIndex(const FbxGeometry& geometry)
     return values;
 }
 
-void convertGeometry(FbxGeometry& geometry, const FbxCoordinatePolicy policy)
+void convertGeometry(RenderModelGeometry& geometry, const FbxCoordinatePolicy policy)
 {
     if (policy != FbxCoordinatePolicy::Blender) {
         return;
     }
 
-    for (FbxVertex& vertex : geometry.vertices) {
+    for (RenderModelVertex& vertex : geometry.vertices) {
         vertex.position = convertVector(vertex.position, policy);
         vertex.normal = convertVector(vertex.normal, policy);
     }
 }
 
-FbxGeometry loadSteamVRGeometry(const std::string& renderModelName, const FbxCoordinatePolicy policy)
+RenderModelGeometry loadFbxGeometry(const std::string& renderModelName, const FbxCoordinatePolicy policy)
 {
-    FbxGeometry geometry;
-    if (renderModelName.empty()) {
-        return geometry;
-    }
-
-#ifdef OVTR_HAS_OPENVR_SDK
-    vr::IVRRenderModels* renderModels = vr::VRRenderModels();
-    if (renderModels == nullptr) {
-        return geometry;
-    }
-
-    vr::RenderModel_t* openvrModel = nullptr;
-    vr::EVRRenderModelError error = vr::VRRenderModelError_Loading;
-    for (int attempt = 0; attempt < 50; ++attempt) {
-        error = renderModels->LoadRenderModel_Async(renderModelName.c_str(), &openvrModel);
-        if (error != vr::VRRenderModelError_Loading) {
-            break;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-
-    if (error != vr::VRRenderModelError_None || openvrModel == nullptr) {
-        return geometry;
-    }
-
-    geometry.vertices.reserve(openvrModel->unVertexCount);
-    for (std::uint32_t i = 0; i < openvrModel->unVertexCount; ++i) {
-        const vr::RenderModel_Vertex_t& source = openvrModel->rVertexData[i];
-        FbxVertex vertex;
-        vertex.position = {
-            static_cast<double>(source.vPosition.v[0]),
-            static_cast<double>(source.vPosition.v[1]),
-            static_cast<double>(source.vPosition.v[2]),
-        };
-        vertex.normal = {
-            static_cast<double>(source.vNormal.v[0]),
-            static_cast<double>(source.vNormal.v[1]),
-            static_cast<double>(source.vNormal.v[2]),
-        };
-        geometry.vertices.push_back(vertex);
-    }
-
-    const std::uint32_t indexCount = openvrModel->unTriangleCount * 3;
-    geometry.indices.assign(openvrModel->rIndexData, openvrModel->rIndexData + indexCount);
-    renderModels->FreeRenderModel(openvrModel);
-    geometry.available = !geometry.vertices.empty() && !geometry.indices.empty();
-#else
-    (void)renderModelName;
-#endif
+    RenderModelGeometry geometry = loadSteamVRRenderModelGeometry(renderModelName);
     convertGeometry(geometry, policy);
     return geometry;
 }
@@ -940,7 +876,7 @@ ExportResult exportSessionToFbxAscii(const RecordingSession& session, const FbxE
             device.rotationCurveIds[axis] = nextId++;
         }
         if (options.includeGeometry) {
-            device.geometry = loadSteamVRGeometry(descriptor.renderModelName, options.coordinatePolicy);
+            device.geometry = loadFbxGeometry(descriptor.renderModelName, options.coordinatePolicy);
         }
         devices.push_back(std::move(device));
     }

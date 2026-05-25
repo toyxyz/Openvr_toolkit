@@ -10,6 +10,7 @@
 
 #include "data/SessionTypes.h"
 #include "export/FbxAsciiExporter.h"
+#include "export/GltfExporter.h"
 #include "recording/RecordingController.h"
 #include "recording/SamplingScheduler.h"
 #include "util/SteamVRRuntime.h"
@@ -34,6 +35,11 @@ constexpr double kFbxExportSampleRate = 60.0;
 constexpr std::uint32_t kNoSelectedRuntimeIndex = 0xffffffffu;
 constexpr const wchar_t* kMainWindowClassName = L"OpenVRTrackerRecorderBootstrapWindow";
 constexpr const wchar_t* kViewportWindowClassName = L"OpenVRTrackerRecorderGLViewport";
+
+enum class ExportFormat {
+    Fbx,
+    Glb,
+};
 
 struct RenderModelVertex {
     std::array<float, 3> position{0.0f, 0.0f, 0.0f};
@@ -308,7 +314,7 @@ std::vector<std::wstring> makeStatusLines(const AppWindowState& state)
 
     lines.emplace_back(L"");
     lines.emplace_back(L"Viewport: perspective 3D, X red, Y green, Z blue.");
-    lines.emplace_back(L"Left drag orbit, middle drag pan, wheel zoom, Tab select origin, O set, C clear, R record, E export FBX, Esc exit.");
+    lines.emplace_back(L"Left drag orbit, middle drag pan, wheel zoom, Tab select origin, O set, C clear, R record, E export FBX, G export GLB, Esc exit.");
     return lines;
 }
 
@@ -1254,7 +1260,7 @@ void toggleRecording(HWND hwnd)
     InvalidateRect(hwnd, nullptr, TRUE);
 }
 
-void exportCurrentSession(HWND hwnd)
+void exportCurrentSession(HWND hwnd, const ExportFormat format)
 {
     auto* state = reinterpret_cast<AppWindowState*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
     if (!state) {
@@ -1294,17 +1300,29 @@ void exportCurrentSession(HWND hwnd)
         session.frameIndexPath = state->currentSessionFolder / "frame_index.bin";
     }
 
-    ovtr::FbxExportOptions options;
-    options.outputPath = std::filesystem::current_path() / "exports" / (session.sessionId + ".fbx");
-    options.includeGeometry = true;
-    options.includeTrackingReference = true;
-    options.exportSampleRate = kFbxExportSampleRate;
-
-    const ovtr::ExportResult result = ovtr::exportSessionToFbxAscii(session, options);
-    if (result.success) {
-        state->exportStatusMessage = "FBX saved to " + result.outputPath.string();
+    ovtr::ExportResult result;
+    if (format == ExportFormat::Fbx) {
+        ovtr::FbxExportOptions options;
+        options.outputPath = std::filesystem::current_path() / "exports" / (session.sessionId + ".fbx");
+        options.includeGeometry = true;
+        options.includeTrackingReference = true;
+        options.exportSampleRate = kFbxExportSampleRate;
+        result = ovtr::exportSessionToFbxAscii(session, options);
     } else {
-        state->exportStatusMessage = "FBX export failed: " + result.error;
+        ovtr::GltfExportOptions options;
+        options.outputPath = std::filesystem::current_path() / "exports" / (session.sessionId + ".glb");
+        options.includeTrackingReference = true;
+        options.exportSampleRate = kFbxExportSampleRate;
+        options.format = ovtr::GltfExportFormat::Glb;
+        result = ovtr::exportSessionToGltf(session, options);
+    }
+
+    if (result.success) {
+        state->exportStatusMessage = (format == ExportFormat::Fbx ? "FBX saved to " : "GLB saved to ") +
+            result.outputPath.string();
+    } else {
+        state->exportStatusMessage = (format == ExportFormat::Fbx ? "FBX export failed: " : "GLB export failed: ") +
+            result.error;
     }
 
     InvalidateRect(hwnd, nullptr, TRUE);
@@ -1542,7 +1560,11 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
             return 0;
         }
         if (wparam == 'E') {
-            exportCurrentSession(hwnd);
+            exportCurrentSession(hwnd, ExportFormat::Fbx);
+            return 0;
+        }
+        if (wparam == 'G') {
+            exportCurrentSession(hwnd, ExportFormat::Glb);
             return 0;
         }
         break;

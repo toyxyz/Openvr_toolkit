@@ -1,6 +1,7 @@
 #pragma once
 
 #include "data/SessionTypes.h"
+#include "export/ExportTypes.h"
 
 #include <array>
 #include <filesystem>
@@ -24,12 +25,6 @@ struct FbxExportOptions {
     double exportSampleRate = 0.0;
     FbxCoordinatePolicy coordinatePolicy = FbxCoordinatePolicy::Blender;
     FbxRotationOrder rotationOrder = FbxRotationOrder::XYZ;
-};
-
-struct ExportResult {
-    bool success = false;
-    std::filesystem::path outputPath;
-    std::string error;
 };
 
 std::string makeFbxSafeName(const DeviceDescriptor& device);
