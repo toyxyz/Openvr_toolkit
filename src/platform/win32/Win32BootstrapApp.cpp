@@ -1075,7 +1075,7 @@ void renderViewport(HWND hwnd)
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClearColor(198.0f / 255.0f, 217.0f / 255.0f, 225.0f / 255.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 
