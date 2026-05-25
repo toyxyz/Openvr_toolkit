@@ -21,7 +21,6 @@ struct FbxExportOptions {
     std::filesystem::path outputPath;
     bool includeGeometry = true;
     bool includeTrackingReference = true;
-    bool applyEulerUnroll = true;
     FbxCoordinatePolicy coordinatePolicy = FbxCoordinatePolicy::Blender;
     FbxRotationOrder rotationOrder = FbxRotationOrder::XYZ;
 };

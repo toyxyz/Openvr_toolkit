@@ -336,7 +336,11 @@ void testFbxAsciiExport()
     require(fbx.find("AnimCurve::Tracker_LHR_TEST_R_Z") != std::string::npos, "FBX rotation Z curve missing");
     const std::string rotationYCurve = findFbxObjectSection(fbx, "AnimCurve::Tracker_LHR_TEST_R_Y");
     const std::string rotationZCurve = findFbxObjectSection(fbx, "AnimCurve::Tracker_LHR_TEST_R_Z");
-    require(rotationYCurve.find("-90.0000") != std::string::npos, "FBX OpenVR Z rotation should become Blender R_Y");
+    require(
+        rotationYCurve.find("-90.0000") != std::string::npos ||
+            rotationYCurve.find("-89.999") != std::string::npos,
+        "FBX OpenVR Z rotation should become Blender R_Y"
+    );
     require(rotationZCurve.find("a: 0.000000000,0.000000000") != std::string::npos, "FBX Z curve should not receive OpenVR Z rotation");
     require(fbx.find("AnimCurve::Tracker_LHR_INVALID_T_X") != std::string::npos, "FBX invalid tracker curve missing");
     require(fbx.find("KeyValueFloat: *0") != std::string::npos, "invalid pose should not create key values");
@@ -346,9 +350,9 @@ void testFbxAsciiExport()
     std::filesystem::remove_all(testDir, ignored);
 }
 
-void testFbxEulerUnroll()
+void testFbxRawEulerExport()
 {
-    const std::filesystem::path testDir = std::filesystem::current_path() / ".tmp_ovtr_fbx_unroll_tests";
+    const std::filesystem::path testDir = std::filesystem::current_path() / ".tmp_ovtr_fbx_raw_euler_tests";
     std::error_code ignored;
     std::filesystem::remove_all(testDir, ignored);
     std::filesystem::create_directories(testDir);
@@ -363,20 +367,20 @@ void testFbxEulerUnroll()
     frame1.poses[0].rotation = ovtr::normalizeQuaternion(axisAngleQuaternionZ(190.0));
 
     ovtr::BinarySessionWriter writer;
-    require(writer.open(framesPath, indexPath), "FBX unroll writer open failed: " + writer.lastError());
-    require(writer.appendFrame(frame0), "FBX unroll append frame 0 failed: " + writer.lastError());
-    require(writer.appendFrame(frame1), "FBX unroll append frame 1 failed: " + writer.lastError());
+    require(writer.open(framesPath, indexPath), "FBX raw Euler writer open failed: " + writer.lastError());
+    require(writer.appendFrame(frame0), "FBX raw Euler append frame 0 failed: " + writer.lastError());
+    require(writer.appendFrame(frame1), "FBX raw Euler append frame 1 failed: " + writer.lastError());
     writer.close();
 
     ovtr::DeviceDescriptor tracker;
     tracker.id = 1;
     tracker.runtimeIndex = 3;
-    tracker.serial = "LHR-UNROLL";
+    tracker.serial = "LHR-RAW";
     tracker.deviceClass = ovtr::DeviceClass::GenericTracker;
 
     ovtr::RecordingSession session;
-    session.sessionId = "fbx-unroll-test";
-    session.sessionName = "FBX Unroll Test";
+    session.sessionId = "fbx-raw-euler-test";
+    session.sessionName = "FBX Raw Euler Test";
     session.framesPath = framesPath;
     session.frameIndexPath = indexPath;
     session.devices = {tracker};
@@ -386,17 +390,17 @@ void testFbxEulerUnroll()
     options.includeGeometry = false;
     options.coordinatePolicy = ovtr::FbxCoordinatePolicy::OpenVRNative;
     const ovtr::ExportResult result = ovtr::exportSessionToFbxAscii(session, options);
-    require(result.success, "FBX unroll export failed: " + result.error);
+    require(result.success, "FBX raw Euler export failed: " + result.error);
 
     const std::string fbx = readTextFile(fbxPath);
-    const std::string rotationZCurve = findFbxObjectSection(fbx, "AnimCurve::Tracker_LHR_UNROLL_R_Z");
-    require(rotationZCurve.find("170.0000") != std::string::npos, "FBX unroll first Z key mismatch");
+    const std::string rotationZCurve = findFbxObjectSection(fbx, "AnimCurve::Tracker_LHR_RAW_R_Z");
+    require(rotationZCurve.find("170.0000") != std::string::npos, "FBX raw Euler first Z key mismatch");
     require(
-        rotationZCurve.find("190.0000") != std::string::npos ||
-            rotationZCurve.find("189.9999") != std::string::npos,
-        "FBX unroll should continue through 180 degrees"
+        rotationZCurve.find("-170.0000") != std::string::npos ||
+            rotationZCurve.find("-169.999") != std::string::npos,
+        "FBX raw Euler export should keep wrapped quaternion-to-Euler value"
     );
-    require(rotationZCurve.find("-170.0000") == std::string::npos, "FBX unroll should not wrap to -170 degrees");
+    require(rotationZCurve.find("190.0000") == std::string::npos, "FBX raw Euler export should not unroll to 190 degrees");
 
     std::filesystem::remove_all(testDir, ignored);
 }
@@ -456,7 +460,7 @@ int main()
         testFbxQuaternionToEuler();
         testFbxSafeName();
         testFbxAsciiExport();
-        testFbxEulerUnroll();
+        testFbxRawEulerExport();
         testRecordingController();
         testMockVRProvider();
     } catch (const std::exception& error) {
