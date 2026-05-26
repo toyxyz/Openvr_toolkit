@@ -95,6 +95,9 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
             openvr_tracker_recorder_core
             user32
             gdi32
+            comdlg32
+            shell32
+            ole32
             opengl32
             winmm
     )

@@ -30,6 +30,7 @@ struct DeviceDescriptor {
     DeviceId id = 0;
     std::uint32_t runtimeIndex = 0;
     std::string serial;
+    std::string displayName;
     std::string role;
     DeviceClass deviceClass = DeviceClass::Invalid;
     std::string modelName;
@@ -76,4 +77,3 @@ struct RecordingSession {
 std::string toString(DeviceClass deviceClass);
 
 } // namespace ovtr
-

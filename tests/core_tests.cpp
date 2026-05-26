@@ -305,6 +305,17 @@ void testFbxSafeName()
     device.serial = "LHR-ABC 123/!";
     require(ovtr::makeFbxSafeName(device) == "Tracker_LHR_ABC_123", "FBX safe name mismatch");
 
+    device.displayName = "Waist Tracker";
+    require(ovtr::makeFbxSafeName(device) == "Waist_Tracker", "FBX custom display name mismatch");
+
+    const std::string utf8Name =
+        std::string("\xED\x97\x88") + "\xEB\xA6\xAC " + "\xED\x8A\xB8" + "\xEB\x9E\x98" + "\xEC\xBB\xA4";
+    const std::string utf8SafeName =
+        std::string("\xED\x97\x88") + "\xEB\xA6\xAC_" + "\xED\x8A\xB8" + "\xEB\x9E\x98" + "\xEC\xBB\xA4";
+    device.displayName = utf8Name;
+    require(ovtr::makeFbxSafeName(device) == utf8SafeName, "FBX UTF-8 display name mismatch");
+
+    device.displayName.clear();
     device.serial.clear();
     require(ovtr::makeFbxSafeName(device) == "Tracker_Device_7", "FBX fallback safe name mismatch");
 }
@@ -598,6 +609,7 @@ void testGltfExport()
     tracker.id = 1;
     tracker.runtimeIndex = 3;
     tracker.serial = "LHR-GLTF";
+    tracker.displayName = "Hip Tracker";
     tracker.deviceClass = ovtr::DeviceClass::GenericTracker;
 
     ovtr::RecordingSession session;
@@ -620,6 +632,7 @@ void testGltfExport()
     require(gltf.find("\"path\": \"rotation\"") != std::string::npos, "glTF rotation animation channel missing");
     require(gltf.find("\"type\": \"VEC4\"") != std::string::npos, "glTF rotation accessor should be VEC4 quaternion");
     require(gltf.find("\"interpolation\": \"LINEAR\"") != std::string::npos, "glTF animation interpolation missing");
+    require(gltf.find("\"name\": \"Hip_Tracker\"") != std::string::npos, "glTF node should use custom display name");
     require(gltf.find("\"serial\": \"LHR-GLTF\"") != std::string::npos, "glTF device extras should include serial");
 
     const std::vector<std::uint8_t> bin = readBinaryFile(binPath);

@@ -96,7 +96,8 @@ std::string sanitizeIdentifier(const std::string& input)
     output.reserve(input.size());
     for (const char ch : input) {
         const unsigned char value = static_cast<unsigned char>(ch);
-        if ((value >= 'A' && value <= 'Z') ||
+        if (value >= 0x80 ||
+            (value >= 'A' && value <= 'Z') ||
             (value >= 'a' && value <= 'z') ||
             (value >= '0' && value <= '9')) {
             output.push_back(ch);
@@ -123,6 +124,10 @@ std::string sanitizeIdentifier(const std::string& input)
 
 std::string makeGltfSafeName(const DeviceDescriptor& device)
 {
+    if (!device.displayName.empty()) {
+        return sanitizeIdentifier(device.displayName);
+    }
+
     std::string source = device.serial;
     if (source.empty()) {
         std::ostringstream stream;
