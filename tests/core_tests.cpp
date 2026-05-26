@@ -1,6 +1,7 @@
 #include "data/SessionTypes.h"
 #include "export/FbxAsciiExporter.h"
 #include "export/GltfExporter.h"
+#include "import/GltfImporter.h"
 #include "math/QuaternionUtils.h"
 #include "recording/BinarySessionReader.h"
 #include "recording/BinarySessionWriter.h"
@@ -701,6 +702,42 @@ void testGlbExport()
     require(json.find("\"componentType\": 5123") != std::string::npos, "GLB mesh indices should be unsigned short");
     require(json.find("\"target\": 34963") != std::string::npos, "GLB index bufferView should use element-array target");
     require(json.find("\"uri\"") == std::string::npos, "GLB embedded buffer should not use an external URI");
+
+    const ovtr::GltfImportResult importResult = ovtr::importGlbScene(glbPath);
+    require(importResult.success, "GLB import failed: " + importResult.error);
+    require(!importResult.scene.nodes.empty(), "GLB import should expose animated nodes");
+    require(!importResult.scene.meshes.empty(), "GLB import should expose meshes");
+
+    const ovtr::ImportedGltfNode* importedTracker = nullptr;
+    for (const ovtr::ImportedGltfNode& node : importResult.scene.nodes) {
+        if (node.meshIndex >= 0) {
+            importedTracker = &node;
+            break;
+        }
+    }
+    require(importedTracker != nullptr, "GLB import should keep the mesh node");
+    require(importedTracker->meshIndex == 0, "GLB imported node mesh index mismatch");
+    require(importResult.scene.meshes[0].vertices.size() == 3, "GLB imported mesh vertex count mismatch");
+    require(importResult.scene.meshes[0].indices.size() == 3, "GLB imported mesh index count mismatch");
+    require(importedTracker->keys.size() >= 2, "GLB imported animation key count mismatch");
+
+    std::array<float, 3> importedTranslation{};
+    std::array<float, 4> importedRotation{};
+    require(
+        ovtr::sampleImportedGltfNodePose(*importedTracker, 0.0, importedTranslation, importedRotation),
+        "GLB imported node should sample at start"
+    );
+    require(std::fabs(importedTranslation[0] - 1.0f) < 0.0001f, "GLB imported first translation mismatch");
+    require(
+        ovtr::sampleImportedGltfNodePose(
+            *importedTracker,
+            importResult.scene.durationSeconds,
+            importedTranslation,
+            importedRotation
+        ),
+        "GLB imported node should sample at end"
+    );
+    require(std::fabs(importedTranslation[0] - 2.0f) < 0.0001f, "GLB imported final translation mismatch");
 
     std::filesystem::remove_all(testDir, ignored);
 }

@@ -13,6 +13,7 @@
 #include "data/SessionTypes.h"
 #include "export/FbxAsciiExporter.h"
 #include "export/GltfExporter.h"
+#include "import/GltfImporter.h"
 #include "recording/RecordingController.h"
 #include "recording/SamplingScheduler.h"
 #include "util/SteamVRRuntime.h"
@@ -41,7 +42,7 @@ namespace {
 constexpr UINT_PTR kStatusTimerId = 1;
 constexpr UINT kStatusIntervalMs = 1000;
 constexpr double kTargetViewportFps = 90.0;
-constexpr double kFbxExportSampleRate = 60.0;
+constexpr double kDefaultExportSampleRate = 60.0;
 constexpr float kMinimumCameraDistance = 0.08f;
 constexpr float kViewportFovDegrees = 48.0f;
 constexpr float kRenderModelOutlinePixels = 2.6f;
@@ -57,8 +58,15 @@ constexpr int kDebugButtonWidth = 76;
 constexpr int kDebugButtonHeight = 24;
 constexpr int kTopBarHeight = 32;
 constexpr int kTopMenuSettingWidth = 92;
+constexpr int kTopMenuFileWidth = 68;
+constexpr int kTopMenuGap = 6;
 constexpr int kViewportControlBarHeight = 48;
+constexpr int kImportedAnimationBarHeight = 48;
 constexpr int kViewportControlButtonSize = 30;
+constexpr int kImportedAnimationButtonSize = 30;
+constexpr int kImportedAnimationCloseButtonWidth = 70;
+constexpr int kImportedAnimationFrameTextWidth = 142;
+constexpr int kImportedAnimationTimelineMinWidth = 90;
 constexpr int kDeviceToggleRailWidth = 32;
 constexpr int kDeviceToggleButtonWidth = 24;
 constexpr int kDeviceToggleButtonHeight = 96;
@@ -75,6 +83,7 @@ constexpr int kOriginStepperRowHeight = 30;
 constexpr int kOriginStepperLabelWidth = 34;
 constexpr float kOriginPositionStep = 0.001f;
 constexpr float kOriginRotationStepDegrees = 0.1f;
+constexpr double kImportedAnimationFrameRate = 60.0;
 constexpr int kDeviceNameDialogWidth = 440;
 constexpr int kDeviceNameDialogHeight = 172;
 constexpr int kOriginDialogWidth = 480;
@@ -82,7 +91,8 @@ constexpr int kOriginDialogHeight = 250;
 constexpr int kExportLocationDialogWidth = 580;
 constexpr int kExportLocationDialogHeight = 260;
 constexpr int kViewportColorDialogWidth = 560;
-constexpr int kViewportColorDialogHeight = 260;
+constexpr int kViewportColorDialogHeight = 304;
+constexpr int kViewportColorCount = 4;
 constexpr int kSplitterWidth = 8;
 constexpr int kLeftPanelMinWidth = 320;
 constexpr int kLeftPanelMaxWidth = 880;
@@ -96,6 +106,7 @@ constexpr UINT kDeviceContextMenuSetNameId = 1002;
 constexpr UINT kSettingsMenuColorId = 1101;
 constexpr UINT kSettingsMenuOriginId = 1102;
 constexpr UINT kSettingsMenuLocationId = 1103;
+constexpr UINT kFileMenuImportGlbId = 1201;
 constexpr UINT_PTR kOriginEditControlId = 2001;
 constexpr UINT_PTR kDeviceNameEditControlId = 3001;
 constexpr UINT_PTR kViewportColorEditBaseControlId = 4000;
@@ -108,6 +119,7 @@ constexpr UINT_PTR kExportLocationEditControlId = 4500;
 constexpr UINT_PTR kExportLocationBrowseControlId = 4501;
 constexpr UINT_PTR kRecordDelayEditControlId = 4502;
 constexpr UINT_PTR kRecordSaveFormatControlId = 4503;
+constexpr UINT_PTR kRecordResampleFpsEditControlId = 4504;
 constexpr std::uint32_t kNoSelectedRuntimeIndex = 0xffffffffu;
 constexpr const wchar_t* kMainWindowClassName = L"OpenVRTrackerRecorderBootstrapWindow";
 constexpr const wchar_t* kViewportWindowClassName = L"OpenVRTrackerRecorderGLViewport";
@@ -158,6 +170,7 @@ struct ViewportSettings {
     RgbColor labelTextColor{20, 26, 36};
     RgbColor gridColor{199, 201, 209};
     RgbColor backgroundColor{198, 217, 225};
+    RgbColor importedGlbColor{255, 255, 255};
     float outlineMultiplier = 1.0f;
 };
 
@@ -193,7 +206,15 @@ struct OriginStepperButton {
 struct ViewportControlLayout {
     RECT barRect{0, 0, 0, 0};
     RECT recordButtonRect{0, 0, 0, 0};
+    RECT animationBarRect{0, 0, 0, 0};
+    RECT firstFrameButtonRect{0, 0, 0, 0};
+    RECT playPauseButtonRect{0, 0, 0, 0};
+    RECT lastFrameButtonRect{0, 0, 0, 0};
+    RECT timelineRect{0, 0, 0, 0};
+    RECT frameTextRect{0, 0, 0, 0};
+    RECT closeButtonRect{0, 0, 0, 0};
     bool valid = false;
+    bool animationValid = false;
 };
 
 struct DeviceNameDialogState {
@@ -235,11 +256,14 @@ struct ExportLocationDialogState {
     AppWindowState* appState = nullptr;
     HWND editWindow = nullptr;
     HWND delayEditWindow = nullptr;
+    HWND resampleFpsEditWindow = nullptr;
     HWND saveFormatComboWindow = nullptr;
     std::filesystem::path initialDirectory;
     std::filesystem::path resultDirectory;
     float initialRecordDelaySeconds = 0.0f;
     float resultRecordDelaySeconds = 0.0f;
+    float initialExportSampleRate = static_cast<float>(kDefaultExportSampleRate);
+    float resultExportSampleRate = static_cast<float>(kDefaultExportSampleRate);
     ExportFormat initialSaveFormat = ExportFormat::Glb;
     ExportFormat resultSaveFormat = ExportFormat::Glb;
     bool accepted = false;
@@ -257,7 +281,7 @@ struct ViewportColorDialogState {
     HWND parent = nullptr;
     AppWindowState* appState = nullptr;
     ViewportSettings workingSettings;
-    std::array<ColorEditControls, 3> colorControls{};
+    std::array<ColorEditControls, kViewportColorCount> colorControls{};
     HWND outlineEdit = nullptr;
     std::array<COLORREF, 16> customColors{};
     bool accepted = false;
@@ -302,8 +326,10 @@ struct AppWindowState {
     std::filesystem::path currentSessionFolder;
     std::string recordingError;
     std::string exportStatusMessage;
+    std::string importStatusMessage;
     std::filesystem::path exportDirectory;
     float recordDelaySeconds = 0.0f;
+    float recordExportSampleRate = static_cast<float>(kDefaultExportSampleRate);
     ExportFormat recordSaveFormat = ExportFormat::Glb;
     bool recordingDelayActive = false;
     std::chrono::steady_clock::time_point recordingDelayDeadline{};
@@ -315,6 +341,12 @@ struct AppWindowState {
     ViewportSettings viewportSettings;
     std::unordered_map<std::string, std::string> deviceCustomNames;
     std::unordered_map<std::string, RenderModelMesh> renderModelCache;
+    ovtr::ImportedGltfScene importedScene;
+    bool importedSceneLoaded = false;
+    bool importedScenePlaying = false;
+    bool importedSceneTimelineDragging = false;
+    double importedScenePlaybackSeconds = 0.0;
+    std::chrono::steady_clock::time_point importedSceneLastUpdate{};
     bool debugMonitorVisible = false;
     int debugLogScrollOffset = 0;
     int debugInfoScrollOffset = 0;
@@ -404,7 +436,10 @@ std::wstring yesNo(const bool value)
 int leftPanelWidthForClient(const AppWindowState* state, const int clientWidth);
 int leftPanelContentBottomForClient(const AppWindowState* state, const int clientHeight);
 void invalidateStatusPanel(HWND hwnd);
+void layoutChildWindows(HWND hwnd);
+void invalidateWindowLayout(HWND hwnd);
 void exportCurrentSession(HWND hwnd, const ExportFormat format);
+void importGlbFromFile(HWND hwnd, AppWindowState& state);
 void refreshPoseAndViewport(HWND hwnd);
 void refreshStatus(HWND hwnd, const bool forceDeviceEnumeration = false);
 
@@ -535,6 +570,13 @@ std::filesystem::path activeExportDirectoryPath(const AppWindowState& state)
 float sanitizedRecordDelaySeconds(const float value)
 {
     return std::isfinite(value) && value > 0.0f ? value : 0.0f;
+}
+
+float sanitizedExportSampleRate(const float value)
+{
+    return std::isfinite(value) && value > 0.0f
+        ? value
+        : static_cast<float>(kDefaultExportSampleRate);
 }
 
 const char* exportFormatConfigValue(const ExportFormat format)
@@ -877,6 +919,7 @@ bool writeRecordSettingsConfigFile(const AppWindowState& state, std::string& err
     output << "directory=" << narrow(activeExportDirectoryPath(state).wstring()) << "\n";
     output << "record_delay_seconds=" << std::fixed << std::setprecision(3)
            << sanitizedRecordDelaySeconds(state.recordDelaySeconds) << "\n";
+    output << "resample_fps=" << sanitizedExportSampleRate(state.recordExportSampleRate) << "\n";
     output << "save_format=" << exportFormatConfigValue(state.recordSaveFormat) << "\n";
     return true;
 }
@@ -885,6 +928,7 @@ void saveRecordSettingsConfig(AppWindowState& state)
 {
     state.exportDirectory = activeExportDirectoryPath(state);
     state.recordDelaySeconds = sanitizedRecordDelaySeconds(state.recordDelaySeconds);
+    state.recordExportSampleRate = sanitizedExportSampleRate(state.recordExportSampleRate);
     std::string error;
     if (!writeRecordSettingsConfigFile(state, error)) {
         appendDebugLog(state, "Record settings config save failed: " + error);
@@ -905,6 +949,7 @@ void loadRecordSettingsConfig(AppWindowState& state)
     if (!input) {
         state.exportDirectory = defaultExportDirectoryPath();
         state.recordDelaySeconds = 0.0f;
+        state.recordExportSampleRate = static_cast<float>(kDefaultExportSampleRate);
         state.recordSaveFormat = ExportFormat::Glb;
         appendDebugLog(state, "Record settings config not found: " + path.string());
         return;
@@ -912,6 +957,7 @@ void loadRecordSettingsConfig(AppWindowState& state)
 
     std::filesystem::path loadedDirectory;
     float recordDelaySeconds = 0.0f;
+    float exportSampleRate = static_cast<float>(kDefaultExportSampleRate);
     ExportFormat saveFormat = ExportFormat::Glb;
     std::string line;
     while (std::getline(input, line)) {
@@ -933,6 +979,11 @@ void loadRecordSettingsConfig(AppWindowState& state)
             if (parseFloatConfigValue(value, parsedDelay)) {
                 recordDelaySeconds = parsedDelay;
             }
+        } else if (key == "resample_fps" || key == "export_sample_rate" || key == "export_fps") {
+            float parsedSampleRate = 0.0f;
+            if (parseFloatConfigValue(value, parsedSampleRate)) {
+                exportSampleRate = parsedSampleRate;
+            }
         } else if (key == "save_format" || key == "format" || key == "export_format") {
             parseExportFormatConfigValue(value, saveFormat);
         }
@@ -940,6 +991,7 @@ void loadRecordSettingsConfig(AppWindowState& state)
 
     state.exportDirectory = normalizedExportDirectoryPath(loadedDirectory);
     state.recordDelaySeconds = sanitizedRecordDelaySeconds(recordDelaySeconds);
+    state.recordExportSampleRate = sanitizedExportSampleRate(exportSampleRate);
     state.recordSaveFormat = saveFormat;
     appendDebugLog(state, "Record settings config loaded: " + path.string());
     if (path.lexically_normal() != recordSettingsConfigPath().lexically_normal()) {
@@ -1075,6 +1127,9 @@ bool writeViewportSettingsConfigFile(const AppWindowState& state, std::string& e
            << "background_r=" << settings.backgroundColor.r << "\n"
            << "background_g=" << settings.backgroundColor.g << "\n"
            << "background_b=" << settings.backgroundColor.b << "\n"
+           << "imported_glb_r=" << settings.importedGlbColor.r << "\n"
+           << "imported_glb_g=" << settings.importedGlbColor.g << "\n"
+           << "imported_glb_b=" << settings.importedGlbColor.b << "\n"
            << std::fixed << std::setprecision(6)
            << "outline_multiplier=" << settings.outlineMultiplier << "\n";
     return true;
@@ -1085,6 +1140,7 @@ void saveViewportSettingsConfig(AppWindowState& state)
     state.viewportSettings.labelTextColor = clampRgbColor(state.viewportSettings.labelTextColor);
     state.viewportSettings.gridColor = clampRgbColor(state.viewportSettings.gridColor);
     state.viewportSettings.backgroundColor = clampRgbColor(state.viewportSettings.backgroundColor);
+    state.viewportSettings.importedGlbColor = clampRgbColor(state.viewportSettings.importedGlbColor);
     state.viewportSettings.outlineMultiplier = std::clamp(state.viewportSettings.outlineMultiplier, 0.0f, 10.0f);
 
     std::string error;
@@ -1134,6 +1190,12 @@ void loadViewportSettingsConfig(AppWindowState& state)
             settings.backgroundColor.g = intValue;
         } else if (key == "background_b" && parseIntConfigValue(value, intValue)) {
             settings.backgroundColor.b = intValue;
+        } else if ((key == "imported_glb_r" || key == "glb_r") && parseIntConfigValue(value, intValue)) {
+            settings.importedGlbColor.r = intValue;
+        } else if ((key == "imported_glb_g" || key == "glb_g") && parseIntConfigValue(value, intValue)) {
+            settings.importedGlbColor.g = intValue;
+        } else if ((key == "imported_glb_b" || key == "glb_b") && parseIntConfigValue(value, intValue)) {
+            settings.importedGlbColor.b = intValue;
         } else if (key == "outline_multiplier" && parseFloatConfigValue(value, floatValue) && std::isfinite(floatValue)) {
             settings.outlineMultiplier = floatValue;
         }
@@ -1142,6 +1204,7 @@ void loadViewportSettingsConfig(AppWindowState& state)
     settings.labelTextColor = clampRgbColor(settings.labelTextColor);
     settings.gridColor = clampRgbColor(settings.gridColor);
     settings.backgroundColor = clampRgbColor(settings.backgroundColor);
+    settings.importedGlbColor = clampRgbColor(settings.importedGlbColor);
     settings.outlineMultiplier = std::clamp(settings.outlineMultiplier, 0.0f, 10.0f);
     state.viewportSettings = settings;
     appendDebugLog(state, "Viewport settings loaded: " + path.string());
@@ -1244,6 +1307,8 @@ std::vector<std::wstring> makeDebugMonitorLines(const AppWindowState& state)
                << L"   Frames: " << state.recorder.frameCount()
                << L"   Dropped: " << state.recordingDroppedFrames
                << L"   Save: " << exportFormatDisplayText(state.recordSaveFormat)
+               << L"   Resample: " << std::fixed << std::setprecision(3)
+               << state.recordExportSampleRate << L"fps"
                << L"   Delay: " << std::fixed << std::setprecision(3)
                << state.recordDelaySeconds << L"s";
         if (state.recordingDelayActive) {
@@ -1288,6 +1353,18 @@ std::vector<std::wstring> makeDebugMonitorLines(const AppWindowState& state)
     if (!state.currentSessionFolder.empty()) {
         lines.emplace_back(L"Session folder: " + widen(state.currentSessionFolder.string()));
     }
+    if (state.importedSceneLoaded) {
+        std::wostringstream stream;
+        stream << L"Imported GLB: " << widen(state.importedScene.sourcePath.filename().string())
+               << L"   Nodes: " << state.importedScene.nodes.size()
+               << L"   Meshes: " << state.importedScene.meshes.size()
+               << L"   Duration: " << std::fixed << std::setprecision(3)
+               << state.importedScene.durationSeconds << L"s";
+        lines.emplace_back(stream.str());
+    }
+    if (!state.importStatusMessage.empty()) {
+        lines.emplace_back(L"Import status: " + widen(state.importStatusMessage));
+    }
 
     return lines;
 }
@@ -1317,6 +1394,9 @@ std::wstring makeStatusBarMessage(const AppWindowState& state)
     }
     if (!state.exportStatusMessage.empty()) {
         return L"Export: " + widen(state.exportStatusMessage);
+    }
+    if (!state.importStatusMessage.empty()) {
+        return L"Import: " + widen(state.importStatusMessage);
     }
     if (!state.providerError.empty()) {
         return L"OpenVR provider: " + widen(state.providerError);
@@ -1455,8 +1535,29 @@ RECT topBarSettingRectForClient(const int clientWidth, const int clientHeight)
     const int top = 4;
     const int bottom = clientHeight < kTopBarHeight ? clientHeight : kTopBarHeight;
     const int buttonBottom = bottom > top ? bottom - 4 : bottom;
-    const int buttonRight = clientWidth < kTopMenuSettingWidth + 8 ? clientWidth : kTopMenuSettingWidth + 8;
-    return RECT{8, top, buttonRight, buttonBottom};
+    const int left = 8 + kTopMenuFileWidth + kTopMenuGap;
+    if (left >= clientWidth) {
+        return RECT{0, 0, 0, 0};
+    }
+    const int right = left + kTopMenuSettingWidth < clientWidth
+        ? left + kTopMenuSettingWidth
+        : clientWidth;
+    return RECT{left, top, right, buttonBottom};
+}
+
+RECT topBarFileRectForClient(const int clientWidth, const int clientHeight)
+{
+    if (clientWidth <= 8 || clientHeight <= 0) {
+        return RECT{0, 0, 0, 0};
+    }
+
+    const int top = 4;
+    const int bottom = clientHeight < kTopBarHeight ? clientHeight : kTopBarHeight;
+    const int buttonBottom = bottom > top ? bottom - 4 : bottom;
+    const int right = 8 + kTopMenuFileWidth < clientWidth
+        ? 8 + kTopMenuFileWidth
+        : clientWidth;
+    return RECT{8, top, right, buttonBottom};
 }
 
 RECT deviceToggleButtonRectForClient(
@@ -1538,7 +1639,10 @@ ViewportControlLayout viewportControlLayoutForClient(
     const int contentBottom = leftPanelContentBottomForClient(state, clientHeight);
     const int availableWidth = right - left;
     const int availableHeight = contentBottom - kTopBarHeight;
-    if (availableWidth < 240 || availableHeight < 240) {
+    const bool showAnimationControls = state->importedSceneLoaded;
+    const int controlHeight = kViewportControlBarHeight +
+        (showAnimationControls ? kImportedAnimationBarHeight : 0);
+    if (availableWidth < 240 || availableHeight < 180 + controlHeight) {
         return layout;
     }
 
@@ -1561,6 +1665,63 @@ ViewportControlLayout viewportControlLayoutForClient(
 
     layout.valid = layout.recordButtonRect.right > layout.recordButtonRect.left &&
         layout.barRect.bottom > layout.barRect.top;
+
+    if (showAnimationControls) {
+        layout.animationBarRect = RECT{
+            left,
+            layout.barRect.top - kImportedAnimationBarHeight,
+            right,
+            layout.barRect.top
+        };
+
+        const int buttonTop = layout.animationBarRect.top +
+            (kImportedAnimationBarHeight - kImportedAnimationButtonSize) / 2;
+        int x = layout.animationBarRect.left + 14;
+        layout.firstFrameButtonRect = RECT{
+            x,
+            buttonTop,
+            x + kImportedAnimationButtonSize,
+            buttonTop + kImportedAnimationButtonSize
+        };
+        x = layout.firstFrameButtonRect.right + 8;
+        layout.playPauseButtonRect = RECT{
+            x,
+            buttonTop,
+            x + kImportedAnimationButtonSize,
+            buttonTop + kImportedAnimationButtonSize
+        };
+        x = layout.playPauseButtonRect.right + 8;
+        layout.lastFrameButtonRect = RECT{
+            x,
+            buttonTop,
+            x + kImportedAnimationButtonSize,
+            buttonTop + kImportedAnimationButtonSize
+        };
+
+        layout.closeButtonRect = RECT{
+            layout.animationBarRect.right - 14 - kImportedAnimationCloseButtonWidth,
+            buttonTop,
+            layout.animationBarRect.right - 14,
+            buttonTop + kImportedAnimationButtonSize
+        };
+        layout.frameTextRect = RECT{
+            layout.closeButtonRect.left - 12 - kImportedAnimationFrameTextWidth,
+            layout.animationBarRect.top,
+            layout.closeButtonRect.left - 12,
+            layout.animationBarRect.bottom
+        };
+        layout.timelineRect = RECT{
+            layout.lastFrameButtonRect.right + 18,
+            layout.animationBarRect.top + 14,
+            layout.frameTextRect.left - 18,
+            layout.animationBarRect.bottom - 14
+        };
+
+        layout.animationValid =
+            layout.animationBarRect.bottom > layout.animationBarRect.top &&
+            layout.closeButtonRect.right > layout.closeButtonRect.left &&
+            layout.timelineRect.right - layout.timelineRect.left >= kImportedAnimationTimelineMinWidth;
+    }
     return layout;
 }
 
@@ -1581,7 +1742,9 @@ RECT viewportRenderRectForClient(
         clientWidth,
         clientHeight
     );
-    const int bottom = controls.valid ? controls.barRect.top : contentBottom;
+    const int bottom = controls.animationValid
+        ? controls.animationBarRect.top
+        : (controls.valid ? controls.barRect.top : contentBottom);
     return RECT{left, kTopBarHeight, clientWidth, bottom};
 }
 
@@ -2860,6 +3023,181 @@ bool drawSteamVRRenderModel3D(
     return true;
 }
 
+void drawImportedGltfMeshTriangles(const ovtr::RenderModelGeometry& mesh)
+{
+    glBegin(GL_TRIANGLES);
+    for (const std::uint16_t index : mesh.indices) {
+        if (index >= mesh.vertices.size()) {
+            continue;
+        }
+        const ovtr::RenderModelVertex& vertex = mesh.vertices[index];
+        glNormal3f(vertex.normal[0], vertex.normal[1], vertex.normal[2]);
+        glVertex3f(vertex.position[0], vertex.position[1], vertex.position[2]);
+    }
+    glEnd();
+}
+
+void drawImportedFallbackMarker3D()
+{
+    constexpr float radius = 0.025f;
+    constexpr float axisLength = 0.10f;
+
+    glBegin(GL_QUADS);
+    glVertex3f(-radius, -radius, radius);
+    glVertex3f(radius, -radius, radius);
+    glVertex3f(radius, radius, radius);
+    glVertex3f(-radius, radius, radius);
+
+    glVertex3f(-radius, -radius, -radius);
+    glVertex3f(-radius, radius, -radius);
+    glVertex3f(radius, radius, -radius);
+    glVertex3f(radius, -radius, -radius);
+
+    glVertex3f(-radius, radius, -radius);
+    glVertex3f(-radius, radius, radius);
+    glVertex3f(radius, radius, radius);
+    glVertex3f(radius, radius, -radius);
+
+    glVertex3f(-radius, -radius, -radius);
+    glVertex3f(radius, -radius, -radius);
+    glVertex3f(radius, -radius, radius);
+    glVertex3f(-radius, -radius, radius);
+
+    glVertex3f(radius, -radius, -radius);
+    glVertex3f(radius, radius, -radius);
+    glVertex3f(radius, radius, radius);
+    glVertex3f(radius, -radius, radius);
+
+    glVertex3f(-radius, -radius, -radius);
+    glVertex3f(-radius, -radius, radius);
+    glVertex3f(-radius, radius, radius);
+    glVertex3f(-radius, radius, -radius);
+    glEnd();
+
+    glLineWidth(1.25f);
+    glBegin(GL_LINES);
+    glVertex3f(0.0f, 0.0f, 0.0f);
+    glVertex3f(axisLength, 0.0f, 0.0f);
+    glVertex3f(0.0f, 0.0f, 0.0f);
+    glVertex3f(0.0f, axisLength, 0.0f);
+    glVertex3f(0.0f, 0.0f, 0.0f);
+    glVertex3f(0.0f, 0.0f, axisLength);
+    glEnd();
+}
+
+double importedSceneDurationSeconds(const AppWindowState& state)
+{
+    if (!state.importedSceneLoaded || state.importedScene.durationSeconds <= 0.000001) {
+        return 0.0;
+    }
+    return state.importedScene.durationSeconds;
+}
+
+int importedSceneTotalFrames(const AppWindowState& state)
+{
+    const double durationSeconds = importedSceneDurationSeconds(state);
+    if (durationSeconds <= 0.0) {
+        return state.importedSceneLoaded ? 1 : 0;
+    }
+    const int totalFrames = static_cast<int>(std::floor(durationSeconds * kImportedAnimationFrameRate)) + 1;
+    return totalFrames > 1 ? totalFrames : 1;
+}
+
+int importedSceneCurrentFrame(const AppWindowState& state)
+{
+    const int totalFrames = importedSceneTotalFrames(state);
+    if (totalFrames <= 0) {
+        return 0;
+    }
+
+    const int frame = static_cast<int>(std::floor(
+        std::clamp(state.importedScenePlaybackSeconds, 0.0, importedSceneDurationSeconds(state)) *
+        kImportedAnimationFrameRate
+    )) + 1;
+    return std::clamp(frame, 1, totalFrames);
+}
+
+void setImportedScenePlaybackSeconds(AppWindowState& state, const double playbackSeconds)
+{
+    const double durationSeconds = importedSceneDurationSeconds(state);
+    state.importedScenePlaybackSeconds = std::clamp(playbackSeconds, 0.0, durationSeconds);
+    state.importedSceneLastUpdate = std::chrono::steady_clock::now();
+}
+
+void updateImportedScenePlayback(AppWindowState& state)
+{
+    if (!state.importedSceneLoaded) {
+        return;
+    }
+
+    const auto now = std::chrono::steady_clock::now();
+    if (state.importedSceneLastUpdate == std::chrono::steady_clock::time_point{}) {
+        state.importedSceneLastUpdate = now;
+    }
+    if (!state.importedScenePlaying || state.importedSceneTimelineDragging) {
+        state.importedSceneLastUpdate = now;
+        return;
+    }
+
+    const double elapsedSeconds = std::chrono::duration<double>(now - state.importedSceneLastUpdate).count();
+    state.importedSceneLastUpdate = now;
+    const double durationSeconds = importedSceneDurationSeconds(state);
+    state.importedScenePlaybackSeconds += elapsedSeconds > 0.0 ? elapsedSeconds : 0.0;
+    if (state.importedScenePlaybackSeconds >= durationSeconds) {
+        state.importedScenePlaybackSeconds = durationSeconds;
+        state.importedScenePlaying = false;
+    }
+}
+
+double importedScenePlaybackTime(const AppWindowState& state)
+{
+    return state.importedSceneLoaded
+        ? std::clamp(state.importedScenePlaybackSeconds, 0.0, importedSceneDurationSeconds(state))
+        : 0.0;
+}
+
+void drawImportedGltfScene3D(AppWindowState& state)
+{
+    if (!state.importedSceneLoaded) {
+        return;
+    }
+
+    const double playbackTime = importedScenePlaybackTime(state);
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_CULL_FACE);
+    glDepthFunc(GL_LEQUAL);
+    setGlColor(state.viewportSettings.importedGlbColor);
+
+    for (const ovtr::ImportedGltfNode& node : state.importedScene.nodes) {
+        std::array<float, 3> translation{};
+        std::array<float, 4> rotation{};
+        ovtr::sampleImportedGltfNodePose(node, playbackTime, translation, rotation);
+
+        glPushMatrix();
+        glTranslatef(translation[0], translation[1], translation[2]);
+        multiplyOpenGLMatrixFromQuaternion(rotation);
+        glScalef(node.scale[0], node.scale[1], node.scale[2]);
+        setGlColor(state.viewportSettings.importedGlbColor);
+
+        if (node.meshIndex >= 0 &&
+            static_cast<std::size_t>(node.meshIndex) < state.importedScene.meshes.size()) {
+            const ovtr::RenderModelGeometry& mesh = state.importedScene.meshes[static_cast<std::size_t>(node.meshIndex)];
+            if (mesh.available) {
+                drawImportedGltfMeshTriangles(mesh);
+            } else {
+                drawImportedFallbackMarker3D();
+            }
+        } else {
+            drawImportedFallbackMarker3D();
+        }
+        glPopMatrix();
+    }
+
+    glDepthFunc(GL_LESS);
+}
+
 void drawLabelText3D(const std::string& text, const GLuint fontBase)
 {
     if (fontBase == 0 || text.empty()) {
@@ -3034,6 +3372,8 @@ void renderViewport(HWND hwnd)
         const bool modelDrawn = drawSteamVRRenderModel3D(*state, displayPose, device, height, selected);
         drawDeviceMarker3D(displayPose, deviceClass, !modelDrawn, selected);
     }
+
+    drawImportedGltfScene3D(*state);
 
     glDisable(GL_DEPTH_TEST);
     setGlColor(state->viewportSettings.labelTextColor);
@@ -3563,7 +3903,10 @@ RgbColor& viewportDialogColorByIndex(ViewportSettings& settings, const int index
     if (index == 1) {
         return settings.gridColor;
     }
-    return settings.backgroundColor;
+    if (index == 2) {
+        return settings.backgroundColor;
+    }
+    return settings.importedGlbColor;
 }
 
 std::wstring formatIntegerText(const int value)
@@ -3945,7 +4288,7 @@ LRESULT CALLBACK originDialogProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM
 
 void updateViewportColorDialogControls(ViewportColorDialogState& dialog)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < kViewportColorCount; ++i) {
         const RgbColor color = viewportDialogColorByIndex(dialog.workingSettings, i);
         const ColorEditControls& controls = dialog.colorControls[static_cast<std::size_t>(i)];
         setEditText(controls.red, formatIntegerText(color.r));
@@ -3957,7 +4300,7 @@ void updateViewportColorDialogControls(ViewportColorDialogState& dialog)
 
 bool readViewportColorDialogControls(HWND hwnd, ViewportColorDialogState& dialog)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < kViewportColorCount; ++i) {
         RgbColor color{};
         const ColorEditControls& controls = dialog.colorControls[static_cast<std::size_t>(i)];
         if (!readIntegerEdit(controls.red, color.r) ||
@@ -4007,6 +4350,7 @@ void resetViewportDialogColors(ViewportColorDialogState& dialog)
     dialog.workingSettings.labelTextColor = defaults.labelTextColor;
     dialog.workingSettings.gridColor = defaults.gridColor;
     dialog.workingSettings.backgroundColor = defaults.backgroundColor;
+    dialog.workingSettings.importedGlbColor = defaults.importedGlbColor;
     updateViewportColorDialogControls(dialog);
 }
 
@@ -4052,6 +4396,7 @@ LRESULT CALLBACK viewportColorDialogProc(HWND hwnd, UINT message, WPARAM wparam,
             L"Device name font",
             L"Grid",
             L"Background",
+            L"Imported GLB",
         };
 
         for (const auto& header : {
@@ -4067,7 +4412,7 @@ LRESULT CALLBACK viewportColorDialogProc(HWND hwnd, UINT message, WPARAM wparam,
             }
         }
 
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < kViewportColorCount; ++i) {
             const int y = 38 + i * 38;
             HWND label = CreateWindowExW(0, L"STATIC", kColorLabels[i], WS_CHILD | WS_VISIBLE,
                 18, y + 4, 170, 20, hwnd, nullptr, nullptr, nullptr);
@@ -4105,23 +4450,23 @@ LRESULT CALLBACK viewportColorDialogProc(HWND hwnd, UINT message, WPARAM wparam,
         }
 
         HWND outlineLabel = CreateWindowExW(0, L"STATIC", L"Device outline thickness", WS_CHILD | WS_VISIBLE,
-            18, 156, 180, 20, hwnd, nullptr, nullptr, nullptr);
+            18, 194, 180, 20, hwnd, nullptr, nullptr, nullptr);
         dialog->outlineEdit = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"",
             WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL,
-            210, 152, 88, 24, hwnd,
+            210, 190, 88, 24, hwnd,
             reinterpret_cast<HMENU>(kViewportOutlineEditControlId),
             nullptr, nullptr);
         HWND outlineHint = CreateWindowExW(0, L"STATIC", L"Multiplier, 0.0 - 10.0", WS_CHILD | WS_VISIBLE,
-            312, 156, 180, 20, hwnd, nullptr, nullptr, nullptr);
+            312, 194, 180, 20, hwnd, nullptr, nullptr, nullptr);
         HWND resetButton = CreateWindowExW(0, L"BUTTON", L"Reset",
             WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
-            270, 200, 78, 26, hwnd, reinterpret_cast<HMENU>(kViewportColorResetControlId), nullptr, nullptr);
+            270, 242, 78, 26, hwnd, reinterpret_cast<HMENU>(kViewportColorResetControlId), nullptr, nullptr);
         HWND okButton = CreateWindowExW(0, L"BUTTON", L"OK",
             WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
-            360, 200, 78, 26, hwnd, reinterpret_cast<HMENU>(IDOK), nullptr, nullptr);
+            360, 242, 78, 26, hwnd, reinterpret_cast<HMENU>(IDOK), nullptr, nullptr);
         HWND cancelButton = CreateWindowExW(0, L"BUTTON", L"Cancel",
             WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
-            450, 200, 78, 26, hwnd, reinterpret_cast<HMENU>(IDCANCEL), nullptr, nullptr);
+            450, 242, 78, 26, hwnd, reinterpret_cast<HMENU>(IDCANCEL), nullptr, nullptr);
         for (HWND child : {outlineLabel, dialog->outlineEdit, outlineHint, resetButton, okButton, cancelButton}) {
             if (child) {
                 SendMessageW(child, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
@@ -4136,7 +4481,8 @@ LRESULT CALLBACK viewportColorDialogProc(HWND hwnd, UINT message, WPARAM wparam,
             break;
         }
         const UINT command = LOWORD(wparam);
-        if (command >= kViewportColorPickBaseControlId && command < kViewportColorPickBaseControlId + 3) {
+        if (command >= kViewportColorPickBaseControlId &&
+            command < kViewportColorPickBaseControlId + kViewportColorCount) {
             chooseViewportDialogColor(hwnd, *dialog, static_cast<int>(command - kViewportColorPickBaseControlId));
             return 0;
         }
@@ -4438,10 +4784,197 @@ bool chooseExportDirectory(HWND owner, const std::filesystem::path& initialDirec
     return selected;
 }
 
+bool chooseImportGlbFile(HWND owner, const std::filesystem::path& initialDirectory, std::filesystem::path& outPath)
+{
+    std::array<wchar_t, MAX_PATH> fileName{};
+    const std::wstring initialDirectoryText = normalizedExportDirectoryPath(initialDirectory).wstring();
+
+    OPENFILENAMEW openFile{};
+    openFile.lStructSize = sizeof(openFile);
+    openFile.hwndOwner = owner;
+    openFile.lpstrFilter = L"glTF Binary (*.glb)\0*.glb\0All Files (*.*)\0*.*\0";
+    openFile.lpstrFile = fileName.data();
+    openFile.nMaxFile = static_cast<DWORD>(fileName.size());
+    openFile.lpstrInitialDir = initialDirectoryText.empty() ? nullptr : initialDirectoryText.c_str();
+    openFile.lpstrTitle = L"Import GLB";
+    openFile.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+    openFile.lpstrDefExt = L"glb";
+
+    if (!GetOpenFileNameW(&openFile)) {
+        return false;
+    }
+
+    outPath = std::filesystem::path(fileName.data());
+    return !outPath.empty();
+}
+
+void importGlbFromFile(HWND hwnd, AppWindowState& state)
+{
+    std::filesystem::path selectedPath;
+    if (!chooseImportGlbFile(hwnd, activeExportDirectoryPath(state), selectedPath)) {
+        return;
+    }
+
+    state.exportStatusMessage.clear();
+    appendDebugLog(state, L"Starting GLB import: " + selectedPath.wstring());
+    ovtr::GltfImportResult result = ovtr::importGlbScene(selectedPath);
+    if (!result.success) {
+        state.importStatusMessage = "GLB import failed: " + result.error;
+        appendDebugLog(state, state.importStatusMessage);
+        MessageBoxW(hwnd, widen(state.importStatusMessage).c_str(), L"Import GLB", MB_OK | MB_ICONWARNING);
+        invalidateStatusPanel(hwnd);
+        InvalidateRect(hwnd, nullptr, FALSE);
+        return;
+    }
+
+    state.importedScene = std::move(result.scene);
+    state.importedSceneLoaded = true;
+    state.importedScenePlaying = false;
+    state.importedSceneTimelineDragging = false;
+    state.importedScenePlaybackSeconds = 0.0;
+    state.importedSceneLastUpdate = std::chrono::steady_clock::now();
+    state.importStatusMessage = "GLB imported: " + selectedPath.filename().string();
+    appendDebugLog(state, state.importStatusMessage);
+
+    layoutChildWindows(hwnd);
+    if (state.glWindow) {
+        renderViewport(state.glWindow);
+    }
+    invalidateStatusPanel(hwnd);
+    InvalidateRect(hwnd, nullptr, FALSE);
+}
+
+void closeImportedGlb(HWND hwnd, AppWindowState& state)
+{
+    if (!state.importedSceneLoaded) {
+        return;
+    }
+
+    const std::string fileName = state.importedScene.sourcePath.filename().string();
+    state.importedScene = {};
+    state.importedSceneLoaded = false;
+    state.importedScenePlaying = false;
+    state.importedSceneTimelineDragging = false;
+    state.importedScenePlaybackSeconds = 0.0;
+    state.importedSceneLastUpdate = {};
+    state.importStatusMessage = fileName.empty() ? "GLB import closed" : "GLB import closed: " + fileName;
+    appendDebugLog(state, state.importStatusMessage);
+
+    layoutChildWindows(hwnd);
+    invalidateWindowLayout(hwnd);
+}
+
+void invalidateImportedAnimationBar(HWND hwnd, const AppWindowState& state)
+{
+    RECT clientRect;
+    GetClientRect(hwnd, &clientRect);
+    const ViewportControlLayout layout = viewportControlLayoutForClient(
+        &state,
+        clientRect.right - clientRect.left,
+        clientRect.bottom - clientRect.top
+    );
+    if (layout.animationValid) {
+        InvalidateRect(hwnd, &layout.animationBarRect, FALSE);
+    }
+}
+
+void seekImportedGlbFromTimeline(HWND hwnd, AppWindowState& state, const RECT& timelineRect, const POINT point)
+{
+    if (!state.importedSceneLoaded || timelineRect.right <= timelineRect.left) {
+        return;
+    }
+
+    const int clampedX = std::clamp(point.x, timelineRect.left, timelineRect.right);
+    const double factor = static_cast<double>(clampedX - timelineRect.left) /
+        static_cast<double>(timelineRect.right - timelineRect.left);
+    setImportedScenePlaybackSeconds(state, factor * importedSceneDurationSeconds(state));
+
+    invalidateImportedAnimationBar(hwnd, state);
+}
+
+void toggleImportedGlbPlayback(HWND hwnd, AppWindowState& state)
+{
+    if (!state.importedSceneLoaded) {
+        return;
+    }
+
+    const double durationSeconds = importedSceneDurationSeconds(state);
+    if (!state.importedScenePlaying && state.importedScenePlaybackSeconds >= durationSeconds) {
+        setImportedScenePlaybackSeconds(state, 0.0);
+    }
+    state.importedScenePlaying = !state.importedScenePlaying;
+    state.importedSceneLastUpdate = std::chrono::steady_clock::now();
+    appendDebugLog(state, state.importedScenePlaying ? L"Imported GLB playback started" : L"Imported GLB playback paused");
+    invalidateStatusPanel(hwnd);
+    InvalidateRect(hwnd, nullptr, FALSE);
+}
+
+void startImportedGlbPlaybackForRecording(HWND hwnd, AppWindowState& state)
+{
+    if (!state.importedSceneLoaded) {
+        return;
+    }
+
+    const double durationSeconds = importedSceneDurationSeconds(state);
+    if (durationSeconds <= 0.0) {
+        state.importedScenePlaying = false;
+        setImportedScenePlaybackSeconds(state, 0.0);
+        invalidateImportedAnimationBar(hwnd, state);
+        return;
+    }
+
+    if (state.importedScenePlaybackSeconds >= durationSeconds) {
+        setImportedScenePlaybackSeconds(state, 0.0);
+    } else {
+        state.importedSceneLastUpdate = std::chrono::steady_clock::now();
+    }
+    state.importedScenePlaying = true;
+    appendDebugLog(state, L"Imported GLB playback auto-started for recording");
+    invalidateImportedAnimationBar(hwnd, state);
+}
+
+bool handleImportedAnimationControlClick(HWND hwnd, AppWindowState& state, const ViewportControlLayout& layout, const POINT point)
+{
+    if (!state.importedSceneLoaded || !layout.animationValid) {
+        return false;
+    }
+
+    if (PtInRect(&layout.firstFrameButtonRect, point)) {
+        state.importedScenePlaying = false;
+        setImportedScenePlaybackSeconds(state, 0.0);
+    } else if (PtInRect(&layout.playPauseButtonRect, point)) {
+        toggleImportedGlbPlayback(hwnd, state);
+        return true;
+    } else if (PtInRect(&layout.lastFrameButtonRect, point)) {
+        state.importedScenePlaying = false;
+        setImportedScenePlaybackSeconds(state, importedSceneDurationSeconds(state));
+    } else if (PtInRect(&layout.closeButtonRect, point)) {
+        closeImportedGlb(hwnd, state);
+        return true;
+    } else if (PtInRect(&layout.timelineRect, point)) {
+        state.importedSceneTimelineDragging = true;
+        SetCapture(hwnd);
+        seekImportedGlbFromTimeline(hwnd, state, layout.timelineRect, point);
+        return true;
+    } else {
+        return false;
+    }
+
+    if (state.glWindow) {
+        renderViewport(state.glWindow);
+    }
+    invalidateStatusPanel(hwnd);
+    InvalidateRect(hwnd, nullptr, FALSE);
+    return true;
+}
+
 void finishExportLocationDialog(HWND hwnd, ExportLocationDialogState& dialog, const bool accepted)
 {
     if (accepted) {
-        if (!dialog.editWindow || !dialog.delayEditWindow || !dialog.saveFormatComboWindow) {
+        if (!dialog.editWindow ||
+            !dialog.delayEditWindow ||
+            !dialog.resampleFpsEditWindow ||
+            !dialog.saveFormatComboWindow) {
             return;
         }
 
@@ -4474,13 +5007,27 @@ void finishExportLocationDialog(HWND hwnd, ExportLocationDialogState& dialog, co
             return;
         }
 
+        float exportSampleRate = static_cast<float>(kDefaultExportSampleRate);
+        if (!readFiniteFloatEdit(dialog.resampleFpsEditWindow, exportSampleRate) ||
+            exportSampleRate <= 0.0f) {
+            MessageBoxW(
+                hwnd,
+                L"Resample FPS must be greater than 0.",
+                L"Record Settings",
+                MB_OK | MB_ICONWARNING
+            );
+            return;
+        }
+
         dialog.resultDirectory = directory;
         dialog.resultRecordDelaySeconds = sanitizedRecordDelaySeconds(recordDelaySeconds);
+        dialog.resultExportSampleRate = sanitizedExportSampleRate(exportSampleRate);
         const LRESULT saveFormatIndex = SendMessageW(dialog.saveFormatComboWindow, CB_GETCURSEL, 0, 0);
         dialog.resultSaveFormat = saveFormatIndex == 1 ? ExportFormat::Fbx : ExportFormat::Glb;
         if (dialog.appState) {
             dialog.appState->exportDirectory = directory;
             dialog.appState->recordDelaySeconds = dialog.resultRecordDelaySeconds;
+            dialog.appState->recordExportSampleRate = dialog.resultExportSampleRate;
             dialog.appState->recordSaveFormat = dialog.resultSaveFormat;
             dialog.appState->exportStatusMessage = "Record settings updated";
             appendDebugLog(*dialog.appState, dialog.appState->exportStatusMessage);
@@ -4579,6 +5126,24 @@ LRESULT CALLBACK exportLocationDialogProc(HWND hwnd, UINT message, WPARAM wparam
                 0
             );
         }
+        HWND resampleFpsLabel = CreateWindowExW(0, L"STATIC", L"Resample FPS", WS_CHILD | WS_VISIBLE,
+            178, 146, 140, 20, hwnd, nullptr, nullptr, nullptr);
+        dialog->resampleFpsEditWindow = CreateWindowExW(
+            WS_EX_CLIENTEDGE,
+            L"EDIT",
+            formatFloatText(dialog->initialExportSampleRate).c_str(),
+            WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL,
+            178,
+            172,
+            96,
+            24,
+            hwnd,
+            reinterpret_cast<HMENU>(kRecordResampleFpsEditControlId),
+            nullptr,
+            nullptr
+        );
+        HWND resampleFpsHint = CreateWindowExW(0, L"STATIC", L"fps", WS_CHILD | WS_VISIBLE,
+            286, 175, 42, 20, hwnd, nullptr, nullptr, nullptr);
         HWND okButton = CreateWindowExW(0, L"BUTTON", L"OK",
             WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
             370, 198, 78, 26, hwnd, reinterpret_cast<HMENU>(IDOK), nullptr, nullptr);
@@ -4595,6 +5160,9 @@ LRESULT CALLBACK exportLocationDialogProc(HWND hwnd, UINT message, WPARAM wparam
             delayHint,
             saveFormatLabel,
             dialog->saveFormatComboWindow,
+            resampleFpsLabel,
+            dialog->resampleFpsEditWindow,
+            resampleFpsHint,
             okButton,
             cancelButton,
         }) {
@@ -4654,6 +5222,8 @@ bool showExportLocationSettings(HWND parent, AppWindowState& state)
     dialog.resultDirectory = dialog.initialDirectory;
     dialog.initialRecordDelaySeconds = sanitizedRecordDelaySeconds(state.recordDelaySeconds);
     dialog.resultRecordDelaySeconds = dialog.initialRecordDelaySeconds;
+    dialog.initialExportSampleRate = sanitizedExportSampleRate(state.recordExportSampleRate);
+    dialog.resultExportSampleRate = dialog.initialExportSampleRate;
     dialog.initialSaveFormat = state.recordSaveFormat;
     dialog.resultSaveFormat = dialog.initialSaveFormat;
 
@@ -4753,6 +5323,35 @@ void showTopSettingsMenu(HWND hwnd, AppWindowState& state, const RECT& settingRe
         appendDebugLog(state, L"Record settings opened");
         showExportLocationSettings(hwnd, state);
         InvalidateRect(hwnd, nullptr, FALSE);
+    }
+}
+
+void showTopFileMenu(HWND hwnd, AppWindowState& state, const RECT& fileRect)
+{
+    HMENU menu = CreatePopupMenu();
+    if (!menu) {
+        return;
+    }
+
+    PopupMenuItem importItem{kFileMenuImportGlbId, L"Import GLB..."};
+    appendPopupMenuItem(menu, importItem);
+
+    POINT menuPoint{fileRect.left, fileRect.bottom};
+    ClientToScreen(hwnd, &menuPoint);
+    SetForegroundWindow(hwnd);
+    const UINT command = TrackPopupMenu(
+        menu,
+        TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RETURNCMD,
+        menuPoint.x,
+        menuPoint.y,
+        0,
+        hwnd,
+        nullptr
+    );
+    DestroyMenu(menu);
+
+    if (command == kFileMenuImportGlbId) {
+        importGlbFromFile(hwnd, state);
     }
 }
 
@@ -5156,6 +5755,7 @@ void refreshPoseAndViewport(HWND hwnd)
     }
 
     updateDelayedRecordingStart(hwnd, *state);
+    updateImportedScenePlayback(*state);
 
     if (state->provider.isInitialized()) {
         if (state->provider.pollPoses(state->poses)) {
@@ -5195,6 +5795,18 @@ void refreshPoseAndViewport(HWND hwnd)
     if (state->glWindow) {
         renderViewport(state->glWindow);
     }
+    if (state->importedSceneLoaded) {
+        RECT clientRect;
+        GetClientRect(hwnd, &clientRect);
+        const ViewportControlLayout controls = viewportControlLayoutForClient(
+            state,
+            clientRect.right - clientRect.left,
+            clientRect.bottom - clientRect.top
+        );
+        if (controls.animationValid) {
+            InvalidateRect(hwnd, &controls.animationBarRect, FALSE);
+        }
+    }
 }
 
 void startRecordingNow(HWND hwnd, AppWindowState& state)
@@ -5228,6 +5840,7 @@ void startRecordingNow(HWND hwnd, AppWindowState& state)
         appendDebugLog(state, "Recording start failed: " + state.recordingError);
     } else {
         appendDebugLog(state, L"Recording started");
+        startImportedGlbPlaybackForRecording(hwnd, state);
     }
 
     invalidateStatusPanel(hwnd);
@@ -5416,19 +6029,22 @@ void exportCurrentSession(HWND hwnd, const ExportFormat format)
 
     ovtr::ExportResult result;
     const std::filesystem::path exportDirectory = activeExportDirectoryPath(*state);
+    const double exportSampleRate = static_cast<double>(
+        sanitizedExportSampleRate(state->recordExportSampleRate)
+    );
     appendDebugLog(*state, format == ExportFormat::Fbx ? L"Starting FBX export" : L"Starting GLB export");
     if (format == ExportFormat::Fbx) {
         ovtr::FbxExportOptions options;
         options.outputPath = exportDirectory / (session.sessionId + ".fbx");
         options.includeGeometry = true;
         options.includeTrackingReference = true;
-        options.exportSampleRate = kFbxExportSampleRate;
+        options.exportSampleRate = exportSampleRate;
         result = ovtr::exportSessionToFbxAscii(session, options);
     } else {
         ovtr::GltfExportOptions options;
         options.outputPath = exportDirectory / (session.sessionId + ".glb");
         options.includeTrackingReference = true;
-        options.exportSampleRate = kFbxExportSampleRate;
+        options.exportSampleRate = exportSampleRate;
         options.format = ovtr::GltfExportFormat::Glb;
         result = ovtr::exportSessionToGltf(session, options);
     }
@@ -5553,6 +6169,102 @@ void drawViewportRecordButton(HDC drawDc, const RECT& rect, const bool active)
     DeleteObject(dotBrush);
 }
 
+void drawImportedAnimationButton(HDC drawDc, HFONT font, const RECT& rect, const wchar_t* label)
+{
+    HBRUSH buttonBrush = CreateSolidBrush(RGB(30, 34, 42));
+    HPEN buttonPen = CreatePen(PS_SOLID, 1, RGB(67, 74, 88));
+    HGDIOBJ previousBrush = SelectObject(drawDc, buttonBrush);
+    HGDIOBJ previousPen = SelectObject(drawDc, buttonPen);
+    RoundRect(drawDc, rect.left, rect.top, rect.right, rect.bottom, 6, 6);
+    SelectObject(drawDc, previousBrush);
+    SelectObject(drawDc, previousPen);
+    DeleteObject(buttonBrush);
+    DeleteObject(buttonPen);
+
+    if (font) {
+        SelectObject(drawDc, font);
+    }
+    SetTextColor(drawDc, RGB(225, 231, 240));
+    RECT textRect = rect;
+    DrawTextW(drawDc, label, -1, &textRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+}
+
+void drawImportedAnimationControls(
+    HDC drawDc,
+    HFONT font,
+    const ViewportControlLayout& layout,
+    const AppWindowState& state
+)
+{
+    if (!layout.animationValid || !state.importedSceneLoaded) {
+        return;
+    }
+
+    HBRUSH barBrush = CreateSolidBrush(RGB(20, 23, 28));
+    FillRect(drawDc, &layout.animationBarRect, barBrush);
+    DeleteObject(barBrush);
+
+    HPEN borderPen = CreatePen(PS_SOLID, 1, RGB(54, 58, 66));
+    HGDIOBJ previousPen = SelectObject(drawDc, borderPen);
+    MoveToEx(drawDc, layout.animationBarRect.left, layout.animationBarRect.top, nullptr);
+    LineTo(drawDc, layout.animationBarRect.right, layout.animationBarRect.top);
+    SelectObject(drawDc, previousPen);
+    DeleteObject(borderPen);
+
+    drawImportedAnimationButton(drawDc, font, layout.firstFrameButtonRect, L"|<");
+    drawImportedAnimationButton(drawDc, font, layout.playPauseButtonRect, state.importedScenePlaying ? L"||" : L">");
+    drawImportedAnimationButton(drawDc, font, layout.lastFrameButtonRect, L">|");
+    drawImportedAnimationButton(drawDc, font, layout.closeButtonRect, L"Close");
+
+    RECT trackRect{
+        layout.timelineRect.left,
+        layout.timelineRect.top + (layout.timelineRect.bottom - layout.timelineRect.top - 6) / 2,
+        layout.timelineRect.right,
+        layout.timelineRect.top + (layout.timelineRect.bottom - layout.timelineRect.top - 6) / 2 + 6
+    };
+    HBRUSH trackBrush = CreateSolidBrush(RGB(48, 54, 66));
+    FillRect(drawDc, &trackRect, trackBrush);
+    DeleteObject(trackBrush);
+
+    const double durationSeconds = importedSceneDurationSeconds(state);
+    const double factor = durationSeconds > 0.0
+        ? std::clamp(state.importedScenePlaybackSeconds / durationSeconds, 0.0, 1.0)
+        : 0.0;
+    RECT fillRect = trackRect;
+    fillRect.right = fillRect.left + static_cast<int>(
+        static_cast<double>(trackRect.right - trackRect.left) * factor
+    );
+    HBRUSH fillBrush = CreateSolidBrush(RGB(212, 222, 236));
+    FillRect(drawDc, &fillRect, fillBrush);
+    DeleteObject(fillBrush);
+
+    const int handleCenterX = fillRect.right;
+    RECT handleRect{handleCenterX - 4, trackRect.top - 5, handleCenterX + 4, trackRect.bottom + 5};
+    HBRUSH handleBrush = CreateSolidBrush(RGB(255, 255, 255));
+    HGDIOBJ previousBrush = SelectObject(drawDc, handleBrush);
+    HGDIOBJ previousHandlePen = SelectObject(drawDc, GetStockObject(NULL_PEN));
+    Ellipse(drawDc, handleRect.left, handleRect.top, handleRect.right, handleRect.bottom);
+    SelectObject(drawDc, previousBrush);
+    SelectObject(drawDc, previousHandlePen);
+    DeleteObject(handleBrush);
+
+    std::wostringstream frameText;
+    frameText << L"Frame " << importedSceneCurrentFrame(state)
+              << L" / " << importedSceneTotalFrames(state);
+    if (font) {
+        SelectObject(drawDc, font);
+    }
+    SetTextColor(drawDc, RGB(202, 211, 224));
+    RECT frameTextRect = layout.frameTextRect;
+    DrawTextW(
+        drawDc,
+        frameText.str().c_str(),
+        -1,
+        &frameTextRect,
+        DT_RIGHT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS
+    );
+}
+
 void drawViewportControlBar(
     HDC drawDc,
     HFONT font,
@@ -5563,6 +6275,8 @@ void drawViewportControlBar(
     if (!layout.valid) {
         return;
     }
+
+    drawImportedAnimationControls(drawDc, font, layout, state);
 
     HBRUSH barBrush = CreateSolidBrush(RGB(18, 20, 24));
     FillRect(drawDc, &layout.barRect, barBrush);
@@ -5580,6 +6294,30 @@ void drawViewportControlBar(
     if (font) {
         SelectObject(drawDc, font);
     }
+}
+
+void drawTopBarMenuButton(HDC drawDc, HFONT font, const RECT& rect, const wchar_t* label)
+{
+    if (rect.right <= rect.left || rect.bottom <= rect.top) {
+        return;
+    }
+
+    HBRUSH buttonBrush = CreateSolidBrush(RGB(30, 34, 42));
+    HPEN buttonPen = CreatePen(PS_SOLID, 1, RGB(67, 74, 88));
+    HGDIOBJ previousBrush = SelectObject(drawDc, buttonBrush);
+    HGDIOBJ previousPen = SelectObject(drawDc, buttonPen);
+    RoundRect(drawDc, rect.left, rect.top, rect.right, rect.bottom, 6, 6);
+    SelectObject(drawDc, previousBrush);
+    SelectObject(drawDc, previousPen);
+    DeleteObject(buttonBrush);
+    DeleteObject(buttonPen);
+
+    if (font) {
+        SelectObject(drawDc, font);
+    }
+    SetTextColor(drawDc, RGB(225, 231, 240));
+    RECT textRect = rect;
+    DrawTextW(drawDc, label, -1, &textRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 }
 
 void drawOriginStepperRow(
@@ -5785,23 +6523,18 @@ void paintWindow(HWND hwnd)
         SelectObject(drawDc, previousTopBarPen);
         DeleteObject(topBarPen);
 
-        const RECT settingRect = topBarSettingRectForClient(clientWidth, clientHeight);
-        if (settingRect.right > settingRect.left && settingRect.bottom > settingRect.top) {
-            HBRUSH settingBrush = CreateSolidBrush(RGB(30, 34, 42));
-            HPEN settingPen = CreatePen(PS_SOLID, 1, RGB(67, 74, 88));
-            HGDIOBJ previousSettingBrush = SelectObject(drawDc, settingBrush);
-            HGDIOBJ previousSettingPen = SelectObject(drawDc, settingPen);
-            RoundRect(drawDc, settingRect.left, settingRect.top, settingRect.right, settingRect.bottom, 6, 6);
-            SelectObject(drawDc, previousSettingBrush);
-            SelectObject(drawDc, previousSettingPen);
-            DeleteObject(settingBrush);
-            DeleteObject(settingPen);
-
-            SelectObject(drawDc, statusFont ? statusFont : bodyFont);
-            SetTextColor(drawDc, RGB(225, 231, 240));
-            RECT settingTextRect = settingRect;
-            DrawTextW(drawDc, L"Setting", -1, &settingTextRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
-        }
+        drawTopBarMenuButton(
+            drawDc,
+            statusFont ? statusFont : bodyFont,
+            topBarFileRectForClient(clientWidth, clientHeight),
+            L"File"
+        );
+        drawTopBarMenuButton(
+            drawDc,
+            statusFont ? statusFont : bodyFont,
+            topBarSettingRectForClient(clientWidth, clientHeight),
+            L"Setting"
+        );
     }
 
     if (state && deviceListLayout.valid) {
@@ -6464,6 +7197,28 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
                     SetCursor(LoadCursor(nullptr, IDC_HAND));
                     return TRUE;
                 }
+                const RECT fileRect = topBarFileRectForClient(
+                    clientRect.right - clientRect.left,
+                    clientRect.bottom - clientRect.top
+                );
+                if (PtInRect(&fileRect, point)) {
+                    SetCursor(LoadCursor(nullptr, IDC_HAND));
+                    return TRUE;
+                }
+                const ViewportControlLayout viewportControls = viewportControlLayoutForClient(
+                    state,
+                    clientRect.right - clientRect.left,
+                    clientRect.bottom - clientRect.top
+                );
+                if (viewportControls.animationValid &&
+                    (PtInRect(&viewportControls.firstFrameButtonRect, point) ||
+                     PtInRect(&viewportControls.playPauseButtonRect, point) ||
+                     PtInRect(&viewportControls.lastFrameButtonRect, point) ||
+                     PtInRect(&viewportControls.timelineRect, point) ||
+                     PtInRect(&viewportControls.closeButtonRect, point))) {
+                    SetCursor(LoadCursor(nullptr, IDC_HAND));
+                    return TRUE;
+                }
                 const OriginStepperButton originButton = originStepperButtonFromPoint(
                     state,
                     clientRect.right - clientRect.left,
@@ -6566,6 +7321,17 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
         const int clientHeight = clientRect.bottom - clientRect.top;
         POINT point{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
 
+        if (state->importedSceneTimelineDragging) {
+            const ViewportControlLayout viewportControls = viewportControlLayoutForClient(
+                state,
+                clientWidth,
+                clientHeight
+            );
+            seekImportedGlbFromTimeline(hwnd, *state, viewportControls.timelineRect, point);
+            SetCursor(LoadCursor(nullptr, IDC_HAND));
+            return 0;
+        }
+
         if (state->debugResizeDragging) {
             const int statusBarTop = clientHeight > kStatusBarHeight
                 ? clientHeight - kStatusBarHeight
@@ -6657,11 +7423,22 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
             showTopSettingsMenu(hwnd, *state, settingRect);
             return 0;
         }
+        const RECT fileRect = topBarFileRectForClient(
+            clientRect.right - clientRect.left,
+            clientRect.bottom - clientRect.top
+        );
+        if (PtInRect(&fileRect, point)) {
+            showTopFileMenu(hwnd, *state, fileRect);
+            return 0;
+        }
         const ViewportControlLayout viewportControls = viewportControlLayoutForClient(
             state,
             clientRect.right - clientRect.left,
             clientRect.bottom - clientRect.top
         );
+        if (handleImportedAnimationControlClick(hwnd, *state, viewportControls, point)) {
+            return 0;
+        }
         if (viewportControls.valid && PtInRect(&viewportControls.recordButtonRect, point)) {
             toggleRecording(hwnd);
             InvalidateRect(hwnd, &viewportControls.barRect, FALSE);
@@ -6866,6 +7643,15 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
     }
     case WM_LBUTTONUP: {
         auto* state = reinterpret_cast<AppWindowState*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+        if (state && state->importedSceneTimelineDragging) {
+            state->importedSceneTimelineDragging = false;
+            state->importedSceneLastUpdate = std::chrono::steady_clock::now();
+            if (GetCapture() == hwnd) {
+                ReleaseCapture();
+            }
+            InvalidateRect(hwnd, nullptr, FALSE);
+            return 0;
+        }
         if (state && state->debugResizeDragging) {
             state->debugResizeDragging = false;
             if (GetCapture() == hwnd) {
@@ -6888,6 +7674,11 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
     }
     case WM_CAPTURECHANGED: {
         auto* state = reinterpret_cast<AppWindowState*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+        if (state && state->importedSceneTimelineDragging && reinterpret_cast<HWND>(lparam) != hwnd) {
+            state->importedSceneTimelineDragging = false;
+            state->importedSceneLastUpdate = std::chrono::steady_clock::now();
+            InvalidateRect(hwnd, nullptr, FALSE);
+        }
         if (state && state->debugResizeDragging && reinterpret_cast<HWND>(lparam) != hwnd) {
             state->debugResizeDragging = false;
             InvalidateRect(hwnd, nullptr, FALSE);
