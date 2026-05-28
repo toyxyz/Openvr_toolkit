@@ -42,7 +42,7 @@ bool readViewportColorDialogControls(HWND hwnd, ViewportColorDialogState& dialog
         RgbColor color{};
         const ViewportColorEditControls& controls = dialog.controls.colors[static_cast<std::size_t>(i)];
         if (!readColorEditControls(controls, color)) {
-            MessageBoxW(hwnd, L"RGB values must be numbers from 0 to 255.", L"Color Settings", MB_OK | MB_ICONWARNING);
+            MessageBoxW(hwnd, L"RGB values must be numbers from 0 to 255.", L"Appearance", MB_OK | MB_ICONWARNING);
             return false;
         }
         setViewportColorSlot(dialog.workingSettings, i, color);
@@ -50,10 +50,24 @@ bool readViewportColorDialogControls(HWND hwnd, ViewportColorDialogState& dialog
 
     float outlineMultiplier = 1.0f;
     if (!readFloatEdit(dialog.controls.outlineEdit, outlineMultiplier)) {
-        MessageBoxW(hwnd, L"Outline thickness must be a number from 0.0 to 10.0.", L"Color Settings", MB_OK | MB_ICONWARNING);
+        MessageBoxW(hwnd, L"Outline thickness must be a number from 0.0 to 10.0.", L"Appearance", MB_OK | MB_ICONWARNING);
         return false;
     }
     dialog.workingSettings.outlineMultiplier = outlineMultiplier;
+
+    float gridSize = 5.0f;
+    if (!readFiniteFloatEdit(dialog.controls.gridSizeEdit, gridSize)) {
+        MessageBoxW(hwnd, L"Grid size must be a number from 1.0 to 50.0.", L"Appearance", MB_OK | MB_ICONWARNING);
+        return false;
+    }
+    dialog.workingSettings.gridSize = gridSize;
+
+    float gridCellDensity = 2.0f;
+    if (!readFiniteFloatEdit(dialog.controls.gridDensityEdit, gridCellDensity)) {
+        MessageBoxW(hwnd, L"Grid cell density must be a number from 0.25 to 10.0.", L"Appearance", MB_OK | MB_ICONWARNING);
+        return false;
+    }
+    dialog.workingSettings.gridCellDensity = gridCellDensity;
     return true;
 }
 
@@ -67,6 +81,8 @@ void updateViewportColorDialogControls(ViewportColorDialogState& dialog)
         setEditText(controls.blue, formatIntegerText(color.b));
     }
     setEditText(dialog.controls.outlineEdit, formatFloatText(dialog.workingSettings.outlineMultiplier));
+    setEditText(dialog.controls.gridSizeEdit, formatFloatText(dialog.workingSettings.gridSize));
+    setEditText(dialog.controls.gridDensityEdit, formatFloatText(dialog.workingSettings.gridCellDensity));
     invalidateColorSwatches(dialog.controls);
 }
 

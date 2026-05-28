@@ -59,7 +59,7 @@ void showTopSettingsMenu(HWND hwnd, AppWindowState& state, const RECT& settingRe
     }
 
     std::array<PopupMenuItem, 3> menuItems{{
-        PopupMenuItem{kSettingsMenuColorId, L"Color..."},
+        PopupMenuItem{kSettingsMenuColorId, L"Appearance..."},
         PopupMenuItem{kSettingsMenuOriginId, L"Origin..."},
         PopupMenuItem{kSettingsMenuLocationId, L"Record..."},
     }};
@@ -71,7 +71,7 @@ void showTopSettingsMenu(HWND hwnd, AppWindowState& state, const RECT& settingRe
     ClientToScreen(hwnd, &menuPoint);
     const UINT command = trackTopBarMenu(hwnd, state, menu.get(), ActiveTopBarMenu::Setting, menuPoint);
     if (command == kSettingsMenuColorId) {
-        appendDebugLog(state, L"Color settings opened");
+        appendDebugLog(state, L"Appearance settings opened");
         showViewportColorSettings(hwnd, state);
         InvalidateRect(hwnd, nullptr, FALSE);
     } else if (command == kSettingsMenuOriginId) {

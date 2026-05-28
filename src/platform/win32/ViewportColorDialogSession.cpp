@@ -31,8 +31,17 @@ void resetViewportDialogColors(ViewportColorDialogState& dialog)
     if (readFloatEdit(dialog.controls.outlineEdit, currentOutlineMultiplier)) {
         dialog.workingSettings.outlineMultiplier = currentOutlineMultiplier;
     }
+    float currentGridSize = dialog.workingSettings.gridSize;
+    if (readFiniteFloatEdit(dialog.controls.gridSizeEdit, currentGridSize)) {
+        dialog.workingSettings.gridSize = currentGridSize;
+    }
+    float currentGridDensity = dialog.workingSettings.gridCellDensity;
+    if (readFiniteFloatEdit(dialog.controls.gridDensityEdit, currentGridDensity)) {
+        dialog.workingSettings.gridCellDensity = currentGridDensity;
+    }
 
     dialog.workingSettings = viewportSettingsWithDefaultColors(dialog.workingSettings);
+    dialog.workingSettings = viewportSettingsWithDefaultGrid(dialog.workingSettings);
     updateViewportColorDialogControls(dialog);
 }
 

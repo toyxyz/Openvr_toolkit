@@ -16,7 +16,7 @@ namespace ovtr::win32 {
 
 void setGlColor(RgbColor color);
 void setGlClearColor(RgbColor color);
-void drawGroundGrid3D(RgbColor gridColor);
+void drawGroundGrid3D(RgbColor gridColor, float gridSize, float gridCellDensity);
 void drawAxes3D();
 void multiplyOpenGLMatrixFromQuaternion(const std::array<float, 4>& q);
 void drawDeviceMarker3D(

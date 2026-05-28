@@ -22,6 +22,8 @@ ViewportSettings clampViewportSettings(ViewportSettings settings) noexcept
     settings.renderModelOutlineColor = clampRgbColor(settings.renderModelOutlineColor);
     settings.renderModelMaterialColor = clampRgbColor(settings.renderModelMaterialColor);
     settings.outlineMultiplier = std::clamp(settings.outlineMultiplier, 0.0f, 10.0f);
+    settings.gridSize = std::clamp(settings.gridSize, 1.0f, 50.0f);
+    settings.gridCellDensity = std::clamp(settings.gridCellDensity, 0.25f, 10.0f);
     return settings;
 }
 

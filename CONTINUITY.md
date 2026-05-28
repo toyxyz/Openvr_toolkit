@@ -57,6 +57,13 @@
 - 2026-05-28 [CODE] Changed camera reset shortcut from `Home` to `F3`.
 - 2026-05-28 [CODE] Changed the default and `F3` reset camera to a front view with a slight downward pitch: yaw 0, pitch 18, distance 5.5, pan 0/0/0.
 - 2026-05-28 [CODE] Added `F2` as a viewport device name/serial label visibility toggle; labels default to visible.
+- 2026-05-28 [TOOL] Built a VS2022 Release app and assembled `toyxyz_vr_toolkit_v1` with executable, OpenVR DLL, MSVC x64 runtime DLLs, config/matcap, output folders, OpenVR license, and README.
+- 2026-05-28 [CODE] Renamed the Win32 desktop output executable and title bar to `toyxyz_openvr_toolkit`.
+- 2026-05-28 [TOOL] Assembled `toyxyz_openvr_toolkit/` as a Release distribution package.
+- 2026-05-28 [USER] Release packages must not include user-specific `config/*.cfg` files.
+- 2026-05-28 [CODE] Renamed Setting > Color to `Appearance` and added grid size/density controls to viewport appearance settings.
+- 2026-05-28 [TOOL] Updated `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe` from the latest Release build; package still contains no `config/*.cfg`.
+- 2026-05-28 [CODE] Added distribution package folders to `.gitignore`.
 
 ### Now
 - 2026-05-28 [ASSUMPTION] Pose worker decoupling is implemented and automated tests pass; 60Hz monitor manual report shows `Pose FPS 90.0`, `View FPS 60.0`, `Frames 927`, `Dropped 0`.
@@ -67,6 +74,7 @@
 
 ## Open Questions
 - 2026-05-28 [ASSUMPTION] Whether to remove the explicit procedural fallback after runtime PNG loading is visually confirmed is not yet decided.
+- 2026-05-28 [CODE] `CMakeLists.txt` is an existing 300-line rule exception at 591 lines; this task made a small target property edit there.
 
 ## Working Set
 - 2026-05-28 [TOOL] AGENTS.md
@@ -100,6 +108,10 @@
 - 2026-05-28 [CODE] tests/test_win32_pose_sampling.cpp
 - 2026-05-28 [CODE] tests/test_win32_viewport_settings_config.cpp
 - 2026-05-28 [CODE] tests/test_win32_viewport_control_layout.cpp
+
+## Packages
+- 2026-05-28 [TOOL] `toyxyz_vr_toolkit_v1/` contains `OpenVRTrackerRecorderDesktop.exe` built from `build/vs2022/Release`, `openvr_api.dll`, VC143 CRT DLLs, portable `config/`, empty `recordings/` and `exports/`, and `licenses/OpenVR_LICENSE.txt`.
+- 2026-05-28 [TOOL] `toyxyz_openvr_toolkit/` contains `toyxyz_openvr_toolkit.exe` built from `build/vs2022/Release`, `openvr_api.dll`, VC143 CRT DLLs, `config/render_model_matcap.png` only, empty `recordings/` and `exports/`, `licenses/OpenVR_LICENSE.txt`, and README.
 
 ## Incidents
 - None.
@@ -163,3 +175,17 @@
 - 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022`; passed after changing the default camera view.
 - 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default && ctest --preset default`; passed after adding the `F2` device label toggle.
 - 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022`; passed after adding the `F2` device label toggle.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --config Release --target OpenVRTrackerRecorderDesktop`; initial 120s attempt timed out, rerun with longer timeout succeeded.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --config Release --target openvr_tracker_recorder_tests && ctest --test-dir build/vs2022 -C Release --output-on-failure`; `core_tests` passed.
+- 2026-05-28 [TOOL] Ran `dumpbin /dependents toyxyz_vr_toolkit_v1/OpenVRTrackerRecorderDesktop.exe`; package includes `openvr_api.dll` and VC143 runtime DLLs alongside system dependencies.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default && ctest --preset default`; linked `toyxyz_openvr_toolkit.exe` and `core_tests` passed after app rename.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --config Release --target OpenVRTrackerRecorderDesktop && cmake --build --preset vs2022 --config Release --target openvr_tracker_recorder_tests && ctest --test-dir build/vs2022 -C Release --output-on-failure`; `core_tests` passed after app rename.
+- 2026-05-28 [TOOL] Ran `dumpbin /dependents toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; package includes `openvr_api.dll` and VC143 runtime DLLs alongside system dependencies.
+- 2026-05-28 [TOOL] Confirmed `toyxyz_openvr_toolkit` title string is embedded in the packaged executable.
+- 2026-05-28 [TOOL] Removed `config/*.cfg` from `toyxyz_openvr_toolkit/`; verified no `*.cfg` files remain in the release package.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default && ctest --preset default`; `core_tests` passed after Appearance/grid settings changes.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022`; `core_tests` passed after Appearance/grid settings changes.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --config Release --target OpenVRTrackerRecorderDesktop && cmake --build --preset vs2022 --config Release --target openvr_tracker_recorder_tests && ctest --test-dir build/vs2022 -C Release --output-on-failure`; `core_tests` passed after Appearance/grid settings changes.
+- 2026-05-28 [TOOL] Checked manually written `src/platform/win32` and `tests` code file lengths; none exceeded 300 lines after Appearance/grid settings changes.
+- 2026-05-28 [TOOL] Re-copied Release `toyxyz_openvr_toolkit.exe` into `toyxyz_openvr_toolkit/` and verified `NO_CFG_FILES`.
+- 2026-05-28 [TOOL] Ran `git check-ignore -v` for files under `toyxyz_openvr_toolkit/` and `toyxyz_vr_toolkit_v1/`; both package folders are ignored.

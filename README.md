@@ -1,4 +1,4 @@
-# OpenVR Tracker Recorder
+# toyxyz_openvr_toolkit
 
 Native SteamVR tracker recorder prototype based on C++20, OpenVR, Dear ImGui, GLFW, and OpenGL.
 
@@ -38,12 +38,12 @@ After `cmake --build --preset vs2022`, the current executables are:
 
 ```text
 build/vs2022/Debug/OpenVRTrackerRecorder.exe
-build/vs2022/Debug/OpenVRTrackerRecorderDesktop.exe
+build/vs2022/Debug/toyxyz_openvr_toolkit.exe
 ```
 
 `OpenVRTrackerRecorder.exe` is the console core diagnostic app.
 
-`OpenVRTrackerRecorderDesktop.exe` is the current desktop bootstrap shell. It does not use ImGui yet; it uses a dependency-free Win32 window to show whether `openvr_api.dll`, the SteamVR runtime, and an HMD are detected. When the OpenVR SDK is present under `third_party/openvr`, it also initializes OpenVR, lists tracked devices with their latest positions, and draws a simple OpenGL top-down X/Z viewport.
+`toyxyz_openvr_toolkit.exe` is the current desktop bootstrap shell. It does not use ImGui yet; it uses a dependency-free Win32 window to show whether `openvr_api.dll`, the SteamVR runtime, and an HMD are detected. When the OpenVR SDK is present under `third_party/openvr`, it also initializes OpenVR, lists tracked devices with their latest positions, and draws a simple OpenGL top-down X/Z viewport.
 
 Keyboard controls:
 

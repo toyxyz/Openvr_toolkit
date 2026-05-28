@@ -22,6 +22,8 @@ void testWin32ViewportSettingsConfig()
     require(defaults.importedGlbColor.g == 104, "default imported glb g");
     require(defaults.renderModelOutlineColor.g == 133, "default render model outline g");
     require(defaults.renderModelMaterialColor.b == 255, "default render model material b");
+    require(win32ConfigNearlyEqual(defaults.gridSize, 5.0f), "default grid size");
+    require(win32ConfigNearlyEqual(defaults.gridCellDensity, 2.0f), "default grid density");
 
     ovtr::win32::ViewportSettings settings;
     settings.labelTextColor = {-1, 12, 300};
@@ -31,6 +33,8 @@ void testWin32ViewportSettingsConfig()
     settings.renderModelOutlineColor = {12, 300, -8};
     settings.renderModelMaterialColor = {300, 24, -1};
     settings.outlineMultiplier = 12.0f;
+    settings.gridSize = 100.0f;
+    settings.gridCellDensity = 0.1f;
     const ovtr::win32::ViewportSettings clampedSettings = ovtr::win32::clampViewportSettings(settings);
     require(
         clampedSettings.labelTextColor.r == 0 &&
@@ -38,6 +42,8 @@ void testWin32ViewportSettingsConfig()
             clampedSettings.labelTextColor.b == 255,
         "clamp viewport label color"
     );
+    require(win32ConfigNearlyEqual(clampedSettings.gridSize, 50.0f), "clamp viewport grid size");
+    require(win32ConfigNearlyEqual(clampedSettings.gridCellDensity, 0.25f), "clamp viewport grid density");
     require(
         clampedSettings.gridColor.r == 255 &&
             clampedSettings.gridColor.g == 0 &&
@@ -63,6 +69,8 @@ void testWin32ViewportSettingsConfig()
         "render_model_outline_g=123\n"
         "render_model_material_b=77\n"
         "outline_multiplier=12\n"
+        "grid_size=12\n"
+        "grid_cell_density=4\n"
     );
     const ovtr::win32::ViewportSettings parsedViewport =
         ovtr::win32::parseViewportSettingsConfig(viewportInput, ovtr::win32::ViewportSettings{});
@@ -72,6 +80,8 @@ void testWin32ViewportSettingsConfig()
     require(parsedViewport.renderModelOutlineColor.g == 123, "parse render model outline g");
     require(parsedViewport.renderModelMaterialColor.b == 77, "parse render model material b");
     require(win32ConfigNearlyEqual(parsedViewport.outlineMultiplier, 10.0f), "parse viewport clamps outline");
+    require(win32ConfigNearlyEqual(parsedViewport.gridSize, 12.0f), "parse viewport grid size");
+    require(win32ConfigNearlyEqual(parsedViewport.gridCellDensity, 4.0f), "parse viewport grid density");
 
     const std::string serializedViewport = ovtr::win32::serializeViewportSettingsConfig(parsedViewport);
     require(
@@ -85,6 +95,14 @@ void testWin32ViewportSettingsConfig()
     require(
         serializedViewport.find("render_model_material_b=77") != std::string::npos,
         "serialize render model material color"
+    );
+    require(
+        serializedViewport.find("grid_size=12.000000") != std::string::npos,
+        "serialize grid size"
+    );
+    require(
+        serializedViewport.find("grid_cell_density=4.000000") != std::string::npos,
+        "serialize grid density"
     );
 
     ovtr::win32::ViewportSettings slotSettings;
@@ -117,6 +135,8 @@ void testWin32ViewportSettingsConfig()
         "viewport color slot reads render model material color"
     );
     slotSettings.outlineMultiplier = 3.5f;
+    slotSettings.gridSize = 22.0f;
+    slotSettings.gridCellDensity = 3.0f;
     const ovtr::win32::ViewportSettings defaultColors =
         ovtr::win32::viewportSettingsWithDefaultColors(slotSettings);
     require(
@@ -130,6 +150,21 @@ void testWin32ViewportSettingsConfig()
     require(
         win32ConfigNearlyEqual(defaultColors.outlineMultiplier, 3.5f),
         "viewport default color reset preserves outline"
+    );
+    require(
+        win32ConfigNearlyEqual(defaultColors.gridSize, 22.0f),
+        "viewport default color reset preserves grid size"
+    );
+
+    const ovtr::win32::ViewportSettings defaultGrid =
+        ovtr::win32::viewportSettingsWithDefaultGrid(slotSettings);
+    require(
+        win32ConfigNearlyEqual(defaultGrid.gridSize, ovtr::win32::ViewportSettings{}.gridSize),
+        "viewport default grid reset restores grid size"
+    );
+    require(
+        win32ConfigNearlyEqual(defaultGrid.gridCellDensity, ovtr::win32::ViewportSettings{}.gridCellDensity),
+        "viewport default grid reset restores grid density"
     );
 }
 

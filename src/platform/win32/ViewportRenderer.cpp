@@ -64,7 +64,11 @@ void renderViewport(HWND hwnd)
 
     {
         ScopedGlCapability depthTest(GL_DEPTH_TEST, true);
-        drawGroundGrid3D(state->viewportSettings.gridColor);
+        drawGroundGrid3D(
+            state->viewportSettings.gridColor,
+            state->viewportSettings.gridSize,
+            state->viewportSettings.gridCellDensity
+        );
         drawAxes3D();
 
         drawTrackedDevices3D(*state, height);

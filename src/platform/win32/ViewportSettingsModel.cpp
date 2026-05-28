@@ -54,4 +54,12 @@ ViewportSettings viewportSettingsWithDefaultColors(ViewportSettings current) noe
     return current;
 }
 
+ViewportSettings viewportSettingsWithDefaultGrid(ViewportSettings current) noexcept
+{
+    const ViewportSettings defaults;
+    current.gridSize = defaults.gridSize;
+    current.gridCellDensity = defaults.gridCellDensity;
+    return current;
+}
+
 } // namespace ovtr::win32

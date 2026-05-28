@@ -25,6 +25,8 @@ struct ViewportSettings {
     RgbColor renderModelOutlineColor{255, 133, 32};
     RgbColor renderModelMaterialColor{255, 255, 255};
     float outlineMultiplier = 1.0f;
+    float gridSize = 5.0f;
+    float gridCellDensity = 2.0f;
 };
 
 struct DeviceNameConfigEntry {

@@ -20,7 +20,7 @@ bool promptForViewportColorSettings(
     ModalDialogHost host(parent);
     const ModalDialogDescriptor descriptor{
         kViewportColorDialogClassName,
-        L"Color Settings",
+        L"Appearance",
         kViewportColorDialogWidth,
         kViewportColorDialogHeight,
     };

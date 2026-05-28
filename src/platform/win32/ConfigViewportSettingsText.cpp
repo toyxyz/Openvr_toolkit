@@ -56,6 +56,10 @@ ViewportSettings parseViewportSettingsConfig(std::istream& input, ViewportSettin
             settings.renderModelMaterialColor.b = intValue;
         } else if (key == "outline_multiplier" && parseFloatConfigValue(value, floatValue) && std::isfinite(floatValue)) {
             settings.outlineMultiplier = floatValue;
+        } else if (key == "grid_size" && parseFloatConfigValue(value, floatValue) && std::isfinite(floatValue)) {
+            settings.gridSize = floatValue;
+        } else if (key == "grid_cell_density" && parseFloatConfigValue(value, floatValue) && std::isfinite(floatValue)) {
+            settings.gridCellDensity = floatValue;
         }
     }
     return clampViewportSettings(settings);

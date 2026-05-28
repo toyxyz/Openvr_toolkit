@@ -19,7 +19,7 @@ bool showViewportColorSettings(HWND parent, AppWindowState& state)
 
     state.viewportSettings = result;
     saveViewportSettingsConfig(state);
-    appendDebugLog(state, L"Viewport color settings applied");
+    appendDebugLog(state, L"Viewport appearance settings applied");
     if (state.glWindow) {
         renderViewport(state.glWindow);
     }

@@ -47,13 +47,97 @@ void createViewportColorFooterControls(HWND hwnd, HFONT font, ViewportColorDialo
         nullptr,
         nullptr
     );
+    HWND gridSizeLabel = CreateWindowExW(
+        0,
+        L"STATIC",
+        L"Grid size",
+        WS_CHILD | WS_VISIBLE,
+        18,
+        306,
+        180,
+        20,
+        hwnd,
+        nullptr,
+        nullptr,
+        nullptr
+    );
+    controls.gridSizeEdit = CreateWindowExW(
+        WS_EX_CLIENTEDGE,
+        L"EDIT",
+        L"",
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL,
+        210,
+        302,
+        88,
+        24,
+        hwnd,
+        reinterpret_cast<HMENU>(kViewportGridSizeEditControlId),
+        nullptr,
+        nullptr
+    );
+    HWND gridSizeHint = CreateWindowExW(
+        0,
+        L"STATIC",
+        L"Half size, 1.0 - 50.0",
+        WS_CHILD | WS_VISIBLE,
+        312,
+        306,
+        180,
+        20,
+        hwnd,
+        nullptr,
+        nullptr,
+        nullptr
+    );
+    HWND gridDensityLabel = CreateWindowExW(
+        0,
+        L"STATIC",
+        L"Grid cell density",
+        WS_CHILD | WS_VISIBLE,
+        18,
+        342,
+        180,
+        20,
+        hwnd,
+        nullptr,
+        nullptr,
+        nullptr
+    );
+    controls.gridDensityEdit = CreateWindowExW(
+        WS_EX_CLIENTEDGE,
+        L"EDIT",
+        L"",
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL,
+        210,
+        338,
+        88,
+        24,
+        hwnd,
+        reinterpret_cast<HMENU>(kViewportGridDensityEditControlId),
+        nullptr,
+        nullptr
+    );
+    HWND gridDensityHint = CreateWindowExW(
+        0,
+        L"STATIC",
+        L"Cells/unit, 0.25 - 10.0",
+        WS_CHILD | WS_VISIBLE,
+        312,
+        342,
+        180,
+        20,
+        hwnd,
+        nullptr,
+        nullptr,
+        nullptr
+    );
     HWND resetButton = CreateWindowExW(
         0,
         L"BUTTON",
         L"Reset",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
         270,
-        318,
+        398,
         78,
         26,
         hwnd,
@@ -67,7 +151,7 @@ void createViewportColorFooterControls(HWND hwnd, HFONT font, ViewportColorDialo
         L"OK",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
         360,
-        318,
+        398,
         78,
         26,
         hwnd,
@@ -81,7 +165,7 @@ void createViewportColorFooterControls(HWND hwnd, HFONT font, ViewportColorDialo
         L"Cancel",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
         450,
-        318,
+        398,
         78,
         26,
         hwnd,
@@ -90,7 +174,12 @@ void createViewportColorFooterControls(HWND hwnd, HFONT font, ViewportColorDialo
         nullptr
     );
 
-    HWND footerControls[] = {outlineLabel, controls.outlineEdit, outlineHint, resetButton, okButton, cancelButton};
+    HWND footerControls[] = {
+        outlineLabel, controls.outlineEdit, outlineHint,
+        gridSizeLabel, controls.gridSizeEdit, gridSizeHint,
+        gridDensityLabel, controls.gridDensityEdit, gridDensityHint,
+        resetButton, okButton, cancelButton
+    };
     for (HWND child : footerControls) {
         applyControlFont(child, font);
     }

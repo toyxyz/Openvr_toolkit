@@ -375,6 +375,10 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/Win32BootstrapApp.cpp
     )
 
+    set_target_properties(OpenVRTrackerRecorderDesktop PROPERTIES
+        OUTPUT_NAME toyxyz_openvr_toolkit
+    )
+
     target_link_libraries(OpenVRTrackerRecorderDesktop
         PRIVATE
             openvr_tracker_recorder_core

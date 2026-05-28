@@ -29,7 +29,9 @@ std::string serializeViewportSettingsConfig(ViewportSettings settings)
            << "render_model_material_g=" << settings.renderModelMaterialColor.g << "\n"
            << "render_model_material_b=" << settings.renderModelMaterialColor.b << "\n"
            << std::fixed << std::setprecision(6)
-           << "outline_multiplier=" << settings.outlineMultiplier << "\n";
+           << "outline_multiplier=" << settings.outlineMultiplier << "\n"
+           << "grid_size=" << settings.gridSize << "\n"
+           << "grid_cell_density=" << settings.gridCellDensity << "\n";
     return output.str();
 }
 

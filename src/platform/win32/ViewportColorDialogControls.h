@@ -16,6 +16,8 @@ inline constexpr UINT_PTR kViewportColorPickBaseControlId = 4100;
 inline constexpr UINT_PTR kViewportColorSwatchBaseControlId = 4300;
 inline constexpr UINT_PTR kViewportOutlineEditControlId = 4200;
 inline constexpr UINT_PTR kViewportColorResetControlId = 4201;
+inline constexpr UINT_PTR kViewportGridSizeEditControlId = 4202;
+inline constexpr UINT_PTR kViewportGridDensityEditControlId = 4203;
 
 struct ViewportColorEditControls {
     HWND red = nullptr;
@@ -28,6 +30,8 @@ struct ViewportColorEditControls {
 struct ViewportColorDialogControls {
     std::array<ViewportColorEditControls, kViewportColorSlotCount> colors{};
     HWND outlineEdit = nullptr;
+    HWND gridSizeEdit = nullptr;
+    HWND gridDensityEdit = nullptr;
 };
 
 void createViewportColorDialogControls(HWND hwnd, ViewportColorDialogControls& controls);

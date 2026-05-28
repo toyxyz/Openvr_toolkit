@@ -12,7 +12,7 @@ HWND createMainWindow(HINSTANCE instance)
     return CreateWindowExW(
         0,
         kMainWindowClassName,
-        L"OpenVR Tracker Recorder",
+        L"toyxyz_openvr_toolkit",
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
