@@ -56,11 +56,23 @@ void testWin32ConfigStore()
     require(win32ConfigNearlyEqual(origin.config.offset[0], 1.5f), "parse origin x");
     require(win32ConfigNearlyEqual(origin.config.rotationDegrees[2], 6.0f), "parse origin rz");
 
-    std::istringstream disabledOriginInput("enabled=0\nx=8\ny=9\nz=10\n");
+    std::istringstream disabledOriginInput(
+        "enabled=0\n"
+        "x=8\n"
+        "y=9\n"
+        "z=10\n"
+        "rx=11\n"
+        "ry=12\n"
+        "rz=13\n"
+    );
     const ovtr::win32::OriginConfigParseResult disabledOrigin =
         ovtr::win32::parseOriginConfig(disabledOriginInput);
     require(disabledOrigin.status == ovtr::win32::OriginConfigParseStatus::Disabled, "parse disabled origin");
-    require(win32ConfigNearlyEqual(disabledOrigin.config.offset[0], 0.0f), "disabled origin clears offset");
+    require(win32ConfigNearlyEqual(disabledOrigin.config.offset[0], 8.0f), "disabled origin preserves offset");
+    require(
+        win32ConfigNearlyEqual(disabledOrigin.config.rotationDegrees[2], 13.0f),
+        "disabled origin preserves rotation"
+    );
 
     std::istringstream incompleteOriginInput("enabled=1\nx=1\nz=3\n");
     const ovtr::win32::OriginConfigParseResult incompleteOrigin =
@@ -77,6 +89,20 @@ void testWin32ConfigStore()
     const std::string serializedOrigin = ovtr::win32::serializeOriginConfig(originConfig);
     require(serializedOrigin.find("enabled=1") != std::string::npos, "serialize origin enabled");
     require(serializedOrigin.find("x=1.000000000") != std::string::npos, "serialize origin precision");
+
+    originConfig.enabled = false;
+    originConfig.offset = {8.0f, 9.0f, 10.0f};
+    originConfig.rotationDegrees = {11.0f, 12.0f, 13.0f};
+    const std::string serializedDisabledOrigin = ovtr::win32::serializeOriginConfig(originConfig);
+    require(serializedDisabledOrigin.find("enabled=0") != std::string::npos, "serialize disabled origin");
+    require(
+        serializedDisabledOrigin.find("x=8.000000000") != std::string::npos,
+        "serialize disabled origin offset"
+    );
+    require(
+        serializedDisabledOrigin.find("rz=13.000000000") != std::string::npos,
+        "serialize disabled origin rotation"
+    );
 }
 
 } // namespace ovtr::test

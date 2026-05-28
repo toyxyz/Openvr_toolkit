@@ -43,8 +43,6 @@ OriginConfigParseResult parseOriginConfig(std::istream& input)
         return {OriginConfigParseStatus::MissingEnabled, config};
     }
     if (!config.enabled) {
-        config.offset = {0.0f, 0.0f, 0.0f};
-        config.rotationDegrees = {0.0f, 0.0f, 0.0f};
         return {OriginConfigParseStatus::Disabled, config};
     }
     if (!hasX || !hasY || !hasZ) {

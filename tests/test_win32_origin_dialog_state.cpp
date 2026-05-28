@@ -39,6 +39,17 @@ void testWin32OriginDialogState()
         "origin dialog snapshots state rotation"
     );
 
+    dialogValues.enabled = false;
+    dialogValues.offset = {7.0f, 8.0f, 9.0f};
+    dialogValues.rotationDegrees = {10.0f, 11.0f, 12.0f};
+    ovtr::win32::applyOriginDialogValuesToState(state, dialogValues);
+    require(!state.originEnabled, "origin dialog unchecked disables origin");
+    require(state.originOffset == dialogValues.offset, "origin dialog disabled state preserves offset");
+    require(
+        state.originRotationDegrees == dialogValues.rotationDegrees,
+        "origin dialog disabled state preserves rotation"
+    );
+
     ovtr::win32::clearOriginState(state);
     require(!state.originEnabled, "clear origin disables origin");
     require(state.originOffset == std::array<float, 3>{0.0f, 0.0f, 0.0f}, "clear origin clears offset");

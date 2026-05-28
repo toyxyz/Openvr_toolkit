@@ -59,8 +59,8 @@ void loadOriginConfig(AppOriginState& state, AppDebugUiState& logState)
     if (config.status == OriginConfigParseStatus::Disabled) {
         std::lock_guard<std::mutex> lock(state.originMutex);
         state.originEnabled = false;
-        state.originOffset = {0.0f, 0.0f, 0.0f};
-        state.originRotationDegrees = {0.0f, 0.0f, 0.0f};
+        state.originOffset = config.config.offset;
+        state.originRotationDegrees = config.config.rotationDegrees;
         state.originStatusMessage = "origin disabled by config";
         appendDebugLog(logState, "Origin config loaded: disabled");
         return;

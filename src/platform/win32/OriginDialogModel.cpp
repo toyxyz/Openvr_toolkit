@@ -26,10 +26,8 @@ void applyOriginDialogValuesToState(AppOriginState& state, const OriginDialogVal
     const bool active = originDialogValuesActive(values);
     std::lock_guard<std::mutex> lock(state.originMutex);
     state.originEnabled = active;
-    state.originOffset = active ? values.offset : std::array<float, 3>{0.0f, 0.0f, 0.0f};
-    state.originRotationDegrees = active
-        ? values.rotationDegrees
-        : std::array<float, 3>{0.0f, 0.0f, 0.0f};
+    state.originOffset = values.offset;
+    state.originRotationDegrees = values.rotationDegrees;
     state.selectedOriginRuntimeIndex = kNoSelectedRuntimeIndex;
 }
 

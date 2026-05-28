@@ -1,11 +1,11 @@
 # CONTINUITY.md
 
 ## Snapshot
-- 2026-05-29 [USER] Goal: keep SteamVR skeletal input export as finger-joint box objects, parented in bone order.
-- 2026-05-29 [USER] Success criteria: GLB/FBX export skeletal boxes as root-to-finger parent hierarchies using child local transforms.
-- 2026-05-29 [TOOL] Current phase: parented skeletal box export implemented and automated build/test verified; manual hardware export QA remains.
+- 2026-05-29 [USER] Goal: fix Settings > Origin so disabling `Enable origin` does not erase stored origin values.
+- 2026-05-29 [USER] Success criteria: OK/save with origin disabled preserves offset/rotation while disabling origin application.
+- 2026-05-29 [TOOL] Current phase: origin disable/save preservation implemented and automated build/test verified.
 - 2026-05-28 [CODE] Current architecture: C++20 native Win32/OpenVR tracker recorder with modular `src` areas for app, data, export, import, math, platform, recording, render, ui, util, and vr.
-- 2026-05-29 [TOOL] Last verified state: default/VS2022 app builds and `core_tests` passed after parented skeletal box export.
+- 2026-05-29 [TOOL] Last verified state: default/VS2022 app builds and `core_tests` passed after origin disable/save preservation.
 
 ## Invariants / Constraints
 - 2026-05-28 [USER] Code files must stay under 300 physical lines unless explicitly exempted in this ledger.
@@ -132,12 +132,13 @@
 - 2026-05-29 [CODE] Increased skeletal viewport bone connection line width from 4px to 12px.
 - 2026-05-29 [USER] Canceled GLB hand-hierarchy skeletal export and returned GLB to skeletal box-object export.
 - 2026-05-29 [CODE] Added common skeletal export hierarchy conversion so GLB/text glTF/FBX skeletal boxes are parented root-to-finger and animated with local child transforms.
+- 2026-05-29 [CODE] Fixed Origin settings so disabling origin preserves stored offset/rotation in dialog state and config parsing/loading.
 
 ### Now
-- 2026-05-29 [TOOL] GLB/text glTF/FBX skeletal exports use parented synthetic box tracks; default and VS2022 Debug builds/tests passed.
+- 2026-05-29 [TOOL] Origin disable/save preservation is implemented; default and VS2022 Debug builds/tests passed.
 
 ### Next
-- 2026-05-29 [ASSUMPTION] Validate live skeletal-capable controller recording/export with hardware.
+- 2026-05-29 [ASSUMPTION] User can manually confirm Settings > Origin uncheck + OK + reopen keeps prior values visible.
 
 ## Open Questions
 - 2026-05-28 [ASSUMPTION] Whether to remove the explicit procedural fallback after runtime PNG loading is visually confirmed is not yet decided.
@@ -147,17 +148,11 @@
 - 2026-05-29 [CODE] Current GLB importer reads flat animated nodes and does not compose node hierarchy transforms; external GLB tools should honor exported `children`.
 
 ## Working Set
-- 2026-05-29 [CODE] CMakeLists.txt
-- 2026-05-29 [CODE] src/data/SkeletalSyntheticPose.{h,cpp}
-- 2026-05-29 [CODE] src/export/ExportPoseTrack.{h,cpp}
-- 2026-05-29 [CODE] src/export/SkeletalExportHierarchy.{h,cpp}
-- 2026-05-29 [CODE] src/export/GltfExporter.cpp and GLB scene/JSON builder files
-- 2026-05-29 [CODE] src/export/FbxAsciiExporter.cpp and FBX scene/connections files
-- 2026-05-29 [CODE] src/export/RenderModelGeometry.{h,cpp}
-- 2026-05-29 [CODE] src/platform/win32/ViewportSkeletalBoxRenderer.{h,cpp}
-- 2026-05-29 [CODE] src/vr/OpenVRProviderSkeletal.cpp
-- 2026-05-29 [CODE] tests/test_skeletal_synthetic_pose.cpp
-- 2026-05-29 [CODE] tests/core_tests.cpp and tests/TestCases.h
+- 2026-05-29 [CODE] src/platform/win32/OriginDialogModel.cpp
+- 2026-05-29 [CODE] src/platform/win32/ConfigOriginText.cpp
+- 2026-05-29 [CODE] src/platform/win32/AppOriginConfig.cpp
+- 2026-05-29 [CODE] tests/test_win32_origin_dialog_state.cpp
+- 2026-05-29 [CODE] tests/test_win32_config_store.cpp
 
 ## Packages
 - 2026-05-28 [TOOL] `toyxyz_vr_toolkit_v1/` contains `OpenVRTrackerRecorderDesktop.exe` built from `build/vs2022/Release`, `openvr_api.dll`, VC143 CRT DLLs, portable `config/`, empty `recordings/` and `exports/`, and `licenses/OpenVR_LICENSE.txt`.
@@ -353,3 +348,6 @@
 - 2026-05-29 [TOOL] Ran clean default test target build and `ctest --preset default --output-on-failure`; passed after parented skeletal box export.
 - 2026-05-29 [TOOL] Ran default app build, VS2022 Debug app/test builds, and `ctest --preset vs2022 --output-on-failure`; passed, exe timestamp became 2026-05-29 04:09:52 KST.
 - 2026-05-29 [TOOL] Ran `git diff --check` and checked touched skeletal export code/test line counts; no whitespace errors and touched manually written files were under 300 lines.
+- 2026-05-29 [TOOL] Ran default test target build and `ctest --preset default --output-on-failure`; `core_tests` passed after Origin disable/save preservation.
+- 2026-05-29 [TOOL] Ran default app build, VS2022 Debug app/test builds, and `ctest --preset vs2022 --output-on-failure`; passed, exe timestamp became 2026-05-29 05:14:13 KST.
+- 2026-05-29 [TOOL] Ran `git diff --check` and checked touched Origin code/test line counts; no whitespace errors and touched manually written files were under 300 lines.
