@@ -6,21 +6,42 @@
 #include <ostream>
 
 namespace ovtr::detail {
+namespace {
+
+void writeNodeChildren(std::ostream& out, const std::vector<int>& children)
+{
+    if (children.empty()) {
+        return;
+    }
+
+    out << ", \"children\": [";
+    for (std::size_t i = 0; i < children.size(); ++i) {
+        if (i != 0) {
+            out << ",";
+        }
+        out << children[i];
+    }
+    out << "]";
+}
+
+std::vector<int> rootChildren(const std::vector<GltfDevice>& devices)
+{
+    std::vector<int> children;
+    for (const GltfDevice& device : devices) {
+        if (device.parentNodeIndex < 0) {
+            children.push_back(device.nodeIndex);
+        }
+    }
+    return children;
+}
+
+} // namespace
 
 void writeGltfJsonNodes(std::ostream& out, const std::vector<GltfDevice>& devices)
 {
     out << "  \"nodes\": [\n";
     out << "    { \"name\": \"OpenVR_Root\"";
-    if (!devices.empty()) {
-        out << ", \"children\": [";
-        for (std::size_t i = 0; i < devices.size(); ++i) {
-            if (i != 0) {
-                out << ",";
-            }
-            out << devices[i].nodeIndex;
-        }
-        out << "]";
-    }
+    writeNodeChildren(out, rootChildren(devices));
     out << " }";
     for (const GltfDevice& device : devices) {
         const GltfKey defaultKey = device.keys.empty() ? GltfKey{} : device.keys.front();
@@ -30,6 +51,7 @@ void writeGltfJsonNodes(std::ostream& out, const std::vector<GltfDevice>& device
         writeGltfJsonFloatArray(out, defaultKey.translation);
         out << ", \"rotation\": ";
         writeGltfJsonFloatArray(out, defaultKey.rotation);
+        writeNodeChildren(out, device.children);
         if (device.meshIndex >= 0) {
             out << ", \"mesh\": " << device.meshIndex;
         }

@@ -20,7 +20,11 @@ struct GltfDevice {
     DeviceDescriptor device;
     std::string nodeName;
     int nodeIndex = -1;
+    int parentNodeIndex = -1;
     int meshIndex = -1;
+    bool hasParentRuntimeIndex = false;
+    std::uint32_t parentRuntimeIndex = 0;
+    std::vector<int> children;
     std::vector<GltfKey> keys;
     RenderModelGeometry geometry;
 };

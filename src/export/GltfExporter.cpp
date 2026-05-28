@@ -3,6 +3,7 @@
 #include "export/GltfExportSceneBuilder.h"
 #include "export/GltfFileWriter.h"
 #include "export/GltfJsonBuilder.h"
+#include "export/SkeletalExportHierarchy.h"
 #include "util/BinaryBuffer.h"
 
 #include <filesystem>
@@ -41,6 +42,12 @@ ExportResult exportSessionToGltf(const RecordingSession& session, const GltfExpo
             trackError
         )) {
         result.error = trackError;
+        return result;
+    }
+
+    std::string hierarchyError;
+    if (!applySkeletalExportHierarchy(tracks, hierarchyError)) {
+        result.error = hierarchyError;
         return result;
     }
 

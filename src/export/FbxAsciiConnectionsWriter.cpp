@@ -18,7 +18,8 @@ void writeFbxConnections(
     out << "    C: \"OO\"," << rootModelId << ",0\n";
     out << "    C: \"OO\"," << layerId << "," << stackId << "\n";
     for (const FbxDeviceExport& device : devices) {
-        out << "    C: \"OO\"," << device.modelId << "," << rootModelId << "\n";
+        const std::int64_t parentId = device.parentModelId != 0 ? device.parentModelId : rootModelId;
+        out << "    C: \"OO\"," << device.modelId << "," << parentId << "\n";
         if (device.geometry.available) {
             out << "    C: \"OO\"," << device.geometryId << "," << device.modelId << "\n";
         }

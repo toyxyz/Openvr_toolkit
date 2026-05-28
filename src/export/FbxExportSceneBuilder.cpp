@@ -4,9 +4,34 @@
 #include "export/FbxExportPoseKeys.h"
 #include "export/FbxExportTimelineRanges.h"
 
+#include <cstddef>
+#include <unordered_map>
 #include <utility>
 
 namespace ovtr {
+namespace {
+
+void linkFbxDeviceParents(std::vector<FbxDeviceExport>& devices)
+{
+    std::unordered_map<std::uint32_t, std::size_t> runtimeToDevice;
+    runtimeToDevice.reserve(devices.size());
+    for (std::size_t index = 0; index < devices.size(); ++index) {
+        runtimeToDevice[devices[index].device.runtimeIndex] = index;
+    }
+
+    for (FbxDeviceExport& device : devices) {
+        if (!device.hasParentRuntimeIndex) {
+            continue;
+        }
+        const auto parentFound = runtimeToDevice.find(device.parentRuntimeIndex);
+        if (parentFound == runtimeToDevice.end()) {
+            continue;
+        }
+        device.parentModelId = devices[parentFound->second].modelId;
+    }
+}
+
+} // namespace
 
 void buildFbxExportScene(
     std::vector<ExportPoseTrack> tracks,
@@ -24,6 +49,8 @@ void buildFbxExportScene(
         FbxDeviceExport device;
         device.device = std::move(track.device);
         device.nodeName = std::move(track.nodeName);
+        device.hasParentRuntimeIndex = track.hasParentRuntimeIndex;
+        device.parentRuntimeIndex = track.parentRuntimeIndex;
         device.modelId = nextId++;
         device.geometryId = nextId++;
         device.translationNodeId = nextId++;
@@ -40,6 +67,7 @@ void buildFbxExportScene(
         }
         scene.devices.push_back(std::move(device));
     }
+    linkFbxDeviceParents(scene.devices);
 
     for (FbxDeviceExport& device : scene.devices) {
         detail::resampleFbxPoseKeys(device.keys, exportSampleRate);

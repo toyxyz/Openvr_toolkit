@@ -4,6 +4,7 @@
 #include "export/RenderModelGeometry.h"
 
 #include <array>
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <vector>
@@ -19,6 +20,8 @@ struct ExportPoseKey {
 struct ExportPoseTrack {
     DeviceDescriptor device;
     std::string nodeName;
+    bool hasParentRuntimeIndex = false;
+    std::uint32_t parentRuntimeIndex = 0;
     std::vector<ExportPoseKey> keys;
     RenderModelGeometry geometry;
 };

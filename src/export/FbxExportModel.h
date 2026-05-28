@@ -27,9 +27,12 @@ struct FbxDeviceExport {
     DeviceDescriptor device;
     std::string nodeName;
     std::int64_t modelId = 0;
+    std::int64_t parentModelId = 0;
     std::int64_t geometryId = 0;
     std::int64_t translationNodeId = 0;
     std::int64_t rotationNodeId = 0;
+    bool hasParentRuntimeIndex = false;
+    std::uint32_t parentRuntimeIndex = 0;
     std::array<std::int64_t, 3> translationCurveIds{0, 0, 0};
     std::array<std::int64_t, 3> rotationCurveIds{0, 0, 0};
     std::vector<FbxPoseKey> keys;

@@ -3,6 +3,7 @@
 #include "export/FbxAsciiMath.h"
 #include "export/FbxExportFileWriter.h"
 #include "export/FbxExportSceneBuilder.h"
+#include "export/SkeletalExportHierarchy.h"
 #include "util/Identifier.h"
 #include "util/BinaryBuffer.h"
 
@@ -59,6 +60,12 @@ ExportResult exportSessionToFbxAscii(const RecordingSession& session, const FbxE
             trackError
         )) {
         result.error = trackError;
+        return result;
+    }
+
+    std::string hierarchyError;
+    if (!applySkeletalExportHierarchy(tracks, hierarchyError)) {
+        result.error = hierarchyError;
         return result;
     }
 
