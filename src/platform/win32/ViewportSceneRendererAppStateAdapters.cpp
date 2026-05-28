@@ -1,6 +1,7 @@
 #include "platform/win32/ViewportSceneRenderer.h"
 
 #include "platform/win32/AppState.h"
+#include "platform/win32/ViewportCamera.h"
 
 namespace ovtr::win32 {
 
@@ -11,7 +12,9 @@ void drawTrackedDevices3D(AppWindowState& state, const int viewportHeight)
         static_cast<const AppDeviceState&>(state),
         static_cast<const AppOriginState&>(state),
         static_cast<AppViewportState&>(state),
-        viewportHeight
+        viewportHeight,
+        cameraViewFromState(state),
+        0.0f
     );
 }
 

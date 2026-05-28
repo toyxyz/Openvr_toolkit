@@ -44,13 +44,18 @@ void applyCameraDolly(AppViewportState& state, const float distance)
     );
 }
 
-float cameraDepthForWorldPoint(const AppViewportState& state, const Vec3 point)
+float cameraDepthForWorldPoint(const CameraView& view, const Vec3 point)
 {
     return ovtr::win32::cameraDepthForWorldPoint(
-        cameraViewFromState(state),
+        view,
         point,
         kMinimumCameraDistance
     );
+}
+
+float cameraDepthForWorldPoint(const AppViewportState& state, const Vec3 point)
+{
+    return cameraDepthForWorldPoint(cameraViewFromState(state), point);
 }
 
 float outlineExpansionForDepth(const float cameraDepth, const int viewportHeight, const float multiplier)
@@ -62,6 +67,11 @@ float outlineExpansionForDepth(const float cameraDepth, const int viewportHeight
         kRenderModelOutlinePixels,
         multiplier
     );
+}
+
+float outlineExpansionForOrtho(const float worldUnitsPerPixel, const float multiplier)
+{
+    return worldUnitsPerPixel * kRenderModelOutlinePixels * multiplier;
 }
 
 } // namespace ovtr::win32

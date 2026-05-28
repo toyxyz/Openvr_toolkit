@@ -49,6 +49,11 @@ bool handleMainWindowSetCursor(HWND hwnd, LPARAM lparam)
         clientWidth,
         clientHeight
     );
+    if (viewportControls.valid &&
+        (PtInRect(&viewportControls.quadViewButtonRect, point) ||
+         PtInRect(&viewportControls.recordButtonRect, point))) {
+        return setHandCursor();
+    }
     if (viewportControls.animationValid &&
         (PtInRect(&viewportControls.firstFrameButtonRect, point) ||
          PtInRect(&viewportControls.playPauseButtonRect, point) ||

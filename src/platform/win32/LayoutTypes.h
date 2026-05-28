@@ -15,6 +15,7 @@ struct DebugScrollbarLayout {
 
 struct ViewportControlLayout {
     RECT barRect{0, 0, 0, 0};
+    RECT quadViewButtonRect{0, 0, 0, 0};
     RECT recordButtonRect{0, 0, 0, 0};
     RECT animationBarRect{0, 0, 0, 0};
     RECT firstFrameButtonRect{0, 0, 0, 0};

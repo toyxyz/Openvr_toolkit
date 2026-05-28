@@ -328,6 +328,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/ViewportCameraMath.cpp
         src/platform/win32/ViewportMath.cpp
         src/platform/win32/ViewportProjectionMath.cpp
+        src/platform/win32/ViewportQuadView.cpp
         src/platform/win32/ViewportSettingsModel.cpp
         src/platform/win32/ViewportVectorMath.cpp
         src/platform/win32/ViewportWindow.cpp
@@ -528,6 +529,7 @@ if(OVTR_BUILD_TESTS)
                 src/platform/win32/ViewportCameraMath.cpp
                 src/platform/win32/ViewportMath.cpp
                 src/platform/win32/ViewportProjectionMath.cpp
+                src/platform/win32/ViewportQuadView.cpp
                 src/platform/win32/ViewportSettingsModel.cpp
                 src/platform/win32/ViewportVectorMath.cpp
                 src/platform/win32/WindowDebugStateLayout.cpp

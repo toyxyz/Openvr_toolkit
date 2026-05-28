@@ -6,6 +6,7 @@
 #include <windows.h>
 
 #include "platform/win32/ConfigTypes.h"
+#include "platform/win32/ViewportPaneTypes.h"
 #include "platform/win32/ViewportRenderModelTypes.h"
 #include "platform/win32/Win32GlContextResource.h"
 #include "platform/win32/Win32GlDisplayListResource.h"
@@ -39,6 +40,17 @@ struct AppViewportState {
     float cameraPanY = kDefaultCameraPanY;
     float cameraPanZ = kDefaultCameraPanZ;
     bool deviceLabelsVisible = true;
+    bool quadViewEnabled = false;
+    ViewportPaneKind activeDragPane = ViewportPaneKind::None;
+    float frontViewPanX = 0.0f;
+    float frontViewPanY = 0.0f;
+    float frontViewZoom = kDefaultOrthoViewZoom;
+    float topViewPanX = 0.0f;
+    float topViewPanZ = 0.0f;
+    float topViewZoom = kDefaultOrthoViewZoom;
+    float leftViewPanZ = 0.0f;
+    float leftViewPanY = 0.0f;
+    float leftViewZoom = kDefaultOrthoViewZoom;
     bool orbitDragging = false;
     bool panDragging = false;
     int lastMouseX = 0;

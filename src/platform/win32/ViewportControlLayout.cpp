@@ -4,6 +4,11 @@
 #include "platform/win32/ViewportControlLayoutMetrics.h"
 
 namespace ovtr::win32 {
+namespace {
+
+constexpr int kViewportControlBarSidePadding = 14;
+
+} // namespace
 
 ViewportControlLayout viewportControlLayoutForClient(
     const int leftPanelWidth,
@@ -38,6 +43,12 @@ ViewportControlLayout viewportControlLayoutForClient(
     const int buttonY = layout.barRect.top + (kViewportControlBarHeight - kViewportControlButtonSize) / 2;
     const int buttonTotalWidth = kViewportControlButtonSize;
     const int buttonLeft = left + (availableWidth - buttonTotalWidth) / 2;
+    layout.quadViewButtonRect = RECT{
+        left + kViewportControlBarSidePadding,
+        buttonY,
+        left + kViewportControlBarSidePadding + kViewportControlButtonSize,
+        buttonY + kViewportControlButtonSize
+    };
     layout.recordButtonRect = RECT{
         buttonLeft,
         buttonY,

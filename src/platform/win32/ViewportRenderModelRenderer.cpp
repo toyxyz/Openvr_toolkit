@@ -57,7 +57,9 @@ bool drawSteamVRRenderModel3D(
     const ovtr::PoseSample& pose,
     const ovtr::DeviceDescriptor* device,
     const int viewportHeight,
-    const bool selected
+    const bool selected,
+    const CameraView& cameraView,
+    const float outlineWorldUnitsPerPixel
 )
 {
     if (device == nullptr || device->renderModelName.empty()) {
@@ -79,11 +81,13 @@ bool drawSteamVRRenderModel3D(
         ScopedGlCapability cullFace(GL_CULL_FACE, true);
         ScopedGlCullFace frontFaces(GL_FRONT);
         setGlColorFromRgb(selected ? kSelectedRenderModelOutlineColor : state.viewportSettings.renderModelOutlineColor);
-        const float outlineExpansion = outlineExpansionForDepth(
-            cameraDepthForWorldPoint(state, {pose.position[0], pose.position[1], pose.position[2]}),
-            viewportHeight,
-            state.viewportSettings.outlineMultiplier
-        );
+        const float outlineExpansion = outlineWorldUnitsPerPixel > 0.0f
+            ? outlineExpansionForOrtho(outlineWorldUnitsPerPixel, state.viewportSettings.outlineMultiplier)
+            : outlineExpansionForDepth(
+                cameraDepthForWorldPoint(cameraView, {pose.position[0], pose.position[1], pose.position[2]}),
+                viewportHeight,
+                state.viewportSettings.outlineMultiplier
+            );
         drawRenderModelOutlineTriangles(mesh, outlineExpansion);
     }
 

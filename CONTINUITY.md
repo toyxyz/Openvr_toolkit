@@ -1,11 +1,11 @@
 # CONTINUITY.md
 
 ## Snapshot
-- 2026-05-28 [USER] Goal: decouple pose polling and recording sampling from viewport/VSync so pose sampling stays near 90Hz on 60Hz displays.
-- 2026-05-28 [ASSUMPTION] Success criteria: `Pose FPS` and recording frame count are driven by a 90Hz worker, while `View FPS` can remain monitor/VSync-bound.
-- 2026-05-28 [ASSUMPTION] Current phase: implemented, build/test verified, and 60Hz monitor manual validation passed; 120Hz monitor validation remains optional.
+- 2026-05-28 [USER] Goal: add a Quad view toggle on the viewport control bar with Perspective, Front, Top, and Left panes.
+- 2026-05-28 [USER] Success criteria: Perspective keeps existing mouse controls; ortho panes allow middle-button pan only; recording delay/elapsed overlays stay at the original whole-viewport position.
+- 2026-05-28 [ASSUMPTION] Current phase: implemented and automated build/test verified; manual visual acceptance of corrected Top view pan remains.
 - 2026-05-28 [CODE] Current architecture: C++20 native Win32/OpenVR tracker recorder with modular `src` areas for app, data, export, import, math, platform, recording, render, ui, util, and vr.
-- 2026-05-28 [TOOL] Last verified state: default and VS2022 tests passed; VS2022 Debug app rebuilt after pose worker decoupling.
+- 2026-05-28 [TOOL] Last verified state: default and VS2022 tests passed; VS2022 Debug app rebuilt after correcting Top view vertical pan.
 
 ## Invariants / Constraints
 - 2026-05-28 [USER] Code files must stay under 300 physical lines unless explicitly exempted in this ledger.
@@ -64,13 +64,20 @@
 - 2026-05-28 [CODE] Renamed Setting > Color to `Appearance` and added grid size/density controls to viewport appearance settings.
 - 2026-05-28 [TOOL] Updated `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe` from the latest Release build; package still contains no `config/*.cfg`.
 - 2026-05-28 [CODE] Added distribution package folders to `.gitignore`.
+- 2026-05-28 [CODE] Added Quad view runtime state, lower-left control bar toggle button, 4-pane perspective/ortho rendering, pane hit-testing, and ortho middle-drag pan.
+- 2026-05-28 [CODE] Kept recording delay and elapsed-second overlays as one whole-viewport 2D pass after Quad pane rendering.
+- 2026-05-28 [CODE] Fixed Top view vertical middle-drag pan direction by flipping the Top pane Z pan mapping.
+- 2026-05-28 [CODE] Decoupled Front/Top/Left ortho cameras from Perspective camera pan and dolly; ortho panes now use only their own middle-drag pan.
+- 2026-05-28 [CODE] Updated `F3` reset to restore Perspective camera defaults plus Front/Top/Left ortho pan and clear active drag state.
+- 2026-05-28 [CODE] Added per-pane Front/Top/Left ortho scroll zoom and included ortho zoom in `F3` reset.
+- 2026-05-28 [CODE] Corrected Quad Top view camera pitch from bottom-view orientation to top-view orientation.
+- 2026-05-28 [CODE] Corrected Quad Top view vertical middle-drag pan direction after the Top camera orientation fix.
 
 ### Now
-- 2026-05-28 [ASSUMPTION] Pose worker decoupling is implemented and automated tests pass; 60Hz monitor manual report shows `Pose FPS 90.0`, `View FPS 60.0`, `Frames 927`, `Dropped 0`.
+- 2026-05-28 [ASSUMPTION] Corrected Top view vertical pan is built into the latest VS2022 Debug exe and automated tests pass.
 
 ### Next
-- 2026-05-28 [ASSUMPTION] Optionally confirm on a 120Hz display that `Pose FPS` stays near 90 while `View FPS` follows render/display behavior.
-- 2026-05-28 [ASSUMPTION] Consider showing recording elapsed time with one decimal place to make frame-count checks easier.
+- 2026-05-28 [ASSUMPTION] Manually verify Top view up/down pan now follows mouse drag direction.
 
 ## Open Questions
 - 2026-05-28 [ASSUMPTION] Whether to remove the explicit procedural fallback after runtime PNG loading is visually confirmed is not yet decided.
@@ -94,6 +101,11 @@
 - 2026-05-28 [CODE] src/platform/win32/ViewportControlLayoutMetrics.h
 - 2026-05-28 [CODE] src/platform/win32/ViewportControlLayout.cpp
 - 2026-05-28 [CODE] src/platform/win32/ViewportControlPainter.cpp
+- 2026-05-28 [CODE] src/platform/win32/ViewportPaneTypes.h
+- 2026-05-28 [CODE] src/platform/win32/ViewportQuadView.{h,cpp}
+- 2026-05-28 [CODE] src/platform/win32/ViewportRenderer.cpp
+- 2026-05-28 [CODE] src/platform/win32/ViewportWindowInput.{h,cpp}
+- 2026-05-28 [CODE] src/platform/win32/WindowCameraKeyboard.cpp
 - 2026-05-28 [CODE] src/platform/win32/ViewportOverlayRenderer.cpp
 - 2026-05-28 [CODE] src/platform/win32/ViewportGlFonts.cpp
 - 2026-05-28 [CODE] src/platform/win32/ViewportGlResources.cpp
@@ -189,3 +201,24 @@
 - 2026-05-28 [TOOL] Checked manually written `src/platform/win32` and `tests` code file lengths; none exceeded 300 lines after Appearance/grid settings changes.
 - 2026-05-28 [TOOL] Re-copied Release `toyxyz_openvr_toolkit.exe` into `toyxyz_openvr_toolkit/` and verified `NO_CFG_FILES`.
 - 2026-05-28 [TOOL] Ran `git check-ignore -v` for files under `toyxyz_openvr_toolkit/` and `toyxyz_vr_toolkit_v1/`; both package folders are ignored.
+- 2026-05-28 [TOOL] Initial incremental `cmake --build --preset default && ctest --preset default` after adding `ViewportControlLayout::quadViewButtonRect` built but failed one layout test due stale object layout; clean rebuild mitigated it.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default --clean-first && ctest --preset default`; `core_tests` passed after Quad view changes.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default && ctest --preset default`; no work to do and `core_tests` passed after Quad view changes.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022`; Debug app rebuilt and `core_tests` passed after Quad view changes.
+- 2026-05-28 [TOOL] Checked touched manually written code/test file lengths; all were under 300 lines after Quad view changes.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default && ctest --preset default && cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022`; both `core_tests` runs passed after Top view pan direction fix.
+- 2026-05-28 [TOOL] Confirmed latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-28 19:40:24 KST.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default && ctest --preset default && cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022`; both `core_tests` runs passed after Quad ortho camera separation.
+- 2026-05-28 [TOOL] Confirmed latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-28 19:43:23 KST.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default && ctest --preset default && cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022`; both `core_tests` runs passed after F3 all-view reset.
+- 2026-05-28 [TOOL] Confirmed latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-28 19:50:18 KST.
+- 2026-05-28 [TOOL] Checked `src/platform/win32/WindowCameraKeyboard.cpp`; 78 lines after F3 all-view reset.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default && ctest --preset default && cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022`; both `core_tests` runs passed after Quad ortho scroll zoom.
+- 2026-05-28 [TOOL] Confirmed latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-28 19:58:01 KST.
+- 2026-05-28 [TOOL] Checked touched file lengths after Quad ortho scroll zoom: `ViewportRenderer.cpp` 271, `ViewportWindowInput.cpp` 235, `ViewportQuadView.cpp` 122, `WindowCameraKeyboard.cpp` 81, `test_win32_viewport_math.cpp` 176.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default && ctest --preset default && cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022`; both `core_tests` runs passed after correcting Top view orientation.
+- 2026-05-28 [TOOL] Confirmed latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-28 20:04:33 KST.
+- 2026-05-28 [TOOL] Checked `src/platform/win32/ViewportRenderer.cpp`; 271 lines after correcting Top view orientation.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default && ctest --preset default && cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022`; both `core_tests` runs passed after correcting Top view vertical pan.
+- 2026-05-28 [TOOL] Confirmed latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-28 20:11:12 KST.
+- 2026-05-28 [TOOL] Checked touched file lengths after Top view vertical pan fix: `ViewportQuadView.cpp` 122, `test_win32_viewport_math.cpp` 176.

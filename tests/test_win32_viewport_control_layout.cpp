@@ -14,6 +14,10 @@ void testWin32ViewportControlLayout()
     require(!recordingControls.animationValid, "recording controls have no animation row");
     require(sameRect(recordingControls.barRect, 428, 716, 1200, 764), "viewport control bar rect");
     require(
+        sameRect(recordingControls.quadViewButtonRect, 442, 717, 487, 762),
+        "viewport quad view button rect"
+    );
+    require(
         sameRect(recordingControls.recordButtonRect, 791, 717, 836, 762),
         "viewport record button rect"
     );

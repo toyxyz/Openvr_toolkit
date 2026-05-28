@@ -11,6 +11,7 @@ namespace ovtr::win32 {
 
 struct AppImportedSceneState;
 struct AppRecordingState;
+struct AppViewportState;
 struct AppWindowState;
 
 void drawViewportControlBar(
@@ -18,7 +19,8 @@ void drawViewportControlBar(
     HFONT font,
     const ViewportControlLayout& layout,
     const AppRecordingState& recordingState,
-    const AppImportedSceneState& importedSceneState
+    const AppImportedSceneState& importedSceneState,
+    const AppViewportState& viewportState
 );
 void drawViewportControlBar(
     HDC drawDc,

@@ -2,6 +2,7 @@
 
 #include "platform/win32/AppImportedSceneState.h"
 #include "platform/win32/AppRecordingState.h"
+#include "platform/win32/AppViewportState.h"
 #include "platform/win32/RecordingStateQueries.h"
 #include "platform/win32/ViewportAnimationControlPainter.h"
 #include "platform/win32/Win32GdiResources.h"
@@ -39,6 +40,26 @@ void drawViewportRecordButton(HDC drawDc, const RECT& rect, const bool active)
     Ellipse(drawDc, dotRect.left, dotRect.top, dotRect.right, dotRect.bottom);
 }
 
+void drawViewportQuadButton(HDC drawDc, const RECT& rect, const bool active)
+{
+    drawViewportIconButton(drawDc, rect, active);
+
+    constexpr int inset = 11;
+    constexpr int gap = 3;
+    const int cellWidth = (rect.right - rect.left - inset * 2 - gap) / 2;
+    const int cellHeight = (rect.bottom - rect.top - inset * 2 - gap) / 2;
+    UniqueBrush cellBrush(CreateSolidBrush(active ? RGB(88, 128, 255) : RGB(154, 166, 188)));
+    SelectObjectGuard brushSelection(drawDc, cellBrush.get());
+    SelectObjectGuard penSelection(drawDc, GetStockObject(NULL_PEN));
+    for (int row = 0; row < 2; ++row) {
+        for (int col = 0; col < 2; ++col) {
+            const int left = rect.left + inset + col * (cellWidth + gap);
+            const int top = rect.top + inset + row * (cellHeight + gap);
+            Rectangle(drawDc, left, top, left + cellWidth, top + cellHeight);
+        }
+    }
+}
+
 } // namespace
 
 void drawViewportControlBar(
@@ -46,7 +67,8 @@ void drawViewportControlBar(
     HFONT font,
     const ViewportControlLayout& layout,
     const AppRecordingState& recordingState,
-    const AppImportedSceneState& importedSceneState
+    const AppImportedSceneState& importedSceneState,
+    const AppViewportState& viewportState
 )
 {
     if (!layout.valid) {
@@ -65,6 +87,7 @@ void drawViewportControlBar(
         LineTo(drawDc, layout.barRect.right, layout.barRect.top);
     }
 
+    drawViewportQuadButton(drawDc, layout.quadViewButtonRect, viewportState.quadViewEnabled);
     drawViewportRecordButton(drawDc, layout.recordButtonRect, isRecordingControlActive(recordingState));
 
     if (font) {

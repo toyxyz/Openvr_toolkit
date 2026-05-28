@@ -12,6 +12,6 @@ void handleViewportLeftButtonUp(HWND hwnd);
 void handleViewportMiddleButtonDown(HWND hwnd, LPARAM lparam);
 void handleViewportMiddleButtonUp(HWND hwnd);
 void handleViewportMouseMove(HWND hwnd, LPARAM lparam);
-void handleViewportMouseWheel(HWND hwnd, WPARAM wparam);
+void handleViewportMouseWheel(HWND hwnd, WPARAM wparam, LPARAM lparam);
 
 } // namespace ovtr::win32

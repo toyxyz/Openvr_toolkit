@@ -23,6 +23,17 @@ bool handleViewportControlClick(
     if (handleImportedAnimationControlClick(hwnd, state, viewportControls, point)) {
         return true;
     }
+    if (viewportControls.valid && PtInRect(&viewportControls.quadViewButtonRect, point)) {
+        state.quadViewEnabled = !state.quadViewEnabled;
+        state.orbitDragging = false;
+        state.panDragging = false;
+        state.activeDragPane = ViewportPaneKind::None;
+        InvalidateRect(hwnd, &viewportControls.barRect, FALSE);
+        if (state.glWindow) {
+            InvalidateRect(state.glWindow, nullptr, FALSE);
+        }
+        return true;
+    }
     if (viewportControls.valid && PtInRect(&viewportControls.recordButtonRect, point)) {
         toggleRecording(hwnd);
         InvalidateRect(hwnd, &viewportControls.barRect, FALSE);

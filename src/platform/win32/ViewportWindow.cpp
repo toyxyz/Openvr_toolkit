@@ -49,7 +49,7 @@ LRESULT CALLBACK viewportProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpa
         return 0;
     }
     case WM_MOUSEWHEEL: {
-        handleViewportMouseWheel(hwnd, wparam);
+        handleViewportMouseWheel(hwnd, wparam, lparam);
         return 0;
     }
     case WM_KEYDOWN: {

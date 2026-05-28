@@ -49,7 +49,9 @@ void drawTrackedDevices3D(
     const AppDeviceState& deviceState,
     const AppOriginState& originState,
     AppViewportState& viewportState,
-    const int viewportHeight
+    const int viewportHeight,
+    const CameraView& cameraView,
+    const float outlineWorldUnitsPerPixel
 )
 {
     for (const ovtr::PoseSample& pose : runtimeState.poses.poses) {
@@ -57,7 +59,15 @@ void drawTrackedDevices3D(
         const ovtr::DeviceDescriptor* device = deviceForRuntimeIndex(runtimeState.devices, displayPose.runtimeIndex);
         const ovtr::DeviceClass deviceClass = device ? device->deviceClass : ovtr::DeviceClass::Other;
         const bool selected = displayPose.runtimeIndex == deviceState.selectedDeviceRuntimeIndex;
-        const bool modelDrawn = drawSteamVRRenderModel3D(viewportState, displayPose, device, viewportHeight, selected);
+        const bool modelDrawn = drawSteamVRRenderModel3D(
+            viewportState,
+            displayPose,
+            device,
+            viewportHeight,
+            selected,
+            cameraView,
+            outlineWorldUnitsPerPixel
+        );
         drawDeviceMarker3D(displayPose, deviceClass, !modelDrawn, selected);
     }
 }

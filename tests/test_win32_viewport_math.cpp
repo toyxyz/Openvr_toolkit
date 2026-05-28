@@ -4,6 +4,7 @@
 #include "platform/win32/AppViewportState.h"
 #include "platform/win32/ViewportCamera.h"
 #include "platform/win32/ViewportMath.h"
+#include "platform/win32/ViewportQuadView.h"
 
 #include <cmath>
 
@@ -19,6 +20,14 @@ bool nearVec3(const ovtr::win32::Vec3 actual, const ovtr::win32::Vec3 expected)
     return nearFloat(actual.x, expected.x) &&
         nearFloat(actual.y, expected.y) &&
         nearFloat(actual.z, expected.z);
+}
+
+bool sameRect(const RECT& rect, const long left, const long top, const long right, const long bottom)
+{
+    return rect.left == left &&
+        rect.top == top &&
+        rect.right == right &&
+        rect.bottom == bottom;
 }
 
 } // namespace
@@ -71,6 +80,10 @@ void testWin32ViewportMath()
     const float outline = ovtr::win32::outlineExpansionForDepth(10.0f, 1000, 48.0f, 2.6f, 1.0f);
     require(outline > 0.023f && outline < 0.024f, "outline expansion scales with viewport height");
     require(
+        nearFloat(ovtr::win32::outlineExpansionForOrtho(0.01f, 2.0f), 0.052f),
+        "ortho outline expansion scales with pixel size"
+    );
+    require(
         ovtr::win32::outlineExpansionForDepth(10.0f, 0, 48.0f, 2.6f, 1.0f) == 0.0f,
         "outline expansion rejects empty viewport"
     );
@@ -107,6 +120,57 @@ void testWin32ViewportMath()
     require(nearFloat(projection[10], -1.001f, 0.0001f), "perspective matrix depth scale");
     require(projection[11] == -1.0f, "perspective matrix homogeneous term");
     require(nearFloat(projection[14], -0.10005f, 0.0001f), "perspective matrix depth offset");
+
+    const ovtr::win32::QuadViewLayout quad = ovtr::win32::quadViewLayoutForViewport(800, 600);
+    require(quad.valid, "quad view layout valid");
+    require(sameRect(quad.perspectiveRect, 0, 0, 400, 300), "quad perspective rect");
+    require(sameRect(quad.frontRect, 400, 0, 800, 300), "quad front rect");
+    require(sameRect(quad.topRect, 0, 300, 400, 600), "quad top rect");
+    require(sameRect(quad.leftRect, 400, 300, 800, 600), "quad left rect");
+    require(
+        ovtr::win32::quadViewPaneFromPoint(quad, 20, 20) == ovtr::win32::ViewportPaneKind::Perspective,
+        "quad hit perspective"
+    );
+    require(
+        ovtr::win32::quadViewPaneFromPoint(quad, 420, 20) == ovtr::win32::ViewportPaneKind::Front,
+        "quad hit front"
+    );
+    require(
+        ovtr::win32::quadViewPaneFromPoint(quad, 20, 320) == ovtr::win32::ViewportPaneKind::Top,
+        "quad hit top"
+    );
+    require(
+        ovtr::win32::quadViewPaneFromPoint(quad, 420, 320) == ovtr::win32::ViewportPaneKind::Left,
+        "quad hit left"
+    );
+    require(
+        nearVec3(ovtr::win32::orthoPanePanOffset(ovtr::win32::ViewportPaneKind::Front, 10, -5, 0.1f), {-1.0f, -0.5f, 0.0f}),
+        "front ortho pan axes"
+    );
+    require(
+        nearVec3(ovtr::win32::orthoPanePanOffset(ovtr::win32::ViewportPaneKind::Top, 10, -5, 0.1f), {-1.0f, 0.0f, 0.5f}),
+        "top ortho pan axes"
+    );
+    require(
+        nearVec3(ovtr::win32::orthoPanePanOffset(ovtr::win32::ViewportPaneKind::Left, 10, -5, 0.1f), {0.0f, -0.5f, -1.0f}),
+        "left ortho pan axes"
+    );
+    require(
+        nearFloat(ovtr::win32::clampOrthoViewZoom(0.01f), ovtr::win32::kMinimumOrthoViewZoom),
+        "ortho zoom clamps minimum"
+    );
+    require(
+        nearFloat(ovtr::win32::clampOrthoViewZoom(100.0f), ovtr::win32::kMaximumOrthoViewZoom),
+        "ortho zoom clamps maximum"
+    );
+    require(
+        ovtr::win32::orthoViewZoomAfterWheel(1.0f, 1.0f) > 1.0f,
+        "ortho wheel zooms in on positive wheel"
+    );
+    require(
+        ovtr::win32::orthoViewZoomAfterWheel(1.0f, -1.0f) < 1.0f,
+        "ortho wheel zooms out on negative wheel"
+    );
 }
 
 } // namespace ovtr::test

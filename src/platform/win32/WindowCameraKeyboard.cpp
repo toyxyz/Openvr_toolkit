@@ -59,6 +59,18 @@ bool handleCameraKeyDown(HWND hwnd, AppWindowState* state, const WPARAM wparam)
             state->cameraPanX = kDefaultCameraPanX;
             state->cameraPanY = kDefaultCameraPanY;
             state->cameraPanZ = kDefaultCameraPanZ;
+            state->frontViewPanX = 0.0f;
+            state->frontViewPanY = 0.0f;
+            state->frontViewZoom = kDefaultOrthoViewZoom;
+            state->topViewPanX = 0.0f;
+            state->topViewPanZ = 0.0f;
+            state->topViewZoom = kDefaultOrthoViewZoom;
+            state->leftViewPanZ = 0.0f;
+            state->leftViewPanY = 0.0f;
+            state->leftViewZoom = kDefaultOrthoViewZoom;
+            state->orbitDragging = false;
+            state->panDragging = false;
+            state->activeDragPane = ViewportPaneKind::None;
             refreshPoseAndViewport(hwnd);
         }
         return true;
