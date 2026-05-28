@@ -19,6 +19,13 @@ struct RenderModelGeometry {
     std::vector<std::uint16_t> indices;
 };
 
+struct RenderModelPositionBounds {
+    std::array<double, 3> min{0.0, 0.0, 0.0};
+    std::array<double, 3> max{0.0, 0.0, 0.0};
+    bool valid = false;
+};
+
+RenderModelPositionBounds renderModelPositionBounds(const RenderModelGeometry& geometry);
 RenderModelGeometry loadSteamVRRenderModelGeometry(const std::string& renderModelName);
 
 } // namespace ovtr

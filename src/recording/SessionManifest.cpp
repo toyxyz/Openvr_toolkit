@@ -1,6 +1,8 @@
 #include "recording/SessionManifest.h"
 
 #include "data/SessionTypes.h"
+#include "util/BinaryBuffer.h"
+#include "util/JsonWriter.h"
 
 #include <filesystem>
 #include <fstream>
@@ -9,34 +11,6 @@
 namespace ovtr {
 
 namespace {
-
-std::string escapeJsonString(const std::string& value)
-{
-    std::ostringstream escaped;
-    for (const char ch : value) {
-        switch (ch) {
-        case '\\':
-            escaped << "\\\\";
-            break;
-        case '"':
-            escaped << "\\\"";
-            break;
-        case '\n':
-            escaped << "\\n";
-            break;
-        case '\r':
-            escaped << "\\r";
-            break;
-        case '\t':
-            escaped << "\\t";
-            break;
-        default:
-            escaped << ch;
-            break;
-        }
-    }
-    return escaped.str();
-}
 
 void writeJsonStringField(std::ostringstream& json, const std::string& name, const std::string& value, const bool comma)
 {
@@ -90,13 +64,10 @@ bool writeManifestJson(
 {
     outError.clear();
 
-    std::error_code error;
-    if (!path.parent_path().empty()) {
-        std::filesystem::create_directories(path.parent_path(), error);
-        if (error) {
-            outError = "failed to create manifest directory: " + error.message();
-            return false;
-        }
+    std::string directoryError;
+    if (!ensureParentDirectory(path, &directoryError)) {
+        outError = "failed to create manifest directory: " + directoryError;
+        return false;
     }
 
     std::ofstream output(path, std::ios::trunc);
@@ -115,4 +86,3 @@ bool writeManifestJson(
 }
 
 } // namespace ovtr
-

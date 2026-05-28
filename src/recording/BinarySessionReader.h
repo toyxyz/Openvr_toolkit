@@ -28,7 +28,8 @@ public:
 
 private:
     bool readFrameHeader();
-    bool readIndex();
+    bool readIndexFile(const std::filesystem::path& indexPath);
+    bool readIndex(std::istream& indexFile);
     bool readFrameAtOffset(std::uint64_t byteOffset, FrameSample& outFrame);
     void setError(std::string message);
 
@@ -38,4 +39,3 @@ private:
 };
 
 } // namespace ovtr
-

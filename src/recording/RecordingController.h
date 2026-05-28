@@ -2,6 +2,7 @@
 
 #include "data/SessionTypes.h"
 #include "recording/BinarySessionWriter.h"
+#include "recording/RecordingState.h"
 #include "recording/SessionManifest.h"
 
 #include <cstdint>
@@ -9,16 +10,6 @@
 #include <string>
 
 namespace ovtr {
-
-enum class RecorderState {
-    Idle,
-    Starting,
-    Recording,
-    Paused,
-    Stopping,
-    Finalizing,
-    Error,
-};
 
 struct RecordingStartOptions {
     std::filesystem::path sessionFolder;
@@ -52,4 +43,3 @@ private:
 };
 
 } // namespace ovtr
-

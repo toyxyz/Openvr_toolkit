@@ -1,0 +1,89 @@
+#include "platform/win32/WindowInput.h"
+
+#include <windowsx.h>
+
+#include "platform/win32/AppState.h"
+#include "platform/win32/AppLog.h"
+#include "platform/win32/DeviceList.h"
+#include "platform/win32/Menus.h"
+#include "platform/win32/ViewportRenderer.h"
+#include "platform/win32/Win32MenuResources.h"
+#include "platform/win32/Win32String.h"
+#include "platform/win32/WindowDeviceContextMenuActions.h"
+#include "platform/win32/WindowDeviceContextMenuIds.h"
+#include "platform/win32/WindowLayout.h"
+#include "platform/win32/WindowStateAccess.h"
+
+#include <array>
+#include <cstdint>
+
+namespace ovtr::win32 {
+
+bool handleMainWindowRButtonDown(HWND hwnd, LPARAM lparam)
+{
+    AppWindowState* state = appStateForWindow(hwnd);
+    if (!state) {
+        return false;
+    }
+
+    RECT clientRect;
+    GetClientRect(hwnd, &clientRect);
+    const int clientWidth = clientRect.right - clientRect.left;
+    const int clientHeight = clientRect.bottom - clientRect.top;
+    POINT point{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+    const DeviceListLayout deviceListLayout = deviceListLayoutForClient(state, clientWidth, clientHeight);
+    if (!deviceListLayout.valid || !PtInRect(&deviceListLayout.boxRect, point)) {
+        return false;
+    }
+
+    const std::uint32_t clickedRuntimeIndex =
+        deviceRuntimeIndexFromListPoint(*state, deviceListLayout, point);
+    if (clickedRuntimeIndex != kNoSelectedRuntimeIndex) {
+        const ovtr::DeviceDescriptor* clickedDevice = deviceForRuntimeIndex(
+            state->devices,
+            clickedRuntimeIndex
+        );
+        if (clickedDevice && state->selectedDeviceRuntimeIndex != clickedDevice->runtimeIndex) {
+            state->selectedDeviceRuntimeIndex = clickedDevice->runtimeIndex;
+            appendDebugLog(*state, L"Device selected: " + widen(deviceDisplayName(*clickedDevice)));
+            if (state->glWindow) {
+                renderViewport(state->glWindow);
+            }
+            InvalidateRect(hwnd, nullptr, FALSE);
+        }
+    }
+
+    if (!selectedListDevice(*state)) {
+        return false;
+    }
+
+    UniqueMenu menu(CreatePopupMenu());
+    if (!menu) {
+        return false;
+    }
+
+    std::array<PopupMenuItem, 2> menuItems{{
+        PopupMenuItem{kDeviceContextMenuSetNameId, L"Set Name"},
+        PopupMenuItem{kDeviceContextMenuSetOriginId, L"Set to Origin"},
+    }};
+    appendPopupMenuItem(menu.get(), menuItems[0]);
+    AppendMenuW(menu.get(), MF_SEPARATOR, 0, nullptr);
+    appendPopupMenuItem(menu.get(), menuItems[1]);
+
+    POINT screenPoint = point;
+    ClientToScreen(hwnd, &screenPoint);
+    SetForegroundWindow(hwnd);
+    const UINT command = TrackPopupMenu(
+        menu.get(),
+        TPM_RIGHTBUTTON | TPM_RETURNCMD,
+        screenPoint.x,
+        screenPoint.y,
+        0,
+        hwnd,
+        nullptr
+    );
+    executeDeviceContextMenuCommand(hwnd, *state, command);
+    return true;
+}
+
+} // namespace ovtr::win32

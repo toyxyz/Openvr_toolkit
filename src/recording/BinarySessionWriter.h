@@ -29,6 +29,8 @@ public:
 private:
     bool writeFrameHeader();
     bool writeIndexHeader();
+    bool writeFrameRecord(const FrameSample& frame);
+    bool writeFrameIndexEntry(const FrameIndexEntry& entry);
     void setError(std::string message);
 
     std::ofstream frames_;
@@ -38,4 +40,3 @@ private:
 };
 
 } // namespace ovtr
-

@@ -2,14 +2,20 @@
 
 #include "vr/IVRProvider.h"
 
-#ifdef OVTR_HAS_OPENVR_SDK
-#include <openvr.h>
-#endif
+#include <memory>
 
 namespace ovtr {
 
+class OpenVRProviderRuntime;
+
+struct OpenVRProviderRuntimeDeleter {
+    void operator()(OpenVRProviderRuntime* runtime) const noexcept;
+};
+
 class OpenVRProvider final : public IVRProvider {
 public:
+    ~OpenVRProvider() override;
+
     bool initialize() override;
     void shutdown() override;
     bool isInitialized() const override;
@@ -21,9 +27,7 @@ public:
     std::vector<DeviceDescriptor> enumerateDevices() const override;
 
 private:
-#ifdef OVTR_HAS_OPENVR_SDK
-    vr::IVRSystem* system_ = nullptr;
-#endif
+    std::unique_ptr<OpenVRProviderRuntime, OpenVRProviderRuntimeDeleter> runtime_;
     bool initialized_ = false;
     VRConnectionState state_ = VRConnectionState::RuntimeNotInstalled;
     std::string lastError_ = "OpenVR provider is not linked in this build yet";

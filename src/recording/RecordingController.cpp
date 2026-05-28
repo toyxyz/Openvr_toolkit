@@ -1,7 +1,6 @@
 #include "recording/RecordingController.h"
 
 #include <filesystem>
-#include <utility>
 
 namespace ovtr {
 
@@ -103,62 +102,4 @@ bool RecordingController::stop(const double durationSeconds, const std::uint64_t
     return true;
 }
 
-void RecordingController::reset()
-{
-    writer_.close();
-    state_ = RecorderState::Idle;
-    session_ = {};
-    sessionFolder_.clear();
-    frameCount_ = 0;
-    lastError_.clear();
-}
-
-RecorderState RecordingController::state() const
-{
-    return state_;
-}
-
-const RecordingSession& RecordingController::session() const
-{
-    return session_;
-}
-
-std::uint64_t RecordingController::frameCount() const
-{
-    return frameCount_;
-}
-
-const std::string& RecordingController::lastError() const
-{
-    return lastError_;
-}
-
-bool RecordingController::writeManifest(
-    const bool finalized,
-    const double durationSeconds,
-    const std::uint64_t droppedFrames
-)
-{
-    SessionManifestStats stats;
-    stats.frameCount = frameCount_;
-    stats.durationSeconds = durationSeconds;
-    stats.droppedFrames = droppedFrames;
-    stats.finalized = finalized;
-
-    std::string error;
-    if (!writeManifestJson(session_, stats, sessionFolder_ / "manifest.json", error)) {
-        setError(error);
-        return false;
-    }
-
-    return true;
-}
-
-void RecordingController::setError(std::string message)
-{
-    lastError_ = std::move(message);
-    state_ = RecorderState::Error;
-}
-
 } // namespace ovtr
-

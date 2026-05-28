@@ -1,0 +1,79 @@
+#include "platform/win32/AppConfig.h"
+
+#include "platform/win32/AppDebugUiState.h"
+#include "platform/win32/AppLog.h"
+#include "platform/win32/AppRecordingState.h"
+#include "platform/win32/ConfigStore.h"
+#include "platform/win32/Win32String.h"
+
+#include <fstream>
+
+namespace ovtr::win32 {
+
+bool writeRecordSettingsConfigFile(const AppRecordingState& state, std::string& error)
+{
+    const std::filesystem::path path = recordSettingsConfigPath();
+    if (!ensureConfigDirectory(error)) {
+        return false;
+    }
+
+    std::ofstream output(path, std::ios::trunc);
+    if (!output) {
+        error = "could not open " + path.string();
+        return false;
+    }
+
+    output << serializeRecordSettingsConfig(
+        narrow(activeExportDirectoryPath(state).wstring()),
+        state.recordDelaySeconds,
+        state.recordExportSampleRate,
+        state.recordSaveFormat,
+        kDefaultRecordExportSampleRate
+    );
+    return true;
+}
+
+void saveRecordSettingsConfig(AppRecordingState& state, AppDebugUiState& logState)
+{
+    state.exportDirectory = activeExportDirectoryPath(state);
+    state.recordDelaySeconds = sanitizedRecordDelaySeconds(state.recordDelaySeconds);
+    state.recordExportSampleRate = sanitizedRecordExportSampleRate(state.recordExportSampleRate);
+    std::string error;
+    if (!writeRecordSettingsConfigFile(state, error)) {
+        appendDebugLog(logState, "Record settings config save failed: " + error);
+        return;
+    }
+    appendDebugLog(logState, "Record settings config saved: " + recordSettingsConfigPath().string());
+}
+
+void loadRecordSettingsConfig(AppRecordingState& state, AppDebugUiState& logState)
+{
+    std::filesystem::path path = readableConfigPath(kRecordSettingsConfigFileName);
+    std::ifstream input(path);
+    if (!input) {
+        path = readableConfigPath(kLegacyExportLocationConfigFileName);
+        input.clear();
+        input.open(path);
+    }
+    if (!input) {
+        state.exportDirectory = defaultExportDirectoryPath();
+        state.recordDelaySeconds = 0.0f;
+        state.recordExportSampleRate = kDefaultRecordExportSampleRate;
+        state.recordSaveFormat = ExportFormat::Glb;
+        appendDebugLog(logState, "Record settings config not found: " + path.string());
+        return;
+    }
+
+    const RecordSettingsConfig config = parseRecordSettingsConfig(input, kDefaultRecordExportSampleRate);
+
+    state.exportDirectory = normalizedExportDirectoryPath(std::filesystem::path(widen(config.exportDirectoryText)));
+    state.recordDelaySeconds = config.recordDelaySeconds;
+    state.recordExportSampleRate = config.exportSampleRate;
+    state.recordSaveFormat = config.saveFormat;
+    appendDebugLog(logState, "Record settings config loaded: " + path.string());
+    if (path.lexically_normal() != recordSettingsConfigPath().lexically_normal()) {
+        saveRecordSettingsConfig(state, logState);
+    }
+}
+
+} // namespace ovtr::win32

@@ -1,0 +1,93 @@
+#include "TestCases.h"
+#include "TestSupport.h"
+#include "Win32LayoutTestSupport.h"
+
+#include "platform/win32/AppState.h"
+#include "platform/win32/Layout.h"
+#include "platform/win32/WindowLayout.h"
+
+namespace ovtr::test {
+
+void testWin32Layout()
+{
+    require(
+        sameRect(ovtr::win32::topBarFileRectForClient(180, 32), 8, 4, 76, 28),
+        "file menu rect"
+    );
+    require(
+        sameRect(ovtr::win32::topBarSettingRectForClient(180, 32), 82, 4, 174, 28),
+        "settings menu rect"
+    );
+    require(
+        sameRect(ovtr::win32::topBarSettingRectForClient(80, 32), 0, 0, 0, 0),
+        "settings menu rect rejects narrow client"
+    );
+
+    require(ovtr::win32::defaultLeftPanelWidthForClient(1000) == 420, "default left panel min");
+    require(ovtr::win32::defaultLeftPanelWidthForClient(2000) == 560, "default left panel proportional");
+    require(ovtr::win32::defaultLeftPanelWidthForClient(3000) == 620, "default left panel max");
+    require(ovtr::win32::clampLeftPanelWidthForClient(100, 1200) == 320, "left panel min clamp");
+    require(ovtr::win32::clampLeftPanelWidthForClient(900, 1200) == 840, "left panel viewport max clamp");
+    require(ovtr::win32::leftPanelWidthForClient(false, 500, 900) == 32, "hidden panel rail width");
+    require(ovtr::win32::leftPanelWidthForClient(true, 0, 2000) == 560, "visible panel default width");
+
+    ovtr::win32::AppWindowState state;
+    state.debugMonitorVisible = true;
+    state.debugMonitorHeight = 220;
+    state.devicePanelVisible = true;
+    state.leftPanelWidth = 500;
+    ovtr::DeviceDescriptor controller;
+    controller.runtimeIndex = 3;
+    controller.deviceClass = ovtr::DeviceClass::Controller;
+    controller.serial = "CTRL";
+    controller.modelName = "Controller";
+    state.devices.push_back(controller);
+    ovtr::DeviceDescriptor hmd;
+    hmd.runtimeIndex = 1;
+    hmd.deviceClass = ovtr::DeviceClass::Hmd;
+    hmd.serial = "HMD";
+    hmd.modelName = "Headset";
+    state.devices.push_back(hmd);
+    require(ovtr::win32::activeDebugMonitorHeight(&state, 800) == 220, "state debug monitor height");
+    require(ovtr::win32::leftPanelContentBottomForClient(&state, 800) == 544, "state content bottom");
+    require(ovtr::win32::leftPanelWidthForClient(&state, 1200) == 500, "state left panel width");
+    require(
+        sameRect(ovtr::win32::splitterRectForClient(&state, 1200, 800), 500, 32, 508, 544),
+        "state splitter rect"
+    );
+    require(
+        sameRect(ovtr::win32::deviceToggleButtonRectForClient(&state, 1200, 800), 4, 44, 28, 140),
+        "state device toggle rect"
+    );
+    const ovtr::win32::DeviceListLayout stateDeviceList =
+        ovtr::win32::deviceListLayoutForClient(&state, 1200, 800);
+    require(stateDeviceList.valid, "state device list layout is valid");
+    require(
+        ovtr::win32::deviceRuntimeIndexFromListPoint(state, stateDeviceList, POINT{70, 90}) == 1,
+        "state device hit test uses sorted rows"
+    );
+    state.deviceListScrollOffset = 99;
+    ovtr::win32::clampDeviceListScroll(state, stateDeviceList.visibleItemCount);
+    require(state.deviceListScrollOffset == 0, "state device scroll clamps");
+    state.debugLogLines = {L"1", L"2", L"3", L"4", L"5"};
+    state.debugLogScrollOffset = 99;
+    ovtr::win32::clampDebugLogScroll(state, 2);
+    require(state.debugLogScrollOffset == 3, "state debug log scroll clamps");
+
+    require(ovtr::win32::contentBottomForClient(0, 800) == 764, "content bottom without debug monitor");
+    require(ovtr::win32::contentBottomForClient(220, 800) == 544, "content bottom with debug monitor");
+    require(
+        sameRect(ovtr::win32::splitterRectForClient(420, 220, 800), 420, 32, 428, 544),
+        "splitter rect"
+    );
+    require(
+        sameRect(ovtr::win32::deviceToggleButtonRectForClient(764, 1200, 800), 4, 44, 28, 140),
+        "device toggle button rect"
+    );
+    require(
+        sameRect(ovtr::win32::deviceToggleButtonRectForClient(80, 1200, 800), 0, 0, 0, 0),
+        "device toggle rejects short content"
+    );
+}
+
+} // namespace ovtr::test

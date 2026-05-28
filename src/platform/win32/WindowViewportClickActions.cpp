@@ -1,0 +1,34 @@
+#include "platform/win32/WindowClickActionSections.h"
+
+#include "platform/win32/AppState.h"
+#include "platform/win32/ImportedSceneActions.h"
+#include "platform/win32/RecordingUiActions.h"
+#include "platform/win32/WindowLayout.h"
+
+namespace ovtr::win32 {
+
+bool handleViewportControlClick(
+    HWND hwnd,
+    AppWindowState& state,
+    const int clientWidth,
+    const int clientHeight,
+    const POINT point
+)
+{
+    const ViewportControlLayout viewportControls = viewportControlLayoutForClient(
+        &state,
+        clientWidth,
+        clientHeight
+    );
+    if (handleImportedAnimationControlClick(hwnd, state, viewportControls, point)) {
+        return true;
+    }
+    if (viewportControls.valid && PtInRect(&viewportControls.recordButtonRect, point)) {
+        toggleRecording(hwnd);
+        InvalidateRect(hwnd, &viewportControls.barRect, FALSE);
+        return true;
+    }
+    return false;
+}
+
+} // namespace ovtr::win32
