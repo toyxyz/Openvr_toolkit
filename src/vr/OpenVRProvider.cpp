@@ -53,6 +53,7 @@ bool OpenVRProvider::initialize()
     runtime_ = std::move(runtime);
     initialized_ = true;
     state_ = VRConnectionState::Connected;
+    initializeSkeletalInput();
     return true;
 #else
     initialized_ = false;
@@ -65,6 +66,7 @@ bool OpenVRProvider::initialize()
 void OpenVRProvider::shutdown()
 {
     runtime_.reset();
+    skeletalInput_ = {};
     initialized_ = false;
     state_ = VRConnectionState::SteamVRNotRunning;
 }
@@ -81,6 +83,9 @@ VRConnectionState OpenVRProvider::connectionState() const
 
 std::string OpenVRProvider::lastError() const
 {
+    if (lastError_.empty() && !skeletalInput_.error.empty()) {
+        return "SteamVR skeletal input unavailable: " + skeletalInput_.error;
+    }
     return lastError_;
 }
 

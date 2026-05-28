@@ -28,6 +28,9 @@ std::string serializeViewportSettingsConfig(ViewportSettings settings)
            << "render_model_material_r=" << settings.renderModelMaterialColor.r << "\n"
            << "render_model_material_g=" << settings.renderModelMaterialColor.g << "\n"
            << "render_model_material_b=" << settings.renderModelMaterialColor.b << "\n"
+           << "finger_r=" << settings.fingerBoxColor.r << "\n"
+           << "finger_g=" << settings.fingerBoxColor.g << "\n"
+           << "finger_b=" << settings.fingerBoxColor.b << "\n"
            << std::fixed << std::setprecision(6)
            << "outline_multiplier=" << settings.outlineMultiplier << "\n"
            << "grid_size=" << settings.gridSize << "\n"

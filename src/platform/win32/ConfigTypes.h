@@ -24,6 +24,7 @@ struct ViewportSettings {
     RgbColor importedGlbColor{66, 104, 255};
     RgbColor renderModelOutlineColor{255, 133, 32};
     RgbColor renderModelMaterialColor{255, 255, 255};
+    RgbColor fingerBoxColor{255, 230, 128};
     float outlineMultiplier = 1.0f;
     float gridSize = 5.0f;
     float gridCellDensity = 2.0f;

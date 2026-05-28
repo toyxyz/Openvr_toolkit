@@ -46,10 +46,23 @@ RenderModelPositionBounds renderModelPositionBounds(const RenderModelGeometry& g
 
 RenderModelGeometry makeBoxRenderModelGeometry(const float edgeMeters)
 {
-    const float half = edgeMeters > 0.0f ? edgeMeters * 0.5f : 0.05f;
+    return makeBoxRenderModelGeometry(edgeMeters, edgeMeters, edgeMeters);
+}
+
+RenderModelGeometry makeBoxRenderModelGeometry(
+    const float lengthX,
+    const float heightY,
+    const float depthZ
+)
+{
+    const float halfX = lengthX > 0.0f ? lengthX * 0.5f : 0.05f;
+    const float halfY = heightY > 0.0f ? heightY * 0.5f : 0.05f;
+    const float halfZ = depthZ > 0.0f ? depthZ * 0.5f : 0.05f;
     const std::array<std::array<float, 3>, 8> corners{{
-        {{-half, -half, -half}}, {{ half, -half, -half}}, {{ half,  half, -half}}, {{-half,  half, -half}},
-        {{-half, -half,  half}}, {{ half, -half,  half}}, {{ half,  half,  half}}, {{-half,  half,  half}},
+        {{-halfX, -halfY, -halfZ}}, {{ halfX, -halfY, -halfZ}},
+        {{ halfX,  halfY, -halfZ}}, {{-halfX,  halfY, -halfZ}},
+        {{-halfX, -halfY,  halfZ}}, {{ halfX, -halfY,  halfZ}},
+        {{ halfX,  halfY,  halfZ}}, {{-halfX,  halfY,  halfZ}},
     }};
     const std::array<std::array<int, 4>, 6> faces{{
         {{4, 5, 6, 7}}, {{1, 0, 3, 2}}, {{3, 7, 6, 2}},

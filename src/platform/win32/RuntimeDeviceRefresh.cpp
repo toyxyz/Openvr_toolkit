@@ -34,6 +34,7 @@ void refreshProviderAndDevices(AppWindowState& state, const bool forceDeviceEnum
     }
 
     if (state.provider.isInitialized()) {
+        state.providerError = state.provider.lastError();
         std::vector<ovtr::VREvent> events;
         state.provider.pollEvents(events);
 

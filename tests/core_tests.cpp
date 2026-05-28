@@ -27,6 +27,7 @@ int main()
         ovtr::test::testGlbExport();
         ovtr::test::testGlbExportUsesUint32IndicesForLargeMeshes();
         ovtr::test::testExportFilenameOnlyPaths();
+        ovtr::test::testSkeletalSyntheticPoseExportTracks();
         ovtr::test::testGlbImportRejectsMissingChunks();
         ovtr::test::testGlbImportRejectsDeclaredLengthMismatch();
         ovtr::test::testGlbImportRejectsInvalidAccessor();

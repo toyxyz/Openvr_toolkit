@@ -1,6 +1,7 @@
 #include "platform/win32/ViewportSceneRenderer.h"
 
 #include "math/PoseTransform.h"
+#include "data/SkeletalSyntheticPose.h"
 #include "platform/win32/AppDeviceState.h"
 #include "platform/win32/AppOriginState.h"
 #include "platform/win32/AppRuntimeState.h"
@@ -8,6 +9,7 @@
 #include "platform/win32/DeviceList.h"
 #include "platform/win32/ViewportDrawPrimitives.h"
 #include "platform/win32/ViewportRenderModelRenderer.h"
+#include "platform/win32/ViewportSkeletalBoxRenderer.h"
 
 #include <gl/GL.h>
 
@@ -55,6 +57,9 @@ void drawTrackedDevices3D(
 )
 {
     for (const ovtr::PoseSample& pose : runtimeState.poses.poses) {
+        if (ovtr::isSkeletalBoneRuntimeIndex(pose.runtimeIndex)) {
+            continue;
+        }
         const ovtr::PoseSample displayPose = displayPoseForState(originState, pose);
         const ovtr::DeviceDescriptor* device = deviceForRuntimeIndex(runtimeState.devices, displayPose.runtimeIndex);
         const ovtr::DeviceClass deviceClass = device ? device->deviceClass : ovtr::DeviceClass::Other;
@@ -70,6 +75,7 @@ void drawTrackedDevices3D(
         );
         drawDeviceMarker3D(displayPose, deviceClass, !modelDrawn, selected);
     }
+    drawSkeletalFingerBoxes3D(runtimeState.poses, originState, viewportState);
 }
 
 void drawTrackedDeviceLabels3D(
@@ -80,6 +86,9 @@ void drawTrackedDeviceLabels3D(
 )
 {
     for (const ovtr::PoseSample& pose : runtimeState.poses.poses) {
+        if (ovtr::isSkeletalBoneRuntimeIndex(pose.runtimeIndex)) {
+            continue;
+        }
         const ovtr::PoseSample displayPose = displayPoseForState(originState, pose);
         drawDeviceLabel3D(
             deviceState,

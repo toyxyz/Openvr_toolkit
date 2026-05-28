@@ -1,5 +1,6 @@
 #include "export/ExportPoseTrack.h"
 
+#include "data/SkeletalSyntheticPose.h"
 #include "math/QuaternionUtils.h"
 #include "recording/BinarySessionReader.h"
 #include "util/Identifier.h"
@@ -35,6 +36,52 @@ void appendStaticPoseTracks(
     }
 }
 
+RenderModelGeometry geometryForDevice(
+    const DeviceDescriptor& descriptor,
+    const ExportPoseTrackOptions& options
+)
+{
+    if (descriptor.renderModelName == kSkeletalBoneBoxRenderModelName) {
+        return makeBoxRenderModelGeometry(kSkeletalBoneBoxEdgeMeters);
+    }
+    if (options.geometryProvider) {
+        return options.geometryProvider(descriptor);
+    }
+    return loadSteamVRRenderModelGeometry(descriptor.renderModelName);
+}
+
+ExportPoseTrack makeRecordedPoseTrack(
+    const DeviceDescriptor& descriptor,
+    const ExportPoseTrackOptions& options
+)
+{
+    ExportPoseTrack track;
+    track.device = descriptor;
+    track.nodeName = makeDeviceSafeName(descriptor);
+    if (options.includeGeometry) {
+        track.geometry = geometryForDevice(descriptor, options);
+        track.geometry.available = track.geometry.available ||
+            (!track.geometry.vertices.empty() && !track.geometry.indices.empty());
+    }
+    return track;
+}
+
+bool makeSkeletalPoseTrackForRuntimeIndex(
+    const std::uint32_t runtimeIndex,
+    const ExportPoseTrackOptions& options,
+    ExportPoseTrack& outTrack
+)
+{
+    SkeletalHandSide side = SkeletalHandSide::Left;
+    std::uint32_t boneIndex = 0;
+    if (!decodeSkeletalBoneRuntimeIndex(runtimeIndex, side, boneIndex)) {
+        return false;
+    }
+    outTrack = makeRecordedPoseTrack(makeSkeletalBoneDeviceDescriptor(side, boneIndex), options);
+    outTrack.nodeName = skeletalBoneNodeName(side, boneIndex);
+    return true;
+}
+
 } // namespace
 
 bool collectExportPoseTracks(
@@ -59,19 +106,7 @@ bool collectExportPoseTracks(
             continue;
         }
 
-        ExportPoseTrack track;
-        track.device = descriptor;
-        track.nodeName = makeDeviceSafeName(descriptor);
-        if (options.includeGeometry) {
-            if (options.geometryProvider) {
-                track.geometry = options.geometryProvider(descriptor);
-            } else {
-                track.geometry = loadSteamVRRenderModelGeometry(descriptor.renderModelName);
-            }
-            track.geometry.available = track.geometry.available ||
-                (!track.geometry.vertices.empty() && !track.geometry.indices.empty());
-        }
-        tracks.push_back(std::move(track));
+        tracks.push_back(makeRecordedPoseTrack(descriptor, options));
     }
 
     std::unordered_map<std::uint32_t, std::size_t> runtimeIndexToTrack;
@@ -99,9 +134,16 @@ bool collectExportPoseTracks(
                 continue;
             }
 
-            const auto found = runtimeIndexToTrack.find(pose.runtimeIndex);
+            auto found = runtimeIndexToTrack.find(pose.runtimeIndex);
             if (found == runtimeIndexToTrack.end()) {
-                continue;
+                ExportPoseTrack skeletalTrack;
+                if (!makeSkeletalPoseTrackForRuntimeIndex(pose.runtimeIndex, options, skeletalTrack)) {
+                    continue;
+                }
+                const std::size_t trackIndex = tracks.size();
+                runtimeIndexToTrack[pose.runtimeIndex] = trackIndex;
+                tracks.push_back(std::move(skeletalTrack));
+                found = runtimeIndexToTrack.find(pose.runtimeIndex);
             }
 
             tracks[found->second].keys.push_back({

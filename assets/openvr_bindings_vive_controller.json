@@ -1,0 +1,23 @@
+{
+  "action_manifest_version": 1,
+  "bindings": {
+    "/actions/ovtr": {
+      "skeleton": [
+        {
+          "output": "/actions/ovtr/in/skeletonleft",
+          "path": "/user/hand/left/input/skeleton/left"
+        },
+        {
+          "output": "/actions/ovtr/in/skeletonright",
+          "path": "/user/hand/right/input/skeleton/right"
+        }
+      ]
+    }
+  },
+  "category": "steamvr_input",
+  "controller_type": "vive_controller",
+  "description": "Default skeletal bindings for toyxyz OpenVR Toolkit",
+  "name": "toyxyz OpenVR Toolkit Vive Controller bindings",
+  "options": {},
+  "simulated_actions": []
+}

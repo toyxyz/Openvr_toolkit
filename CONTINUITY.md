@@ -1,11 +1,11 @@
 # CONTINUITY.md
 
 ## Snapshot
-- 2026-05-29 [USER] Goal: optimize high-polygon viewport rendering with glad-loaded VBO/IBO GPU surface draws and shader matcap.
-- 2026-05-29 [USER] Success criteria: Imported GLB and SteamVR device surfaces use VBO/IBO + matcap shader when available, with display-list fallback and preserved outline/UI behavior.
-- 2026-05-29 [USER] Current phase: implemented and automated build/test verified; manual 3,174,132-vertex GLB Quad view FPS acceptance passed.
+- 2026-05-29 [USER] Goal: keep SteamVR skeletal input export as finger-joint box objects, parented in bone order.
+- 2026-05-29 [USER] Success criteria: GLB/FBX export skeletal boxes as root-to-finger parent hierarchies using child local transforms.
+- 2026-05-29 [TOOL] Current phase: parented skeletal box export implemented and automated build/test verified; manual hardware export QA remains.
 - 2026-05-28 [CODE] Current architecture: C++20 native Win32/OpenVR tracker recorder with modular `src` areas for app, data, export, import, math, platform, recording, render, ui, util, and vr.
-- 2026-05-29 [TOOL] Last verified state: default and VS2022 Debug builds/tests passed after glad + VBO/IBO + matcap shader surface path.
+- 2026-05-29 [TOOL] Last verified state: default/VS2022 app builds and `core_tests` passed after parented skeletal box export.
 
 ## Invariants / Constraints
 - 2026-05-28 [USER] Code files must stay under 300 physical lines unless explicitly exempted in this ledger.
@@ -41,6 +41,22 @@
 - D008 ACTIVE 2026-05-29 [USER] Use repo-local glad plus VBO/IBO and shader matcap for imported GLB and device render-model surface draws.
   - Rationale: push static mesh surface vertices/indices to GPU and reduce CPU submission cost for high-polygon scenes.
   - Supersedes: D007 as the primary surface path; display-list caching remains fallback.
+- D009 ACTIVE 2026-05-29 [CODE] Represent SteamVR skeletal bones as high-range synthetic pose devices.
+  - Rationale: lets live viewport rendering, binary recording, and GLB/FBX export reuse the existing pose-track pipeline without mutating session manifests.
+  - Consequences: OpenVR bone data supplies position/orientation only; skeletal boxes use fixed cube geometry until a real scale source is defined.
+  - Supersedes: none.
+- D010 SUPERSEDED 2026-05-29 [USER] Export skeletal input in GLB as `LeftHand`/`RightHand` animated node hierarchies instead of box meshes.
+  - Rationale: user requested GLB-only connected hand-bone export.
+  - Consequences: FBX/text glTF keep the existing synthetic box-track path; GLB skeletal bones are meshless animated nodes with OpenVR bone-name metadata.
+  - Supersedes: none; refines D009 for GLB export representation.
+- D011 ACTIVE 2026-05-29 [USER] Revert GLB skeletal export to the original synthetic box-object representation.
+  - Rationale: user canceled the hand-hierarchy export change.
+  - Consequences: GLB, FBX, and text glTF all export skeletal bones through the common pose-track and box-geometry path.
+  - Supersedes: D010.
+- D012 ACTIVE 2026-05-29 [USER] Export skeletal box objects as parented node hierarchies with local child transforms.
+  - Rationale: finger boxes should follow root-to-finger bone order instead of appearing as unrelated flat objects.
+  - Consequences: GLB/text glTF write node `children`; FBX writes model parent connections; boxes and meshes remain exported.
+  - Supersedes: none; refines D011.
 
 ## State
 
@@ -104,46 +120,44 @@
 - 2026-05-29 [CODE] Added repo-local glad loader target for Win32 viewport OpenGL 2.x VBO/shader functions.
 - 2026-05-29 [CODE] Added VBO/IBO GPU mesh caches for imported GLB meshes and SteamVR render-model surfaces with display-list fallback.
 - 2026-05-29 [CODE] Added GLSL matcap shader path using current fixed-function matrices, shared matcap texture, and Appearance tint colors.
+- 2026-05-29 [CODE] Added SteamVR Input action manifest/bindings and OpenVR skeletal action polling for left/right hand bone transforms.
+- 2026-05-29 [CODE] Added synthetic skeletal bone descriptors, no-outline matcap cube viewport rendering, and recording-ready pose samples.
+- 2026-05-29 [CODE] Export now creates skeletal bone box tracks from recorded synthetic pose samples even when the session manifest lacks device descriptors.
+- 2026-05-29 [CODE] Added automated coverage for skeletal synthetic pose export tracks and box geometry.
+- 2026-05-29 [USER] Switched skeletal bone polling to `VRSkeletalMotionRange_WithoutController`.
+- 2026-05-29 [USER] Skeletal export object names now use OpenVR skeleton bone labels such as `Thumb_0` and `Index_1` instead of raw bone numbers.
+- 2026-05-29 [CODE] Changed skeletal finger boxes to fixed elongated local-X boxes and added Appearance `Finger color` to configure their matcap tint.
+- 2026-05-29 [CODE] Changed skeletal finger boxes back to fixed cubes and added same-color viewport lines between connected parent-child bones.
+- 2026-05-29 [CODE] Halved skeletal cube edge size to 0.009m and increased viewport bone connection line width from 2px to 4px.
+- 2026-05-29 [CODE] Increased skeletal viewport bone connection line width from 4px to 12px.
+- 2026-05-29 [USER] Canceled GLB hand-hierarchy skeletal export and returned GLB to skeletal box-object export.
+- 2026-05-29 [CODE] Added common skeletal export hierarchy conversion so GLB/text glTF/FBX skeletal boxes are parented root-to-finger and animated with local child transforms.
 
 ### Now
-- 2026-05-29 [USER] glad + VBO/IBO + shader matcap surface rendering is built into the latest VS2022 Debug exe; 3,174,132-vertex GLB in Quad view reports `Pose FPS 89.9`, `View FPS 91.9`.
+- 2026-05-29 [TOOL] GLB/text glTF/FBX skeletal exports use parented synthetic box tracks; default and VS2022 Debug builds/tests passed.
 
 ### Next
-- 2026-05-29 [ASSUMPTION] Continue visual QA for matcap tint correctness, interaction smoothness, and GLB reimport/close stability.
+- 2026-05-29 [ASSUMPTION] Validate live skeletal-capable controller recording/export with hardware.
 
 ## Open Questions
 - 2026-05-28 [ASSUMPTION] Whether to remove the explicit procedural fallback after runtime PNG loading is visually confirmed is not yet decided.
 - 2026-05-28 [CODE] `CMakeLists.txt` is an existing 300-line rule exception; marker source/test target edits were added there.
+- 2026-05-29 [ASSUMPTION] SteamVR binding JSONs parsed and copied, but still need manual validation in SteamVR's binding UI with a skeletal-capable controller.
+- 2026-05-29 [CODE] `VRBoneTransform_t` contains position/orientation, not scale; skeletal boxes currently use fixed 0.009m cube edges.
+- 2026-05-29 [CODE] Current GLB importer reads flat animated nodes and does not compose node hierarchy transforms; external GLB tools should honor exported `children`.
 
 ## Working Set
-- 2026-05-28 [CODE] src/platform/win32/AppMarkerState.h
-- 2026-05-28 [CODE] src/platform/win32/MarkerList.{h,cpp}
-- 2026-05-28 [CODE] src/platform/win32/MarkerListLayout.cpp
-- 2026-05-28 [CODE] src/platform/win32/MarkerPanelPainter.{h,cpp}
-- 2026-05-28 [CODE] src/platform/win32/MarkerActions.{h,cpp}
-- 2026-05-28 [CODE] src/platform/win32/MarkerPoseActions.{h,cpp}
-- 2026-05-28 [CODE] src/platform/win32/MarkerExport.{h,cpp}
-- 2026-05-28 [CODE] src/platform/win32/ViewportMarkerRenderer.{h,cpp}
-- 2026-05-28 [CODE] src/export/ExportPoseTrack.{h,cpp}
-- 2026-05-28 [CODE] src/export/*Exporter*.{h,cpp}
-- 2026-05-28 [CODE] src/export/RenderModelGeometry.{h,cpp}
-- 2026-05-28 [CODE] tests/test_win32_marker_state.cpp and marker-related GLB/FBX export tests
-- 2026-05-28 [CODE] src/platform/win32/ViewportImportedSceneRenderer.{h,cpp}
-- 2026-05-28 [CODE] src/platform/win32/ViewportImportedSceneRendererAppStateAdapters.cpp
+- 2026-05-29 [CODE] CMakeLists.txt
+- 2026-05-29 [CODE] src/data/SkeletalSyntheticPose.{h,cpp}
+- 2026-05-29 [CODE] src/export/ExportPoseTrack.{h,cpp}
+- 2026-05-29 [CODE] src/export/SkeletalExportHierarchy.{h,cpp}
+- 2026-05-29 [CODE] src/export/GltfExporter.cpp and GLB scene/JSON builder files
+- 2026-05-29 [CODE] src/export/FbxAsciiExporter.cpp and FBX scene/connections files
 - 2026-05-29 [CODE] src/export/RenderModelGeometry.{h,cpp}
-- 2026-05-29 [CODE] src/import/GltfAccessor*.{h,cpp}
-- 2026-05-29 [CODE] src/import/GltfImportedMeshes.cpp
-- 2026-05-29 [CODE] src/export/GltfExportBuffers.{h,cpp}
-- 2026-05-29 [CODE] src/export/GltfExportMeshData.cpp
-- 2026-05-29 [CODE] src/export/FbxAsciiGeometryWriter.cpp
-- 2026-05-29 [CODE] src/platform/win32/ViewportImportedScenePrimitives.cpp
-- 2026-05-29 [CODE] tests/test_glb_import_accessors.cpp and tests/test_glb_exporter.cpp
-- 2026-05-29 [CODE] src/platform/win32/ViewportTriangleDisplayList*.{h,cpp}
-- 2026-05-29 [CODE] src/platform/win32/ViewportImportedSceneCache.{h,cpp}
-- 2026-05-29 [CODE] src/platform/win32/ViewportRenderModelRenderer.cpp and imported-scene render/cache lifecycle files
-- 2026-05-29 [CODE] third_party/glad/*
-- 2026-05-29 [CODE] src/platform/win32/ViewportGpu*.{h,cpp}, ViewportMatcapShader.{h,cpp}, ViewportGlLoader.{h,cpp}
-- 2026-05-29 [CODE] tests/test_win32_viewport_gpu_mesh.cpp
+- 2026-05-29 [CODE] src/platform/win32/ViewportSkeletalBoxRenderer.{h,cpp}
+- 2026-05-29 [CODE] src/vr/OpenVRProviderSkeletal.cpp
+- 2026-05-29 [CODE] tests/test_skeletal_synthetic_pose.cpp
+- 2026-05-29 [CODE] tests/core_tests.cpp and tests/TestCases.h
 
 ## Packages
 - 2026-05-28 [TOOL] `toyxyz_vr_toolkit_v1/` contains `OpenVRTrackerRecorderDesktop.exe` built from `build/vs2022/Release`, `openvr_api.dll`, VC143 CRT DLLs, portable `config/`, empty `recordings/` and `exports/`, and `licenses/OpenVR_LICENSE.txt`.
@@ -307,3 +321,35 @@
 - 2026-05-29 [TOOL] Latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-29 01:19:52 KST.
 - 2026-05-29 [TOOL] Checked touched glad/VBO/shader code/test file lengths; all were under 300 lines; `CMakeLists.txt` remains the known exception.
 - 2026-05-29 [USER] Manual QA: imported a 3,174,132-vertex GLB in Quad view; UI reported `Pose FPS 89.9`, `View FPS 91.9`, `Rec Idle`, `Frames 0`, `Dropped 0`.
+- 2026-05-29 [TOOL] Reviewed Valve SteamVR Skeletal Input wiki guidance for skeletal actions, `UpdateActionState`, `GetSkeletalActionData`, `GetSkeletalBoneData`, and same-action world pose placement.
+- 2026-05-29 [TOOL] Initial incremental `core_tests` segfault after `OpenVRProvider` header changes was isolated to stale object layout; clean rebuild passed.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default --target openvr_tracker_recorder_tests` and `ctest --preset default --output-on-failure`; `core_tests` passed after skeletal input support.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default --target OpenVRTrackerRecorderDesktop`; default desktop app build passed after skeletal input support.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop`, rebuilt tests, and `ctest --preset vs2022 --output-on-failure`; VS2022 Debug app/tests passed.
+- 2026-05-29 [TOOL] Parsed `assets/openvr_*.json`, confirmed default/VS2022 config copies, and checked touched code/test files under 300 lines; `CMakeLists.txt` remains the known exception.
+- 2026-05-29 [TOOL] Changed skeletal polling to `VRSkeletalMotionRange_WithoutController`; ran default test target + `ctest --preset default --output-on-failure` and default desktop app link; both passed.
+- 2026-05-29 [TOOL] Rebuilt `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` after `WithoutController` change; timestamp became 2026-05-29 02:37:20 KST, and `ctest --preset vs2022 --output-on-failure` passed.
+- 2026-05-29 [TOOL] Added OpenVR skeleton bone-name mapping for synthetic export node names; default `ctest` passed, VS2022 Debug app/tests rebuilt, exe timestamp became 2026-05-29 02:45:35 KST.
+- 2026-05-29 [TOOL] Initial incremental default `core_tests` after adding the finger color slot failed with `0xc0000409`; clean rebuild passed, consistent with known stale object layout behavior.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + default app build, default test target, and `ctest --preset default --output-on-failure`; passed after elongated skeletal boxes and Appearance `Finger color`.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + VS2022 Debug app build, VS2022 test target, and `ctest --preset vs2022 --output-on-failure`; passed, exe timestamp became 2026-05-29 03:04:58 KST.
+- 2026-05-29 [TOOL] Ran `git diff --check` and checked touched code/test line counts; no whitespace errors and all touched manually written code files were under 300 lines.
+- 2026-05-29 [TOOL] Ran clean default test target + `ctest --preset default --output-on-failure`; passed after cube skeletal boxes and bone connection lines.
+- 2026-05-29 [TOOL] Ran default app build, VS2022 Debug app build, VS2022 test target, and `ctest --preset vs2022 --output-on-failure`; passed, exe timestamp became 2026-05-29 03:11:46 KST.
+- 2026-05-29 [TOOL] Ran `git diff --check` and checked touched skeletal code/test line counts; no whitespace errors and all touched manually written files were under 300 lines.
+- 2026-05-29 [TOOL] Ran clean default test target + `ctest --preset default --output-on-failure`; passed after half-size skeletal cubes and thicker bone lines.
+- 2026-05-29 [TOOL] Ran default app build, VS2022 Debug app build, VS2022 test target, and `ctest --preset vs2022 --output-on-failure`; passed, exe timestamp became 2026-05-29 03:15:28 KST.
+- 2026-05-29 [TOOL] Ran `git diff --check` and checked touched skeletal file line counts; no whitespace errors and all touched manually written files were under 300 lines.
+- 2026-05-29 [TOOL] Ran default app build, default test target, and `ctest --preset default --output-on-failure`; passed after skeletal line width increased to 12px.
+- 2026-05-29 [TOOL] Ran VS2022 Debug app build, VS2022 test target, and `ctest --preset vs2022 --output-on-failure`; passed, exe timestamp became 2026-05-29 03:21:41 KST.
+- 2026-05-29 [TOOL] Ran `git diff --check`; no whitespace errors, and `ViewportSkeletalBoxRenderer.cpp` is 153 lines.
+- 2026-05-29 [TOOL] Ran clean default test target build and `ctest --preset default --output-on-failure`; `core_tests` passed after GLB skeletal hand hierarchy export.
+- 2026-05-29 [TOOL] Ran default app build, VS2022 Debug app build, VS2022 test target, and `ctest --preset vs2022 --output-on-failure`; passed, exe timestamp became 2026-05-29 03:41:37 KST.
+- 2026-05-29 [TOOL] Ran `git diff --check` and checked touched GLB skeletal export code/test line counts; no whitespace errors and all touched manually written files were under 300 lines.
+- 2026-05-29 [TOOL] Reverted GLB hand-hierarchy export files and added a GLB skeletal box-mesh assertion to `test_skeletal_synthetic_pose.cpp`.
+- 2026-05-29 [TOOL] Ran clean default test target build, default app build, and `ctest --preset default --output-on-failure`; passed after returning GLB skeletal export to boxes.
+- 2026-05-29 [TOOL] Ran VS2022 Debug app build, VS2022 test target, and `ctest --preset vs2022 --output-on-failure`; passed, exe timestamp became 2026-05-29 03:52:17 KST.
+- 2026-05-29 [TOOL] Ran `git diff --check`, searched for hand-hierarchy export symbols outside the ledger, and checked touched line counts; no whitespace errors and touched code/test files were under 300 lines.
+- 2026-05-29 [TOOL] Ran clean default test target build and `ctest --preset default --output-on-failure`; passed after parented skeletal box export.
+- 2026-05-29 [TOOL] Ran default app build, VS2022 Debug app/test builds, and `ctest --preset vs2022 --output-on-failure`; passed, exe timestamp became 2026-05-29 04:09:52 KST.
+- 2026-05-29 [TOOL] Ran `git diff --check` and checked touched skeletal export code/test line counts; no whitespace errors and touched manually written files were under 300 lines.

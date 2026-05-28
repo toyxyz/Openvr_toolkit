@@ -4,7 +4,7 @@
 
 namespace ovtr::win32 {
 
-inline constexpr int kViewportColorSlotCount = 6;
+inline constexpr int kViewportColorSlotCount = 7;
 
 RgbColor viewportColorSlot(const ViewportSettings& settings, int index) noexcept;
 void setViewportColorSlot(ViewportSettings& settings, int index, RgbColor color) noexcept;

@@ -26,6 +26,7 @@ void testGltfRejectsInvalidExportSampleRate();
 void testGlbExport();
 void testGlbExportUsesUint32IndicesForLargeMeshes();
 void testExportFilenameOnlyPaths();
+void testSkeletalSyntheticPoseExportTracks();
 
 void testGlbImportRejectsMissingChunks();
 void testGlbImportRejectsDeclaredLengthMismatch();

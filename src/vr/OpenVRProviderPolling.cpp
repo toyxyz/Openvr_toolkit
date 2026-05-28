@@ -81,6 +81,7 @@ bool OpenVRProvider::pollPoses(PosePollResult& outResult)
 
         outResult.poses.push_back(openvr_provider_detail::makePoseSample(index, poses[index]));
     }
+    appendSkeletalPoses(outResult);
     return true;
 #else
     return false;

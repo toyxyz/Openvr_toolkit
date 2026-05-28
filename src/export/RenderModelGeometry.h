@@ -27,6 +27,7 @@ struct RenderModelPositionBounds {
 
 RenderModelPositionBounds renderModelPositionBounds(const RenderModelGeometry& geometry);
 RenderModelGeometry makeBoxRenderModelGeometry(float edgeMeters);
+RenderModelGeometry makeBoxRenderModelGeometry(float lengthX, float heightY, float depthZ);
 RenderModelGeometry loadSteamVRRenderModelGeometry(const std::string& renderModelName);
 
 } // namespace ovtr

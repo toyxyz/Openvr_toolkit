@@ -33,9 +33,30 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+set(OVTR_STEAMVR_INPUT_FILES
+    assets/openvr_actions.json
+    assets/openvr_bindings_generic.json
+    assets/openvr_bindings_knuckles.json
+    assets/openvr_bindings_oculus_touch.json
+    assets/openvr_bindings_vive_controller.json
+)
+
+function(ovtr_copy_steamvr_input_files target_name)
+    foreach(input_file IN LISTS OVTR_STEAMVR_INPUT_FILES)
+        add_custom_command(TARGET ${target_name} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                $<TARGET_FILE_DIR:${target_name}>/config
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${CMAKE_CURRENT_SOURCE_DIR}/${input_file}
+                $<TARGET_FILE_DIR:${target_name}>/config
+        )
+    endforeach()
+endfunction()
+
 add_library(openvr_tracker_recorder_core STATIC
     src/app/Application.cpp
     src/data/SessionTypes.cpp
+    src/data/SkeletalSyntheticPose.cpp
     src/export/ExportPoseTrack.cpp
     src/export/FbxAsciiFormatting.cpp
     src/export/FbxAsciiAnimationWriter.cpp
@@ -64,6 +85,7 @@ add_library(openvr_tracker_recorder_core STATIC
     src/export/GltfJsonFormatting.cpp
     src/export/GltfJsonSceneSections.cpp
     src/export/RenderModelGeometry.cpp
+    src/export/SkeletalExportHierarchy.cpp
     src/import/GltfAccessor.cpp
     src/import/GltfAccessorIndexReader.cpp
     src/import/GltfAccessorLayout.cpp
@@ -113,6 +135,7 @@ add_library(openvr_tracker_recorder_core STATIC
     src/vr/OpenVRProviderDetails.cpp
     src/vr/OpenVRProviderPolling.cpp
     src/vr/OpenVRProviderPoseConversion.cpp
+    src/vr/OpenVRProviderSkeletal.cpp
 )
 
 target_include_directories(openvr_tracker_recorder_core
@@ -158,6 +181,7 @@ if(OVTR_HAS_OPENVR_SDK)
             $<TARGET_FILE:openvr_api>
             $<TARGET_FILE_DIR:OpenVRTrackerRecorder>
     )
+    ovtr_copy_steamvr_input_files(OpenVRTrackerRecorder)
 endif()
 
 if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
@@ -350,6 +374,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/ViewportRenderer.cpp
         src/platform/win32/ViewportSceneRenderer.cpp
         src/platform/win32/ViewportSceneRendererAppStateAdapters.cpp
+        src/platform/win32/ViewportSkeletalBoxRenderer.cpp
         src/platform/win32/ViewportTriangleDisplayList.cpp
         src/platform/win32/ViewportCameraMath.cpp
         src/platform/win32/ViewportMath.cpp
@@ -426,6 +451,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
                 $<TARGET_FILE:openvr_api>
                 $<TARGET_FILE_DIR:OpenVRTrackerRecorderDesktop>
         )
+        ovtr_copy_steamvr_input_files(OpenVRTrackerRecorderDesktop)
     endif()
 endif()
 
@@ -483,6 +509,7 @@ if(OVTR_BUILD_TESTS)
         tests/test_recording.cpp
         tests/test_sampling_scheduler.cpp
         tests/test_session_manifest.cpp
+        tests/test_skeletal_synthetic_pose.cpp
     )
 
     if(WIN32)
@@ -625,6 +652,7 @@ if(OVTR_BUILD_TESTS)
                 $<TARGET_FILE:openvr_api>
                 $<TARGET_FILE_DIR:openvr_tracker_recorder_tests>
         )
+        ovtr_copy_steamvr_input_files(openvr_tracker_recorder_tests)
     endif()
 
     add_test(NAME core_tests COMMAND openvr_tracker_recorder_tests)

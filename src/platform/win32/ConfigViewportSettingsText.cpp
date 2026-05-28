@@ -54,6 +54,12 @@ ViewportSettings parseViewportSettingsConfig(std::istream& input, ViewportSettin
             settings.renderModelMaterialColor.g = intValue;
         } else if (key == "render_model_material_b" && parseIntConfigValue(value, intValue)) {
             settings.renderModelMaterialColor.b = intValue;
+        } else if (key == "finger_r" && parseIntConfigValue(value, intValue)) {
+            settings.fingerBoxColor.r = intValue;
+        } else if (key == "finger_g" && parseIntConfigValue(value, intValue)) {
+            settings.fingerBoxColor.g = intValue;
+        } else if (key == "finger_b" && parseIntConfigValue(value, intValue)) {
+            settings.fingerBoxColor.b = intValue;
         } else if (key == "outline_multiplier" && parseFloatConfigValue(value, floatValue) && std::isfinite(floatValue)) {
             settings.outlineMultiplier = floatValue;
         } else if (key == "grid_size" && parseFloatConfigValue(value, floatValue) && std::isfinite(floatValue)) {
