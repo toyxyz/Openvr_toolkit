@@ -55,6 +55,30 @@ ViewportControlLayout viewportControlLayoutForClient(
         buttonLeft + kViewportControlButtonSize,
         buttonY + kViewportControlButtonSize
     };
+    const int sessionBoxTop = layout.barRect.top +
+        (kViewportControlBarHeight - kViewportSessionBoxHeight) / 2;
+    const int sessionBoxRight = right - kViewportControlBarSidePadding;
+    const int sessionBoxLeft = sessionBoxRight - kViewportSessionBoxWidth;
+    if (sessionBoxLeft > layout.recordButtonRect.right + kViewportControlBarSidePadding) {
+        layout.sessionBoxRect = RECT{
+            sessionBoxLeft,
+            sessionBoxTop,
+            sessionBoxRight,
+            sessionBoxTop + kViewportSessionBoxHeight
+        };
+        layout.sessionLabelRect = RECT{
+            sessionBoxLeft + 10,
+            sessionBoxTop,
+            sessionBoxLeft + kViewportSessionLabelWidth,
+            sessionBoxTop + kViewportSessionBoxHeight
+        };
+        layout.sessionValueRect = RECT{
+            sessionBoxLeft + kViewportSessionLabelWidth + 8,
+            sessionBoxTop + 4,
+            sessionBoxRight - 10,
+            sessionBoxTop + kViewportSessionBoxHeight - 4
+        };
+    }
 
     layout.valid = layout.recordButtonRect.right > layout.recordButtonRect.left &&
         layout.barRect.bottom > layout.barRect.top;

@@ -22,6 +22,14 @@ void testWin32ViewportControlLayout()
         "viewport record button rect"
     );
     require(
+        sameRect(recordingControls.sessionBoxRect, 916, 724, 1186, 756),
+        "viewport session box rect"
+    );
+    require(
+        sameRect(recordingControls.sessionValueRect, 994, 728, 1176, 752),
+        "viewport session value rect"
+    );
+    require(
         sameRect(
             ovtr::win32::viewportRenderRectForClient(420, 764, recordingControls, 1200),
             428,

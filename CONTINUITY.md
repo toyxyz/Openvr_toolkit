@@ -1,11 +1,11 @@
 # CONTINUITY.md
 
 ## Snapshot
-- 2026-05-28 [USER] Goal: add a Session box above the device list and route exports into a session-named folder when non-blank.
-- 2026-05-28 [USER] Success criteria: Session starts blank, double-click editing works, blank/whitespace session keeps the configured export folder, non-blank session creates/uses a subfolder under that export folder.
-- 2026-05-28 [ASSUMPTION] Current phase: implemented and automated build/test verified; manual UI/export acceptance remains.
+- 2026-05-28 [USER] Goal: move the Session box from above the device list to the far right of the lower viewport control bar.
+- 2026-05-28 [USER] Success criteria: Session remains double-click editable and export routing behavior is unchanged, but the UI box appears on the right side of the Quad/Record control bar.
+- 2026-05-28 [ASSUMPTION] Current phase: implemented and automated build/test verified; manual UI placement/export acceptance remains.
 - 2026-05-28 [CODE] Current architecture: C++20 native Win32/OpenVR tracker recorder with modular `src` areas for app, data, export, import, math, platform, recording, render, ui, util, and vr.
-- 2026-05-28 [TOOL] Last verified state: default clean build/tests and VS2022 Debug build/tests passed after Session export-folder changes.
+- 2026-05-28 [TOOL] Last verified state: default clean build/tests and VS2022 Debug build/tests passed after moving Session to the viewport control bar.
 
 ## Invariants / Constraints
 - 2026-05-28 [USER] Code files must stay under 300 physical lines unless explicitly exempted in this ledger.
@@ -76,12 +76,13 @@
 - 2026-05-28 [CODE] Added a Session box above the device list with double-click in-place editing; session text is runtime-only and defaults to blank.
 - 2026-05-28 [CODE] Export planning now routes non-blank Session values to a sanitized session subfolder under the configured export directory.
 - 2026-05-28 [CODE] Added tests for Session layout/export path behavior, including whitespace-only sessions and invalid Windows filename characters.
+- 2026-05-28 [CODE] Moved the Session box from the device list area to the far right of the lower viewport control bar; Session editing/export behavior is unchanged.
 
 ### Now
-- 2026-05-28 [ASSUMPTION] Session box/export-folder behavior is built into the latest VS2022 Debug exe and automated tests pass.
+- 2026-05-28 [ASSUMPTION] Session control-bar placement is built into the latest VS2022 Debug exe and automated tests pass.
 
 ### Next
-- 2026-05-28 [ASSUMPTION] Manually verify double-click Session editing and export output folder creation in the Win32 app.
+- 2026-05-28 [ASSUMPTION] Manually verify Session appears at the lower control bar's far right and remains double-click editable.
 
 ## Open Questions
 - 2026-05-28 [ASSUMPTION] Whether to remove the explicit procedural fallback after runtime PNG loading is visually confirmed is not yet decided.
@@ -238,3 +239,8 @@
 - 2026-05-28 [TOOL] Re-ran VS Developer Command Prompt + `cmake --build --preset default && ctest --preset default --output-on-failure && cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022 --output-on-failure`; both `core_tests` runs passed after final Session editor cleanup.
 - 2026-05-28 [TOOL] Latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-28 20:46:00 KST.
 - 2026-05-28 [TOOL] Checked touched Session/layout/export code/test file lengths; all were under 300 lines.
+- 2026-05-28 [TOOL] Incremental default test after moving Session out of `DeviceListLayout` hit the known stale layout-object issue; clean rebuild mitigated it.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default --clean-first && ctest --preset default --output-on-failure`; `core_tests` passed after Session control-bar move.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022 --output-on-failure`; Debug app rebuilt and `core_tests` passed after Session control-bar move.
+- 2026-05-28 [TOOL] Latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-28 22:40:44 KST.
+- 2026-05-28 [TOOL] Checked touched Session/control-bar layout code/test file lengths; all were under 300 lines.

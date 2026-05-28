@@ -17,6 +17,9 @@ struct ViewportControlLayout {
     RECT barRect{0, 0, 0, 0};
     RECT quadViewButtonRect{0, 0, 0, 0};
     RECT recordButtonRect{0, 0, 0, 0};
+    RECT sessionBoxRect{0, 0, 0, 0};
+    RECT sessionLabelRect{0, 0, 0, 0};
+    RECT sessionValueRect{0, 0, 0, 0};
     RECT animationBarRect{0, 0, 0, 0};
     RECT firstFrameButtonRect{0, 0, 0, 0};
     RECT playPauseButtonRect{0, 0, 0, 0};
@@ -29,9 +32,6 @@ struct ViewportControlLayout {
 };
 
 struct DeviceListLayout {
-    RECT sessionBoxRect{0, 0, 0, 0};
-    RECT sessionLabelRect{0, 0, 0, 0};
-    RECT sessionValueRect{0, 0, 0, 0};
     RECT boxRect{0, 0, 0, 0};
     RECT headerRect{0, 0, 0, 0};
     RECT contentRect{0, 0, 0, 0};

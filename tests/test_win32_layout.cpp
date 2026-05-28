@@ -63,7 +63,7 @@ void testWin32Layout()
         ovtr::win32::deviceListLayoutForClient(&state, 1200, 800);
     require(stateDeviceList.valid, "state device list layout is valid");
     require(
-        ovtr::win32::deviceRuntimeIndexFromListPoint(state, stateDeviceList, POINT{70, 138}) == 1,
+        ovtr::win32::deviceRuntimeIndexFromListPoint(state, stateDeviceList, POINT{70, 90}) == 1,
         "state device hit test uses sorted rows"
     );
     state.deviceListScrollOffset = 99;

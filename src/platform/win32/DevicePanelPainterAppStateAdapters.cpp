@@ -17,7 +17,6 @@ void paintDeviceListPanel(
         bodyFont,
         headerFont,
         static_cast<const AppRuntimeState&>(state),
-        static_cast<const AppSessionState&>(state),
         static_cast<AppDeviceState&>(state),
         layout
     );

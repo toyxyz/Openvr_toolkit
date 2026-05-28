@@ -11,7 +11,6 @@ namespace ovtr::win32 {
 
 struct AppDeviceState;
 struct AppRuntimeState;
-struct AppSessionState;
 struct AppWindowState;
 
 void paintDeviceListPanel(
@@ -19,7 +18,6 @@ void paintDeviceListPanel(
     HFONT bodyFont,
     HFONT headerFont,
     const AppRuntimeState& runtimeState,
-    const AppSessionState& sessionState,
     AppDeviceState& deviceState,
     const DeviceListLayout& layout
 );

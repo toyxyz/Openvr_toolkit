@@ -26,9 +26,7 @@ DeviceListLayout deviceListLayoutForClient(
 
     const int boxLeft = kDeviceListToggleRailWidth + kDeviceListContentMargin - 8;
     const int boxRight = textRight;
-    const int sessionTop = kDeviceListTopBarHeight + 12;
-    const int sessionBottom = sessionTop + kDeviceListSessionBoxHeight;
-    const int boxTop = sessionBottom + kDeviceListSessionBoxGap;
+    const int boxTop = kDeviceListTopBarHeight + 12;
     const int visibleBodyHeight = textBottom - boxTop - kDeviceListBoxPadding * 2 -
         kDeviceListHeaderHeight;
     const int visibleItemCount = visibleBodyHeight > 0
@@ -52,9 +50,6 @@ DeviceListLayout deviceListLayoutForClient(
         boxRight,
         boxBottom < textBottom ? boxBottom : textBottom
     };
-    layout.sessionBoxRect = RECT{boxLeft, sessionTop, boxRight, sessionBottom};
-    layout.sessionLabelRect = RECT{boxLeft + 12, sessionTop, boxLeft + 92, sessionBottom};
-    layout.sessionValueRect = RECT{boxLeft + 96, sessionTop + 6, boxRight - 12, sessionBottom - 6};
     layout.headerRect = RECT{
         boxLeft + kDeviceListBoxPadding,
         boxTop + kDeviceListBoxPadding,

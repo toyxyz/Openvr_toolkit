@@ -9,7 +9,5 @@ inline constexpr int kDeviceListHeaderHeight = 28;
 inline constexpr int kDeviceListItemHeight = 26;
 inline constexpr int kDeviceListBoxPadding = 12;
 inline constexpr int kDeviceListOriginPanelGap = 14;
-inline constexpr int kDeviceListSessionBoxHeight = 40;
-inline constexpr int kDeviceListSessionBoxGap = 8;
 
 } // namespace ovtr::win32

@@ -2,6 +2,7 @@
 
 #include "platform/win32/AppImportedSceneState.h"
 #include "platform/win32/AppRecordingState.h"
+#include "platform/win32/AppSessionState.h"
 #include "platform/win32/AppViewportState.h"
 #include "platform/win32/RecordingStateQueries.h"
 #include "platform/win32/ViewportAnimationControlPainter.h"
@@ -60,6 +61,46 @@ void drawViewportQuadButton(HDC drawDc, const RECT& rect, const bool active)
     }
 }
 
+void drawViewportSessionBox(HDC drawDc, HFONT font, const ViewportControlLayout& layout, const AppSessionState& state)
+{
+    if (layout.sessionBoxRect.right <= layout.sessionBoxRect.left) {
+        return;
+    }
+
+    UniqueBrush boxBrush(CreateSolidBrush(RGB(20, 23, 28)));
+    FillRect(drawDc, &layout.sessionBoxRect, boxBrush.get());
+    UniquePen boxPen(CreatePen(PS_SOLID, 1, RGB(67, 74, 88)));
+    {
+        SelectObjectGuard penSelection(drawDc, boxPen.get());
+        SelectObjectGuard brushSelection(drawDc, GetStockObject(NULL_BRUSH));
+        Rectangle(
+            drawDc,
+            layout.sessionBoxRect.left,
+            layout.sessionBoxRect.top,
+            layout.sessionBoxRect.right,
+            layout.sessionBoxRect.bottom
+        );
+    }
+
+    if (font) {
+        SelectObject(drawDc, font);
+    }
+    SetBkMode(drawDc, TRANSPARENT);
+    SetTextColor(drawDc, RGB(168, 180, 196));
+    RECT labelRect = layout.sessionLabelRect;
+    DrawTextW(drawDc, L"Session", -1, &labelRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+
+    SetTextColor(drawDc, RGB(220, 228, 238));
+    RECT valueRect = layout.sessionValueRect;
+    DrawTextW(
+        drawDc,
+        state.sessionName.c_str(),
+        -1,
+        &valueRect,
+        DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS
+    );
+}
+
 } // namespace
 
 void drawViewportControlBar(
@@ -68,6 +109,7 @@ void drawViewportControlBar(
     const ViewportControlLayout& layout,
     const AppRecordingState& recordingState,
     const AppImportedSceneState& importedSceneState,
+    const AppSessionState& sessionState,
     const AppViewportState& viewportState
 )
 {
@@ -89,6 +131,7 @@ void drawViewportControlBar(
 
     drawViewportQuadButton(drawDc, layout.quadViewButtonRect, viewportState.quadViewEnabled);
     drawViewportRecordButton(drawDc, layout.recordButtonRect, isRecordingControlActive(recordingState));
+    drawViewportSessionBox(drawDc, font, layout, sessionState);
 
     if (font) {
         SelectObject(drawDc, font);

@@ -17,8 +17,9 @@ bool handleMainWindowDoubleClickAtPoint(
     const POINT point
 )
 {
-    const DeviceListLayout deviceListLayout = deviceListLayoutForClient(&state, clientWidth, clientHeight);
-    if (deviceListLayout.valid && PtInRect(&deviceListLayout.sessionBoxRect, point)) {
+    const ViewportControlLayout viewportControlLayout =
+        viewportControlLayoutForClient(&state, clientWidth, clientHeight);
+    if (viewportControlLayout.valid && PtInRect(&viewportControlLayout.sessionBoxRect, point)) {
         showSessionEditor(hwnd, state);
         return true;
     }

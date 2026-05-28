@@ -15,7 +15,7 @@ constexpr UINT_PTR kSessionEditControlId = 2101;
 
 RECT sessionEditorRectForClient(AppWindowState& state, const int clientWidth, const int clientHeight)
 {
-    const DeviceListLayout layout = deviceListLayoutForClient(&state, clientWidth, clientHeight);
+    const ViewportControlLayout layout = viewportControlLayoutForClient(&state, clientWidth, clientHeight);
     if (!layout.valid) {
         return RECT{0, 0, 0, 0};
     }
