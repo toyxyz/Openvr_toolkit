@@ -17,6 +17,18 @@ bool handleRefreshKeyDown(HWND hwnd, const WPARAM wparam)
     return true;
 }
 
+bool handleDeviceLabelKeyDown(HWND hwnd, AppWindowState* state, const WPARAM wparam)
+{
+    if (wparam != VK_F2) {
+        return false;
+    }
+    if (state) {
+        state->deviceLabelsVisible = !state->deviceLabelsVisible;
+        refreshPoseAndViewport(hwnd);
+    }
+    return true;
+}
+
 bool handleRecordingKeyDown(HWND hwnd, const WPARAM wparam)
 {
     if (wparam != VK_SPACE) {

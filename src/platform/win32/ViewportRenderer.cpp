@@ -73,8 +73,10 @@ void renderViewport(HWND hwnd)
 
     {
         ScopedGlCapability depthTest(GL_DEPTH_TEST, false);
-        setGlColor(state->viewportSettings.labelTextColor);
-        drawTrackedDeviceLabels3D(*state);
+        if (state->deviceLabelsVisible) {
+            setGlColor(state->viewportSettings.labelTextColor);
+            drawTrackedDeviceLabels3D(*state);
+        }
 
         drawViewportOverlays2D(*state, width, height);
     }

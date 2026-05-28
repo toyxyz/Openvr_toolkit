@@ -56,7 +56,8 @@ Middle drag: pan the 3D viewport
 Mouse wheel: zoom in/out
 Arrow keys: rotate the camera
 + / -: zoom in/out
-Home: reset camera
+F3: reset camera
+F2: toggle device labels
 ```
 
 Recordings are written under:

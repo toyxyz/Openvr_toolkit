@@ -352,7 +352,6 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/WindowInput.cpp
         src/platform/win32/WindowInvalidation.cpp
         src/platform/win32/WindowKeyboard.cpp
-        src/platform/win32/WindowOriginKeyboard.cpp
         src/platform/win32/WindowChromePainter.cpp
         src/platform/win32/WindowLayout.cpp
         src/platform/win32/WindowOriginStateLayout.cpp

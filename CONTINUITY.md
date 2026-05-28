@@ -52,6 +52,11 @@
 - 2026-05-28 [CODE] Changed viewport refresh to render from the latest thread-safe pose snapshot instead of calling `pollPoses()`.
 - 2026-05-28 [CODE] Serialized provider polling/events/enumeration/shutdown through `providerMutex`.
 - 2026-05-28 [CODE] Added Win32 pose sampling tests for pose snapshot copy and 90Hz recording scheduler append behavior.
+- 2026-05-28 [CODE] Removed legacy Origin keyboard shortcuts `Tab`, `O`, and `C`; Origin actions are now UI-driven only.
+- 2026-05-28 [CODE] Forwarded viewport child `WM_KEYDOWN` to the main window key handler so camera shortcuts work when the viewport has focus.
+- 2026-05-28 [CODE] Changed camera reset shortcut from `Home` to `F3`.
+- 2026-05-28 [CODE] Changed the default and `F3` reset camera to a front view with a slight downward pitch: yaw 0, pitch 18, distance 5.5, pan 0/0/0.
+- 2026-05-28 [CODE] Added `F2` as a viewport device name/serial label visibility toggle; labels default to visible.
 
 ### Now
 - 2026-05-28 [ASSUMPTION] Pose worker decoupling is implemented and automated tests pass; 60Hz monitor manual report shows `Pose FPS 90.0`, `View FPS 60.0`, `Frames 927`, `Dropped 0`.
@@ -148,3 +153,13 @@
 - 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `ctest --preset vs2022`; `core_tests` passed after pose worker decoupling.
 - 2026-05-28 [USER] Manual recording report: 10-second recording UI showed `Pose FPS 89.9`, `View FPS 89.9`, `Frames 960`, `Dropped 0`.
 - 2026-05-28 [USER] Manual 60Hz monitor report: about 10-second recording UI showed `Pose FPS 90.0`, `View FPS 60.0`, `Frames 927`, `Dropped 0`.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default && ctest --preset default`; passed after removing legacy Origin keyboard shortcuts.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022`; passed after removing legacy Origin keyboard shortcuts.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default && ctest --preset default`; passed after viewport key forwarding fix.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022`; passed after viewport key forwarding fix.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default && ctest --preset default`; passed after changing camera reset shortcut to `F3`.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022`; passed after changing camera reset shortcut to `F3`.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default && ctest --preset default`; passed after changing the default camera view.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022`; passed after changing the default camera view.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default && ctest --preset default`; passed after adding the `F2` device label toggle.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022`; passed after adding the `F2` device label toggle.

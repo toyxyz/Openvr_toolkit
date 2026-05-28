@@ -51,14 +51,14 @@ bool handleCameraKeyDown(HWND hwnd, AppWindowState* state, const WPARAM wparam)
         }
         return true;
     }
-    if (wparam == VK_HOME) {
+    if (wparam == VK_F3) {
         if (state) {
-            state->cameraYawDegrees = 42.0f;
-            state->cameraPitchDegrees = 28.0f;
-            state->cameraDistance = 5.5f;
-            state->cameraPanX = 0.0f;
-            state->cameraPanY = 0.0f;
-            state->cameraPanZ = 0.0f;
+            state->cameraYawDegrees = kDefaultCameraYawDegrees;
+            state->cameraPitchDegrees = kDefaultCameraPitchDegrees;
+            state->cameraDistance = kDefaultCameraDistance;
+            state->cameraPanX = kDefaultCameraPanX;
+            state->cameraPanY = kDefaultCameraPanY;
+            state->cameraPanZ = kDefaultCameraPanZ;
             refreshPoseAndViewport(hwnd);
         }
         return true;

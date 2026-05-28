@@ -17,6 +17,13 @@
 
 namespace ovtr::win32 {
 
+inline constexpr float kDefaultCameraYawDegrees = 0.0f;
+inline constexpr float kDefaultCameraPitchDegrees = 18.0f;
+inline constexpr float kDefaultCameraDistance = 5.5f;
+inline constexpr float kDefaultCameraPanX = 0.0f;
+inline constexpr float kDefaultCameraPanY = 0.0f;
+inline constexpr float kDefaultCameraPanZ = 0.0f;
+
 struct AppViewportState {
     HWND glWindow = nullptr;
     UniqueWindowDc glDeviceContext;
@@ -25,12 +32,13 @@ struct AppViewportState {
     UniqueGlDisplayList glRecordingElapsedFontBase;
     UniqueGlDisplayList glOverlayFontBase;
     double targetViewportFps = 90.0;
-    float cameraYawDegrees = 42.0f;
-    float cameraPitchDegrees = 28.0f;
-    float cameraDistance = 5.5f;
-    float cameraPanX = 0.0f;
-    float cameraPanY = 0.0f;
-    float cameraPanZ = 0.0f;
+    float cameraYawDegrees = kDefaultCameraYawDegrees;
+    float cameraPitchDegrees = kDefaultCameraPitchDegrees;
+    float cameraDistance = kDefaultCameraDistance;
+    float cameraPanX = kDefaultCameraPanX;
+    float cameraPanY = kDefaultCameraPanY;
+    float cameraPanZ = kDefaultCameraPanZ;
+    bool deviceLabelsVisible = true;
     bool orbitDragging = false;
     bool panDragging = false;
     int lastMouseX = 0;

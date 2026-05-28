@@ -10,7 +10,7 @@ namespace ovtr::win32 {
 struct AppWindowState;
 
 bool handleCameraKeyDown(HWND hwnd, AppWindowState* state, WPARAM wparam);
-bool handleOriginKeyDown(HWND hwnd, AppWindowState* state, WPARAM wparam);
+bool handleDeviceLabelKeyDown(HWND hwnd, AppWindowState* state, WPARAM wparam);
 bool handleRefreshKeyDown(HWND hwnd, WPARAM wparam);
 bool handleRecordingKeyDown(HWND hwnd, WPARAM wparam);
 

@@ -3,6 +3,7 @@
 #include "platform/win32/ViewportRenderer.h"
 #include "platform/win32/ViewportWindowInput.h"
 #include "platform/win32/Win32ScopedDcResources.h"
+#include "platform/win32/WindowInput.h"
 
 namespace ovtr::win32 {
 
@@ -50,6 +51,13 @@ LRESULT CALLBACK viewportProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpa
     case WM_MOUSEWHEEL: {
         handleViewportMouseWheel(hwnd, wparam);
         return 0;
+    }
+    case WM_KEYDOWN: {
+        HWND parent = GetParent(hwnd);
+        if (parent && handleMainWindowKeyDown(parent, wparam)) {
+            return 0;
+        }
+        break;
     }
     default:
         break;

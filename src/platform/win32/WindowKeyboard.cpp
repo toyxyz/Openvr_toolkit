@@ -16,7 +16,7 @@ bool handleMainWindowKeyDown(HWND hwnd, WPARAM wparam)
     AppWindowState* state = appStateForWindow(hwnd);
     return handleCameraKeyDown(hwnd, state, wparam) ||
         handleRefreshKeyDown(hwnd, wparam) ||
-        handleOriginKeyDown(hwnd, state, wparam) ||
+        handleDeviceLabelKeyDown(hwnd, state, wparam) ||
         handleRecordingKeyDown(hwnd, wparam);
 }
 
