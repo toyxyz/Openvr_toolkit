@@ -2,6 +2,7 @@
 
 #include "util/BinaryBuffer.h"
 
+#include <limits>
 #include <utility>
 
 namespace ovtr {
@@ -26,24 +27,39 @@ int appendGltfFloatBufferView(
     return static_cast<int>(bufferViews.size() - 1);
 }
 
-int appendGltfUint16BufferView(
+GltfExportIndexBufferView appendGltfIndexBufferView(
     std::vector<std::uint8_t>& buffer,
     std::vector<GltfExportBufferView>& bufferViews,
-    const std::vector<std::uint16_t>& values,
+    const std::vector<std::uint32_t>& values,
     const int target
 )
 {
+    bool needsUint32 = false;
+    for (const std::uint32_t value : values) {
+        if (value > std::numeric_limits<std::uint16_t>::max()) {
+            needsUint32 = true;
+            break;
+        }
+    }
+
     padToAlignment(buffer);
     const GltfExportBufferView view{
         buffer.size(),
-        values.size() * sizeof(std::uint16_t),
+        values.size() * (needsUint32 ? sizeof(std::uint32_t) : sizeof(std::uint16_t)),
         target,
     };
-    for (const std::uint16_t value : values) {
-        appendLittleEndianUint16(buffer, value);
+    for (const std::uint32_t value : values) {
+        if (needsUint32) {
+            appendLittleEndianUint32(buffer, value);
+        } else {
+            appendLittleEndianUint16(buffer, static_cast<std::uint16_t>(value));
+        }
     }
     bufferViews.push_back(view);
-    return static_cast<int>(bufferViews.size() - 1);
+    return {
+        static_cast<int>(bufferViews.size() - 1),
+        needsUint32 ? kGltfComponentUnsignedInt : kGltfComponentUnsignedShort,
+    };
 }
 
 int addGltfAccessor(

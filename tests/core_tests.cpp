@@ -25,12 +25,13 @@ int main()
         ovtr::test::testGltfExport();
         ovtr::test::testGltfRejectsInvalidExportSampleRate();
         ovtr::test::testGlbExport();
+        ovtr::test::testGlbExportUsesUint32IndicesForLargeMeshes();
         ovtr::test::testExportFilenameOnlyPaths();
         ovtr::test::testGlbImportRejectsMissingChunks();
         ovtr::test::testGlbImportRejectsDeclaredLengthMismatch();
         ovtr::test::testGlbImportRejectsInvalidAccessor();
         ovtr::test::testGlbImportRejectsUnsafeAccessorLayout();
-        ovtr::test::testGlbImportRejectsLargeIndex();
+        ovtr::test::testGlbImportAcceptsLargeIndex();
         ovtr::test::testRecordingController();
         ovtr::test::testMockVRProvider();
 #ifdef _WIN32

@@ -51,7 +51,7 @@ bool readGltfAccessorIndices(
     const std::vector<GltfAccessor>& accessors,
     int accessorIndex,
     const std::vector<std::uint8_t>& binary,
-    std::vector<std::uint16_t>& output,
+    std::vector<std::uint32_t>& output,
     std::string& error
 );
 

@@ -15,7 +15,7 @@ namespace ovtr::win32 {
 void drawImportedGltfMeshTriangles(const ovtr::RenderModelGeometry& mesh)
 {
     glBegin(GL_TRIANGLES);
-    for (const std::uint16_t index : mesh.indices) {
+    for (const std::uint32_t index : mesh.indices) {
         if (index >= mesh.vertices.size()) {
             continue;
         }

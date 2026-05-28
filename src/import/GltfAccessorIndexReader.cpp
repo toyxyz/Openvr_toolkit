@@ -4,8 +4,6 @@
 #include "import/GltfAccessorReadLayout.h"
 #include "util/BinaryBuffer.h"
 
-#include <limits>
-
 namespace ovtr {
 namespace {
 
@@ -37,7 +35,7 @@ bool readGltfAccessorIndices(
     const std::vector<GltfAccessor>& accessors,
     const int accessorIndex,
     const std::vector<std::uint8_t>& binary,
-    std::vector<std::uint16_t>& output,
+    std::vector<std::uint32_t>& output,
     std::string& error
 )
 {
@@ -69,11 +67,7 @@ bool readGltfAccessorIndices(
             layout.baseOffset + layout.stride * static_cast<std::size_t>(element),
             layout.accessor->componentType
         );
-        if (index > std::numeric_limits<std::uint16_t>::max()) {
-            error = "mesh has more than 65535 vertices, which this viewer path does not support yet";
-            return false;
-        }
-        output.push_back(static_cast<std::uint16_t>(index));
+        output.push_back(index);
     }
     return true;
 }

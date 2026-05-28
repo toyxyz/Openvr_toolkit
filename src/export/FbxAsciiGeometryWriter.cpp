@@ -25,7 +25,7 @@ std::vector<double> collectGeometryNormals(const RenderModelGeometry& geometry)
 {
     std::vector<double> values;
     values.reserve(geometry.indices.size() * 3);
-    for (const std::uint16_t index : geometry.indices) {
+    for (const std::uint32_t index : geometry.indices) {
         if (index >= geometry.vertices.size()) {
             continue;
         }

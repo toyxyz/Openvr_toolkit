@@ -16,7 +16,7 @@ struct RenderModelVertex {
 struct RenderModelGeometry {
     bool available = false;
     std::vector<RenderModelVertex> vertices;
-    std::vector<std::uint16_t> indices;
+    std::vector<std::uint32_t> indices;
 };
 
 struct RenderModelPositionBounds {

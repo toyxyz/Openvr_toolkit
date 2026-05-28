@@ -42,7 +42,7 @@ void buildGltfMeshData(
 
         const int positionView = appendGltfFloatBufferView(binary, bufferViews, positions, kGltfArrayBuffer);
         const int normalView = appendGltfFloatBufferView(binary, bufferViews, normals, kGltfArrayBuffer);
-        const int indexView = appendGltfUint16BufferView(
+        const GltfExportIndexBufferView indexView = appendGltfIndexBufferView(
             binary,
             bufferViews,
             device.geometry.indices,
@@ -68,8 +68,8 @@ void buildGltfMeshData(
         );
         const int indexAccessor = addGltfAccessor(
             accessors,
-            indexView,
-            kGltfComponentUnsignedShort,
+            indexView.bufferView,
+            indexView.componentType,
             static_cast<int>(device.geometry.indices.size()),
             "SCALAR"
         );

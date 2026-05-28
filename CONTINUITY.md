@@ -1,11 +1,11 @@
 # CONTINUITY.md
 
 ## Snapshot
-- 2026-05-28 [USER] Goal: render imported GLB viewport models with the same matcap material as device models, tinted by Appearance color, without outline.
-- 2026-05-28 [USER] Success criteria: imported GLB surfaces use the shared render-model matcap, respect the Imported GLB color setting, and do not gain a model outline pass.
-- 2026-05-28 [ASSUMPTION] Current phase: implemented and automated build/test verified; manual GLB visual acceptance remains.
+- 2026-05-29 [USER] Goal: remove practical GLB import vertex-count restrictions for external GLB files.
+- 2026-05-29 [USER] Success criteria: GLB import accepts 32-bit mesh indices above 65535 and exported GLB uses 32-bit indices when needed.
+- 2026-05-29 [ASSUMPTION] Current phase: implemented and automated build/test verified; manual large-GLB viewport acceptance remains.
 - 2026-05-28 [CODE] Current architecture: C++20 native Win32/OpenVR tracker recorder with modular `src` areas for app, data, export, import, math, platform, recording, render, ui, util, and vr.
-- 2026-05-28 [TOOL] Last verified state: default and VS2022 Debug builds/tests passed after imported GLB matcap viewport rendering.
+- 2026-05-29 [TOOL] Last verified state: default and VS2022 Debug builds/tests passed after GLB 32-bit index support.
 
 ## Invariants / Constraints
 - 2026-05-28 [USER] Code files must stay under 300 physical lines unless explicitly exempted in this ledger.
@@ -32,6 +32,9 @@
 - D005 ACTIVE 2026-05-28 [USER] Export runtime markers as static cube pose tracks without mutating binary recordings.
   - Rationale: markers should travel with GLB/FBX exports like devices while remaining runtime-only state.
   - Supersedes: none.
+- D006 ACTIVE 2026-05-29 [USER] Store common import/export mesh indices as 32-bit values.
+  - Rationale: external GLB files can exceed 65535 vertex indices and should import without the old viewer-path cap.
+  - Supersedes: 16-bit-only `RenderModelGeometry::indices` for imported/exported geometry.
 
 ## State
 
@@ -86,12 +89,15 @@
 - 2026-05-28 [CODE] Changed marker list left-click behavior so clicking the selected marker clears marker selection.
 - 2026-05-28 [CODE] Added `marker_size` to viewport settings config and Setting > Appearance; applied it to new markers and existing runtime markers on OK.
 - 2026-05-28 [CODE] Changed imported GLB viewport rendering to use the shared render-model matcap tinted by the Appearance Imported GLB color, with no outline pass.
+- 2026-05-29 [CODE] Changed common import/export `RenderModelGeometry` indices to 32-bit and removed the GLB import rejection for indices above 65535.
+- 2026-05-29 [CODE] Updated GLB export to keep 16-bit indices for small meshes and write 32-bit indices for large meshes.
+- 2026-05-29 [CODE] Added tests that import and export/re-import a GLB mesh referencing index 65536.
 
 ### Now
-- 2026-05-28 [ASSUMPTION] Imported GLB matcap rendering is built into the latest VS2022 Debug exe and automated tests pass.
+- 2026-05-29 [ASSUMPTION] GLB 32-bit index support is built into the latest VS2022 Debug exe and automated tests pass.
 
 ### Next
-- 2026-05-28 [ASSUMPTION] Manually verify an imported GLB visually uses the matcap texture and follows the Imported GLB color setting.
+- 2026-05-29 [ASSUMPTION] Manually import a large external GLB and check viewport performance/appearance.
 
 ## Open Questions
 - 2026-05-28 [ASSUMPTION] Whether to remove the explicit procedural fallback after runtime PNG loading is visually confirmed is not yet decided.
@@ -112,6 +118,14 @@
 - 2026-05-28 [CODE] tests/test_win32_marker_state.cpp and marker-related GLB/FBX export tests
 - 2026-05-28 [CODE] src/platform/win32/ViewportImportedSceneRenderer.{h,cpp}
 - 2026-05-28 [CODE] src/platform/win32/ViewportImportedSceneRendererAppStateAdapters.cpp
+- 2026-05-29 [CODE] src/export/RenderModelGeometry.{h,cpp}
+- 2026-05-29 [CODE] src/import/GltfAccessor*.{h,cpp}
+- 2026-05-29 [CODE] src/import/GltfImportedMeshes.cpp
+- 2026-05-29 [CODE] src/export/GltfExportBuffers.{h,cpp}
+- 2026-05-29 [CODE] src/export/GltfExportMeshData.cpp
+- 2026-05-29 [CODE] src/export/FbxAsciiGeometryWriter.cpp
+- 2026-05-29 [CODE] src/platform/win32/ViewportImportedScenePrimitives.cpp
+- 2026-05-29 [CODE] tests/test_glb_import_accessors.cpp and tests/test_glb_exporter.cpp
 
 ## Packages
 - 2026-05-28 [TOOL] `toyxyz_vr_toolkit_v1/` contains `OpenVRTrackerRecorderDesktop.exe` built from `build/vs2022/Release`, `openvr_api.dll`, VC143 CRT DLLs, portable `config/`, empty `recordings/` and `exports/`, and `licenses/OpenVR_LICENSE.txt`.
@@ -253,3 +267,10 @@
 - 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target openvr_tracker_recorder_tests` and `ctest --preset vs2022 --output-on-failure`; `core_tests` passed after imported GLB matcap viewport rendering.
 - 2026-05-28 [TOOL] Latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-28 23:58:04 KST.
 - 2026-05-28 [TOOL] Checked touched imported GLB matcap code file lengths; all were under 300 lines.
+- 2026-05-29 [TOOL] First incremental default `ctest` after widening `RenderModelGeometry::indices` crashed from stale object layout; clean rebuild mitigated it.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default --target openvr_tracker_recorder_tests --clean-first` and `ctest --preset default --output-on-failure`; `core_tests` passed after GLB 32-bit index support.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default --target OpenVRTrackerRecorderDesktop`, rebuilt tests, and `ctest --preset default --output-on-failure`; build and `core_tests` passed after GLB 32-bit index support.
+- 2026-05-29 [TOOL] Initial VS2022 clean app build timed out after an access-denied clean warning for `toyxyz_openvr_toolkit.exe`; reran VS2022 app build successfully.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target openvr_tracker_recorder_tests` and `ctest --preset vs2022 --output-on-failure`; `core_tests` passed after GLB 32-bit index support.
+- 2026-05-29 [TOOL] Latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-29 00:28:44 KST.
+- 2026-05-29 [TOOL] Checked touched GLB 32-bit index code/test file lengths; all were under 300 lines.

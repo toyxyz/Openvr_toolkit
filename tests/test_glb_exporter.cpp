@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <string>
+#include <vector>
 
 namespace ovtr::test {
 namespace {
@@ -31,6 +32,22 @@ ovtr::ExportStaticPoseTrack makeStaticMarkerTrack()
     track.rotation = {0.0f, 0.0f, 0.0f, 1.0f};
     track.geometry = ovtr::makeBoxRenderModelGeometry(0.10f);
     return track;
+}
+
+ovtr::RenderModelGeometry makeLargeIndexedGeometry()
+{
+    constexpr std::size_t kVertexCount = 65537u;
+    ovtr::RenderModelGeometry geometry;
+    geometry.available = true;
+    geometry.vertices.reserve(kVertexCount);
+    for (std::size_t i = 0; i < kVertexCount; ++i) {
+        ovtr::RenderModelVertex vertex;
+        vertex.position = {static_cast<float>(i), 0.0f, 0.0f};
+        vertex.normal = {0.0f, 1.0f, 0.0f};
+        geometry.vertices.push_back(vertex);
+    }
+    geometry.indices = {0u, 1u, 65536u};
+    return geometry;
 }
 
 } // namespace
@@ -150,6 +167,51 @@ void testGlbExport()
         "GLB imported marker should sample at end"
     );
     require(std::fabs(importedTranslation[0] - 4.0f) < 0.0001f, "GLB marker static x mismatch");
+
+    std::filesystem::remove_all(testDir, ignored);
+}
+
+void testGlbExportUsesUint32IndicesForLargeMeshes()
+{
+    const std::filesystem::path testDir = std::filesystem::current_path() / ".tmp_ovtr_glb_large_index_tests";
+    std::error_code ignored;
+    std::filesystem::remove_all(testDir, ignored);
+    std::filesystem::create_directories(testDir);
+
+    const std::filesystem::path framesPath = testDir / "frames.bin";
+    const std::filesystem::path indexPath = testDir / "frame_index.bin";
+    const std::filesystem::path glbPath = testDir / "large_index.glb";
+    writeTestFrames(framesPath, indexPath, 1, "GLB");
+
+    ovtr::DeviceDescriptor tracker = makeTestTracker("LHR-GLB-LARGE");
+    tracker.renderModelName = "large_test_render_model";
+    const ovtr::RecordingSession session = makeTestSession(
+        "glb-large-index-test",
+        "GLB Large Index Test",
+        framesPath,
+        indexPath,
+        {tracker}
+    );
+
+    ovtr::GltfExportOptions options;
+    options.outputPath = glbPath;
+    options.format = ovtr::GltfExportFormat::Glb;
+    options.geometryProvider = [](const ovtr::DeviceDescriptor&) {
+        return makeLargeIndexedGeometry();
+    };
+    const ovtr::ExportResult result = ovtr::exportSessionToGltf(session, options);
+    require(result.success, "large-index GLB export failed: " + result.error);
+
+    const std::vector<std::uint8_t> glb = readBinaryFile(glbPath);
+    const std::uint32_t jsonLength = readLittleEndianUint32(glb, 12);
+    const std::string json(reinterpret_cast<const char*>(glb.data() + 20), jsonLength);
+    require(json.find("\"componentType\": 5125") != std::string::npos, "large GLB indices should be unsigned int");
+
+    const ovtr::GltfImportResult importResult = ovtr::importGlbScene(glbPath);
+    require(importResult.success, "large-index GLB re-import failed: " + importResult.error);
+    require(importResult.scene.meshes.size() == 1, "large-index GLB re-import mesh count mismatch");
+    require(importResult.scene.meshes[0].vertices.size() == 65537u, "large-index GLB re-import vertex count mismatch");
+    require(importResult.scene.meshes[0].indices[2] == 65536u, "large-index GLB re-import index mismatch");
 
     std::filesystem::remove_all(testDir, ignored);
 }

@@ -63,7 +63,7 @@ bool parseImportedGltfMeshes(
             !readGltfAccessorFloats(bufferViews, accessors, normalAccessor, 3, binary, normals, error)) {
             return false;
         }
-        std::vector<std::uint16_t> indices;
+        std::vector<std::uint32_t> indices;
         if (!readGltfAccessorIndices(bufferViews, accessors, indexAccessor, binary, indices, error)) {
             return false;
         }

@@ -24,13 +24,14 @@ void testFbxExportSampleRate();
 void testGltfExport();
 void testGltfRejectsInvalidExportSampleRate();
 void testGlbExport();
+void testGlbExportUsesUint32IndicesForLargeMeshes();
 void testExportFilenameOnlyPaths();
 
 void testGlbImportRejectsMissingChunks();
 void testGlbImportRejectsDeclaredLengthMismatch();
 void testGlbImportRejectsInvalidAccessor();
 void testGlbImportRejectsUnsafeAccessorLayout();
-void testGlbImportRejectsLargeIndex();
+void testGlbImportAcceptsLargeIndex();
 
 void testMockVRProvider();
 
