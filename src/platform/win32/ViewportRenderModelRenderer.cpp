@@ -4,6 +4,8 @@
 #include "platform/win32/ConfigStore.h"
 #include "platform/win32/ViewportCamera.h"
 #include "platform/win32/ViewportDrawPrimitives.h"
+#include "platform/win32/ViewportGpuMatcapDraw.h"
+#include "platform/win32/ViewportGpuMeshUpload.h"
 #include "platform/win32/ViewportGlMatrixScope.h"
 #include "platform/win32/ViewportGlStateScope.h"
 #include "platform/win32/ViewportGlTextureBindingScope.h"
@@ -35,6 +37,17 @@ void drawRenderModelSurface(RenderModelMesh& mesh)
     if (!drawCachedRenderModelTriangles(mesh.surfaceDisplayList, mesh)) {
         drawRenderModelTriangles(mesh);
     }
+}
+
+bool drawRenderModelGpuSurface(AppViewportState& state, RenderModelMesh& mesh)
+{
+    return uploadRenderModelGpuMesh(mesh.surfaceGpuMesh, mesh) &&
+        drawGpuMatcapMesh(
+            state,
+            mesh.surfaceGpuMesh,
+            state.renderModelMatcapTexture.get(),
+            state.viewportSettings.renderModelMaterialColor
+        );
 }
 
 void drawRenderModelFallbackSurface(RenderModelMesh& mesh, const RgbColor materialColor)
@@ -103,12 +116,14 @@ bool drawSteamVRRenderModel3D(
         ScopedGlCapability cullFace(GL_CULL_FACE, false);
         if (ensureRenderModelMatcapTexture(state)) {
             ScopedGlCapability lighting(GL_LIGHTING, false);
-            ScopedGlCapability texture2D(GL_TEXTURE_2D, true);
-            ScopedGlTexture2DBinding textureBinding(state.renderModelMatcapTexture.get());
-            ScopedRenderModelMatcapMapping matcapMapping;
-            glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-            setGlColorFromRgb(state.viewportSettings.renderModelMaterialColor);
-            drawRenderModelSurface(mesh);
+            if (!drawRenderModelGpuSurface(state, mesh)) {
+                ScopedGlCapability texture2D(GL_TEXTURE_2D, true);
+                ScopedGlTexture2DBinding textureBinding(state.renderModelMatcapTexture.get());
+                ScopedRenderModelMatcapMapping matcapMapping;
+                glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+                setGlColorFromRgb(state.viewportSettings.renderModelMaterialColor);
+                drawRenderModelSurface(mesh);
+            }
         } else {
             drawRenderModelFallbackSurface(mesh, state.viewportSettings.renderModelMaterialColor);
         }

@@ -2,7 +2,9 @@
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/ViewportImportedSceneCache.h"
+#include "platform/win32/ViewportMatcapShader.h"
 #include "platform/win32/ViewportRenderModelMatcap.h"
+#include "platform/win32/ViewportGpuMesh.h"
 #include "platform/win32/ViewportTriangleDisplayListCache.h"
 
 namespace ovtr::win32 {
@@ -11,6 +13,7 @@ void deleteRenderModelTextures(AppWindowState& state) noexcept
 {
     for (auto& entry : state.renderModelCache) {
         RenderModelMesh& mesh = entry.second;
+        resetViewportGpuMesh(mesh.surfaceGpuMesh);
         resetTriangleDisplayListCache(mesh.surfaceDisplayList);
         if (mesh.texture) {
             mesh.texture.reset();
@@ -18,6 +21,7 @@ void deleteRenderModelTextures(AppWindowState& state) noexcept
         }
     }
     resetImportedSceneRenderCache(state);
+    resetMatcapShader(state.matcapShader);
     deleteRenderModelMatcapTexture(state);
 }
 

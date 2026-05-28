@@ -1,6 +1,7 @@
 #pragma once
 
 #include "platform/win32/Win32GlTextureResource.h"
+#include "platform/win32/ViewportGpuMesh.h"
 #include "platform/win32/ViewportTriangleDisplayListCache.h"
 
 #include <array>
@@ -25,6 +26,7 @@ struct RenderModelMesh {
     LoadState state = LoadState::Pending;
     std::vector<RenderModelVertex> vertices;
     std::vector<std::uint16_t> indices;
+    ViewportGpuMesh surfaceGpuMesh;
     ViewportTriangleDisplayListCache surfaceDisplayList;
     int diffuseTextureId = -1;
     UniqueGlTexture texture;

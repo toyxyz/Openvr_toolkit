@@ -1,0 +1,4 @@
+Minimal repo-local OpenGL function loader for toyxyz_openvr_toolkit.
+
+This file is intentionally small and public-domain-style for project-local use.
+It exposes a GLAD-compatible subset used by the Win32 viewport renderer.

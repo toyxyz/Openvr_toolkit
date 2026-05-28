@@ -133,6 +133,16 @@ else()
     target_compile_options(openvr_tracker_recorder_core PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
+if(WIN32)
+    add_library(glad_vendor STATIC
+        third_party/glad/src/glad.cpp
+    )
+    target_include_directories(glad_vendor PUBLIC
+        third_party/glad/include
+    )
+    target_link_libraries(glad_vendor PUBLIC opengl32)
+endif()
+
 add_executable(OpenVRTrackerRecorder
     src/main.cpp
 )
@@ -314,8 +324,13 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/ViewportColorDialogSession.cpp
         src/platform/win32/ViewportGlColor.cpp
         src/platform/win32/ViewportGlFonts.cpp
+        src/platform/win32/ViewportGlLoader.cpp
         src/platform/win32/ViewportGlResources.cpp
         src/platform/win32/ViewportGridAxes.cpp
+        src/platform/win32/ViewportGpuMatcapDraw.cpp
+        src/platform/win32/ViewportGpuMesh.cpp
+        src/platform/win32/ViewportGpuMeshPlan.cpp
+        src/platform/win32/ViewportGpuMeshUpload.cpp
         src/platform/win32/ViewportImportedSceneCache.cpp
         src/platform/win32/ViewportImportedScenePrimitives.cpp
         src/platform/win32/ViewportImportedSceneRenderer.cpp
@@ -324,6 +339,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/ViewportMarkerRenderer.cpp
         src/platform/win32/ViewportOverlayRenderer.cpp
         src/platform/win32/ViewportOverlayRendererAppStateAdapters.cpp
+        src/platform/win32/ViewportMatcapShader.cpp
         src/platform/win32/ViewportQuaternionMatrix.cpp
         src/platform/win32/ViewportRenderModelCleanup.cpp
         src/platform/win32/ViewportRenderModelDraw.cpp
@@ -393,6 +409,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
     target_link_libraries(OpenVRTrackerRecorderDesktop
         PRIVATE
             openvr_tracker_recorder_core
+            glad_vendor
             user32
             gdi32
             comdlg32
@@ -542,6 +559,8 @@ if(OVTR_BUILD_TESTS)
                 src/platform/win32/ViewportAnimationControlLayout.cpp
                 src/platform/win32/ViewportCamera.cpp
                 src/platform/win32/ViewportControlLayout.cpp
+                src/platform/win32/ViewportGpuMeshPlan.cpp
+                src/platform/win32/ViewportMatcapShader.cpp
                 src/platform/win32/ViewportCameraMath.cpp
                 src/platform/win32/ViewportMath.cpp
                 src/platform/win32/ViewportProjectionMath.cpp
@@ -579,6 +598,7 @@ if(OVTR_BUILD_TESTS)
                 tests/test_win32_status_panel.cpp
                 tests/test_win32_string.cpp
                 tests/test_win32_viewport_control_layout.cpp
+                tests/test_win32_viewport_gpu_mesh.cpp
                 tests/test_win32_viewport_settings_config.cpp
                 tests/test_win32_viewport_math.cpp
         )
@@ -590,6 +610,7 @@ if(OVTR_BUILD_TESTS)
                 shell32
                 ole32
                 opengl32
+                glad_vendor
         )
     endif()
 

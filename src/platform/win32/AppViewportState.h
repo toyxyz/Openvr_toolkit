@@ -6,6 +6,9 @@
 #include <windows.h>
 
 #include "platform/win32/ConfigTypes.h"
+#include "platform/win32/ViewportGpuCapabilities.h"
+#include "platform/win32/ViewportGpuMesh.h"
+#include "platform/win32/ViewportMatcapShader.h"
 #include "platform/win32/ViewportPaneTypes.h"
 #include "platform/win32/ViewportRenderModelTypes.h"
 #include "platform/win32/ViewportTriangleDisplayListCache.h"
@@ -60,8 +63,11 @@ struct AppViewportState {
     ViewportSettings viewportSettings;
     std::unordered_map<std::string, RenderModelMesh> renderModelCache;
     std::vector<ViewportTriangleDisplayListCache> importedSceneMeshDisplayLists;
+    std::vector<ViewportGpuMesh> importedSceneGpuMeshes;
     UniqueGlTexture renderModelMatcapTexture;
     bool renderModelMatcapTextureFailed = false;
+    ViewportGpuCapabilities gpuCapabilities;
+    ViewportMatcapShaderState matcapShader;
 };
 
 } // namespace ovtr::win32

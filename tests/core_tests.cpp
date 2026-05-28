@@ -59,6 +59,7 @@ int main()
         ovtr::test::testWin32StatusPanel();
         ovtr::test::testWin32String();
         ovtr::test::testWin32ViewportControlLayout();
+        ovtr::test::testWin32ViewportGpuMesh();
         ovtr::test::testWin32ViewportSettingsConfig();
         ovtr::test::testWin32ViewportMath();
 #endif

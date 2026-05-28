@@ -60,6 +60,7 @@ void testWin32RuntimeStatus();
 void testWin32StatusPanel();
 void testWin32String();
 void testWin32ViewportControlLayout();
+void testWin32ViewportGpuMesh();
 void testWin32ViewportSettingsConfig();
 void testWin32ViewportMath();
 #endif

@@ -1,11 +1,11 @@
 # CONTINUITY.md
 
 ## Snapshot
-- 2026-05-29 [USER] Goal: optimize high-polygon viewport rendering by caching imported GLB and SteamVR render-model surface draw calls.
-- 2026-05-29 [USER] Success criteria: GLB and device render-model surfaces use fixed-function OpenGL display list caches while preserving matcap, outline, and lifecycle behavior.
-- 2026-05-29 [ASSUMPTION] Current phase: implemented and automated build/test verified; manual large-GLB viewport FPS acceptance remains.
+- 2026-05-29 [USER] Goal: optimize high-polygon viewport rendering with glad-loaded VBO/IBO GPU surface draws and shader matcap.
+- 2026-05-29 [USER] Success criteria: Imported GLB and SteamVR device surfaces use VBO/IBO + matcap shader when available, with display-list fallback and preserved outline/UI behavior.
+- 2026-05-29 [USER] Current phase: implemented and automated build/test verified; manual 3,174,132-vertex GLB Quad view FPS acceptance passed.
 - 2026-05-28 [CODE] Current architecture: C++20 native Win32/OpenVR tracker recorder with modular `src` areas for app, data, export, import, math, platform, recording, render, ui, util, and vr.
-- 2026-05-29 [TOOL] Last verified state: default and VS2022 Debug builds/tests passed after display-list render cache optimization.
+- 2026-05-29 [TOOL] Last verified state: default and VS2022 Debug builds/tests passed after glad + VBO/IBO + matcap shader surface path.
 
 ## Invariants / Constraints
 - 2026-05-28 [USER] Code files must stay under 300 physical lines unless explicitly exempted in this ledger.
@@ -38,6 +38,9 @@
 - D007 ACTIVE 2026-05-29 [USER] Use fixed-function OpenGL display lists for imported GLB and device render-model surface caching.
   - Rationale: reduce per-frame CPU immediate-mode vertex submission without adding shader/VBO dependencies.
   - Supersedes: per-frame immediate-mode surface rendering for imported GLB and device render-model surfaces.
+- D008 ACTIVE 2026-05-29 [USER] Use repo-local glad plus VBO/IBO and shader matcap for imported GLB and device render-model surface draws.
+  - Rationale: push static mesh surface vertices/indices to GPU and reduce CPU submission cost for high-polygon scenes.
+  - Supersedes: D007 as the primary surface path; display-list caching remains fallback.
 
 ## State
 
@@ -98,12 +101,15 @@
 - 2026-05-29 [CODE] Added shared viewport triangle display-list caches with one-time build and immediate-mode fallback on `glGenLists` failure.
 - 2026-05-29 [CODE] Cached imported GLB mesh surface rendering per mesh and reset GLB display lists on import, close, and OpenGL shutdown.
 - 2026-05-29 [CODE] Cached SteamVR render-model surface rendering while keeping outline rendering immediate-mode for camera-dependent expansion.
+- 2026-05-29 [CODE] Added repo-local glad loader target for Win32 viewport OpenGL 2.x VBO/shader functions.
+- 2026-05-29 [CODE] Added VBO/IBO GPU mesh caches for imported GLB meshes and SteamVR render-model surfaces with display-list fallback.
+- 2026-05-29 [CODE] Added GLSL matcap shader path using current fixed-function matrices, shared matcap texture, and Appearance tint colors.
 
 ### Now
-- 2026-05-29 [ASSUMPTION] Display-list render caching is built into the latest VS2022 Debug exe and automated tests pass.
+- 2026-05-29 [USER] glad + VBO/IBO + shader matcap surface rendering is built into the latest VS2022 Debug exe; 3,174,132-vertex GLB in Quad view reports `Pose FPS 89.9`, `View FPS 91.9`.
 
 ### Next
-- 2026-05-29 [ASSUMPTION] Manually import a large external GLB and compare single/Quad view FPS and interaction smoothness.
+- 2026-05-29 [ASSUMPTION] Continue visual QA for matcap tint correctness, interaction smoothness, and GLB reimport/close stability.
 
 ## Open Questions
 - 2026-05-28 [ASSUMPTION] Whether to remove the explicit procedural fallback after runtime PNG loading is visually confirmed is not yet decided.
@@ -135,6 +141,9 @@
 - 2026-05-29 [CODE] src/platform/win32/ViewportTriangleDisplayList*.{h,cpp}
 - 2026-05-29 [CODE] src/platform/win32/ViewportImportedSceneCache.{h,cpp}
 - 2026-05-29 [CODE] src/platform/win32/ViewportRenderModelRenderer.cpp and imported-scene render/cache lifecycle files
+- 2026-05-29 [CODE] third_party/glad/*
+- 2026-05-29 [CODE] src/platform/win32/ViewportGpu*.{h,cpp}, ViewportMatcapShader.{h,cpp}, ViewportGlLoader.{h,cpp}
+- 2026-05-29 [CODE] tests/test_win32_viewport_gpu_mesh.cpp
 
 ## Packages
 - 2026-05-28 [TOOL] `toyxyz_vr_toolkit_v1/` contains `OpenVRTrackerRecorderDesktop.exe` built from `build/vs2022/Release`, `openvr_api.dll`, VC143 CRT DLLs, portable `config/`, empty `recordings/` and `exports/`, and `licenses/OpenVR_LICENSE.txt`.
@@ -290,3 +299,11 @@
 - 2026-05-29 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target openvr_tracker_recorder_tests` and `ctest --preset vs2022 --output-on-failure`; `core_tests` passed after display-list render cache changes.
 - 2026-05-29 [TOOL] Latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-29 00:49:45 KST.
 - 2026-05-29 [TOOL] Checked touched display-list cache code file lengths; all were under 300 lines.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default --target OpenVRTrackerRecorderDesktop`; succeeded after glad/VBO/shader changes.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default --target openvr_tracker_recorder_tests --clean-first` and `ctest --preset default --output-on-failure`; `core_tests` passed after glad/VBO/shader changes.
+- 2026-05-29 [TOOL] Initial VS2022 app build timed out at 120s while compiling; rerun with 240s timeout succeeded.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop`; Debug app rebuilt after glad/VBO/shader changes.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target openvr_tracker_recorder_tests` and `ctest --preset vs2022 --output-on-failure`; `core_tests` passed after glad/VBO/shader changes.
+- 2026-05-29 [TOOL] Latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-29 01:19:52 KST.
+- 2026-05-29 [TOOL] Checked touched glad/VBO/shader code/test file lengths; all were under 300 lines; `CMakeLists.txt` remains the known exception.
+- 2026-05-29 [USER] Manual QA: imported a 3,174,132-vertex GLB in Quad view; UI reported `Pose FPS 89.9`, `View FPS 91.9`, `Rec Idle`, `Frames 0`, `Dropped 0`.

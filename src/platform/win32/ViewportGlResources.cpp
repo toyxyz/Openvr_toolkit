@@ -2,6 +2,7 @@
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/ViewportGlFonts.h"
+#include "platform/win32/ViewportGlLoader.h"
 #include "platform/win32/ViewportRenderModelCleanup.h"
 #include "platform/win32/Win32GlContextResource.h"
 #include "platform/win32/Win32ScopedDcResources.h"
@@ -47,6 +48,7 @@ bool setupOpenGLForChild(HWND hwnd, AppWindowState& state) noexcept
     state.glDeviceContext.reset(hwnd, deviceContext.release());
     state.glContext.reset(glContext.release());
 
+    initializeViewportGlLoader(state);
     createViewportGlFontDisplayLists(state);
     return true;
 }
