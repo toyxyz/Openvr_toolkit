@@ -24,6 +24,7 @@ ViewportSettings clampViewportSettings(ViewportSettings settings) noexcept
     settings.outlineMultiplier = std::clamp(settings.outlineMultiplier, 0.0f, 10.0f);
     settings.gridSize = std::clamp(settings.gridSize, 1.0f, 50.0f);
     settings.gridCellDensity = std::clamp(settings.gridCellDensity, 0.25f, 10.0f);
+    settings.markerSize = std::clamp(settings.markerSize, 0.01f, 2.0f);
     return settings;
 }
 

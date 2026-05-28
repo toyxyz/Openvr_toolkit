@@ -214,6 +214,12 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/ImportedSceneTimeline.cpp
         src/platform/win32/Layout.cpp
         src/platform/win32/LeftPanelLayout.cpp
+        src/platform/win32/MarkerActions.cpp
+        src/platform/win32/MarkerExport.cpp
+        src/platform/win32/MarkerList.cpp
+        src/platform/win32/MarkerListLayout.cpp
+        src/platform/win32/MarkerPanelPainter.cpp
+        src/platform/win32/MarkerPoseActions.cpp
         src/platform/win32/Menus.cpp
         src/platform/win32/ModalDialog.cpp
         src/platform/win32/OriginActions.cpp
@@ -314,6 +320,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/ViewportImportedSceneRenderer.cpp
         src/platform/win32/ViewportImportedSceneRendererAppStateAdapters.cpp
         src/platform/win32/ViewportLabelText.cpp
+        src/platform/win32/ViewportMarkerRenderer.cpp
         src/platform/win32/ViewportOverlayRenderer.cpp
         src/platform/win32/ViewportOverlayRendererAppStateAdapters.cpp
         src/platform/win32/ViewportQuaternionMatrix.cpp
@@ -499,6 +506,10 @@ if(OVTR_BUILD_TESTS)
                 src/platform/win32/ImportedSceneTimeline.cpp
                 src/platform/win32/Layout.cpp
                 src/platform/win32/LeftPanelLayout.cpp
+                src/platform/win32/MarkerExport.cpp
+                src/platform/win32/MarkerList.cpp
+                src/platform/win32/MarkerListLayout.cpp
+                src/platform/win32/MarkerPoseActions.cpp
                 src/platform/win32/OriginDialogModel.cpp
                 src/platform/win32/OriginDialogModelAppStateAdapters.cpp
                 src/platform/win32/OriginEditorLayout.cpp
@@ -553,6 +564,7 @@ if(OVTR_BUILD_TESTS)
                 tests/test_win32_imported_scene_lifecycle.cpp
                 tests/test_win32_imported_scene_playback.cpp
         tests/test_win32_layout.cpp
+                tests/test_win32_marker_state.cpp
         tests/test_win32_origin_formatting.cpp
                 tests/test_win32_origin_dialog_state.cpp
                 tests/test_win32_origin_layout.cpp

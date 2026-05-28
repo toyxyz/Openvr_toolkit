@@ -49,7 +49,12 @@ ExportResult exportSessionToFbxAscii(const RecordingSession& session, const FbxE
     std::string trackError;
     if (!collectExportPoseTracks(
             session,
-            {options.includeGeometry, options.includeTrackingReference, options.geometryProvider},
+            {
+                options.includeGeometry,
+                options.includeTrackingReference,
+                options.geometryProvider,
+                options.staticTracks
+            },
             tracks,
             trackError
         )) {

@@ -1,8 +1,10 @@
 #include "platform/win32/WindowLayout.h"
 
 #include "platform/win32/AppDeviceState.h"
+#include "platform/win32/AppMarkerState.h"
 #include "platform/win32/AppRuntimeState.h"
 #include "platform/win32/AppState.h"
+#include "platform/win32/MarkerList.h"
 
 namespace ovtr::win32 {
 
@@ -47,13 +49,38 @@ DeviceListLayout deviceListLayoutForClient(
     const int leftPanelWidth = leftPanelWidthForClient(state, clientWidth);
     const int contentBottom = leftPanelContentBottomForClient(state, clientHeight);
     const OriginPanelLayout originLayout = originPanelLayoutForClient(state, clientWidth, clientHeight);
+    const MarkerListLayout markerLayout = markerListLayoutForClient(state, clientWidth, clientHeight);
+    bool lowerPanelValid = originLayout.valid;
+    int lowerPanelTop = originLayout.boxRect.top;
+    if (markerLayout.valid && (!lowerPanelValid || markerLayout.boxRect.top < lowerPanelTop)) {
+        lowerPanelValid = true;
+        lowerPanelTop = markerLayout.boxRect.top;
+    }
     return deviceListLayoutForClient(
         state->devicePanelVisible,
         leftPanelWidth,
         contentBottom,
-        originLayout.valid,
-        originLayout.boxRect.top,
+        lowerPanelValid,
+        lowerPanelTop,
         static_cast<int>(state->devices.size())
+    );
+}
+
+MarkerListLayout markerListLayoutForClient(
+    const AppWindowState* state,
+    const int clientWidth,
+    const int clientHeight
+)
+{
+    if (!state) {
+        return {};
+    }
+
+    return markerListLayoutForClient(
+        state->devicePanelVisible,
+        leftPanelWidthForClient(state, clientWidth),
+        leftPanelContentBottomForClient(state, clientHeight),
+        static_cast<int>(state->markers.size())
     );
 }
 
@@ -74,6 +101,23 @@ void clampDeviceListScroll(AppWindowState& state, const int visibleItemCount)
     );
 }
 
+int maxMarkerListScrollOffset(const AppWindowState& state, const int visibleItemCount)
+{
+    return maxMarkerListScrollOffset(
+        static_cast<int>(state.markers.size()),
+        visibleItemCount
+    );
+}
+
+void clampMarkerListScroll(AppWindowState& state, const int visibleItemCount)
+{
+    state.markerListScrollOffset = clampMarkerListScrollOffset(
+        state.markerListScrollOffset,
+        static_cast<int>(state.markers.size()),
+        visibleItemCount
+    );
+}
+
 std::uint32_t deviceRuntimeIndexFromListPoint(
     const AppWindowState& state,
     const DeviceListLayout& layout,
@@ -83,6 +127,19 @@ std::uint32_t deviceRuntimeIndexFromListPoint(
     return deviceRuntimeIndexFromListPoint(
         static_cast<const AppRuntimeState&>(state),
         static_cast<const AppDeviceState&>(state),
+        layout,
+        point
+    );
+}
+
+std::uint32_t markerIdFromListPoint(
+    const AppWindowState& state,
+    const MarkerListLayout& layout,
+    const POINT point
+)
+{
+    return markerIdFromListPoint(
+        static_cast<const AppMarkerState&>(state),
         layout,
         point
     );

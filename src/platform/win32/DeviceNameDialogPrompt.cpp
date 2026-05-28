@@ -5,15 +5,19 @@
 #include "platform/win32/ModalDialog.h"
 
 namespace ovtr::win32 {
+namespace {
 
-bool promptForDeviceName(
+bool promptForName(
     HWND parent,
+    const std::wstring& title,
+    const std::wstring& subjectLabel,
     const std::wstring& deviceLabel,
     const std::wstring& initialName,
     std::wstring& outName
 )
 {
     DeviceNameDialogState dialog;
+    dialog.subjectLabel = subjectLabel;
     dialog.deviceLabel = deviceLabel;
     dialog.initialName = initialName;
     dialog.resultName = dialog.initialName;
@@ -21,7 +25,7 @@ bool promptForDeviceName(
     ModalDialogHost host(parent);
     const ModalDialogDescriptor descriptor{
         kDeviceNameDialogClassName,
-        L"Set Name",
+        title.c_str(),
         kDeviceNameDialogWidth,
         kDeviceNameDialogHeight,
     };
@@ -40,6 +44,28 @@ bool promptForDeviceName(
 
     outName = dialog.resultName;
     return true;
+}
+
+} // namespace
+
+bool promptForDeviceName(
+    HWND parent,
+    const std::wstring& deviceLabel,
+    const std::wstring& initialName,
+    std::wstring& outName
+)
+{
+    return promptForName(parent, L"Set Name", L"Device", deviceLabel, initialName, outName);
+}
+
+bool promptForMarkerName(
+    HWND parent,
+    const std::wstring& markerLabel,
+    const std::wstring& initialName,
+    std::wstring& outName
+)
+{
+    return promptForName(parent, L"Rename Marker", L"Marker", markerLabel, initialName, outName);
 }
 
 } // namespace ovtr::win32

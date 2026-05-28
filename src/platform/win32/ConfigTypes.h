@@ -27,6 +27,7 @@ struct ViewportSettings {
     float outlineMultiplier = 1.0f;
     float gridSize = 5.0f;
     float gridCellDensity = 2.0f;
+    float markerSize = 0.10f;
 };
 
 struct DeviceNameConfigEntry {

@@ -47,6 +47,12 @@ DeviceListLayout deviceListLayoutForClient(
     int originPanelTop,
     int deviceCount
 ) noexcept;
+MarkerListLayout markerListLayoutForClient(
+    bool devicePanelVisible,
+    int leftPanelWidth,
+    int contentBottom,
+    int markerCount
+) noexcept;
 int maxDeviceListScrollOffset(int totalItemCount, int visibleItemCount) noexcept;
 int clampDeviceListScrollOffset(int scrollOffset, int totalItemCount, int visibleItemCount) noexcept;
 int deviceListItemTextRight(const DeviceListLayout& layout, int totalItemCount) noexcept;

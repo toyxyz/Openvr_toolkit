@@ -4,6 +4,7 @@
 #include "platform/win32/DebugPanelPainter.h"
 #include "platform/win32/DevicePanelPainter.h"
 #include "platform/win32/Layout.h"
+#include "platform/win32/MarkerPanelPainter.h"
 #include "platform/win32/OriginPanelPainter.h"
 #include "platform/win32/StatusBarPainter.h"
 #include "platform/win32/ViewportControlPainter.h"
@@ -37,6 +38,9 @@ void paintWindowScene(
     const DeviceListLayout deviceListLayout = state
         ? deviceListLayoutForClient(state, clientWidth, clientHeight)
         : DeviceListLayout{};
+    const MarkerListLayout markerListLayout = state
+        ? markerListLayoutForClient(state, clientWidth, clientHeight)
+        : MarkerListLayout{};
     const ViewportControlLayout viewportControlLayout = state
         ? viewportControlLayoutForClient(state, clientWidth, clientHeight)
         : ViewportControlLayout{};
@@ -45,6 +49,7 @@ void paintWindowScene(
 
     if (state) {
         paintDeviceListPanel(drawDc, fonts.bodyFont(), fonts.statusFont(), *state, deviceListLayout);
+        paintMarkerListPanel(drawDc, fonts.bodyFont(), fonts.statusFont(), *state, markerListLayout);
         paintOriginPanel(
             drawDc,
             fonts.statusFont(),

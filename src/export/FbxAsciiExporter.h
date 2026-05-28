@@ -7,6 +7,7 @@
 #include <array>
 #include <filesystem>
 #include <string>
+#include <vector>
 
 namespace ovtr {
 
@@ -27,6 +28,7 @@ struct FbxExportOptions {
     FbxCoordinatePolicy coordinatePolicy = FbxCoordinatePolicy::Blender;
     FbxRotationOrder rotationOrder = FbxRotationOrder::XYZ;
     ExportGeometryProvider geometryProvider;
+    std::vector<ExportStaticPoseTrack> staticTracks;
 };
 
 std::string makeFbxSafeName(const DeviceDescriptor& device);

@@ -60,6 +60,8 @@ ViewportSettings parseViewportSettingsConfig(std::istream& input, ViewportSettin
             settings.gridSize = floatValue;
         } else if (key == "grid_cell_density" && parseFloatConfigValue(value, floatValue) && std::isfinite(floatValue)) {
             settings.gridCellDensity = floatValue;
+        } else if (key == "marker_size" && parseFloatConfigValue(value, floatValue) && std::isfinite(floatValue)) {
+            settings.markerSize = floatValue;
         }
     }
     return clampViewportSettings(settings);

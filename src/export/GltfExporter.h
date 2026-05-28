@@ -5,6 +5,7 @@
 #include "export/ExportTypes.h"
 
 #include <filesystem>
+#include <vector>
 
 namespace ovtr {
 
@@ -20,6 +21,7 @@ struct GltfExportOptions {
     double exportSampleRate = 0.0;
     GltfExportFormat format = GltfExportFormat::Glb;
     ExportGeometryProvider geometryProvider;
+    std::vector<ExportStaticPoseTrack> staticTracks;
 };
 
 ExportResult exportSessionToGltf(

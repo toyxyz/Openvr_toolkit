@@ -35,6 +35,7 @@ void exportCurrentSession(HWND hwnd, const ExportFormat format)
         static_cast<const AppRecordingState&>(*state),
         static_cast<const AppRuntimeState&>(*state),
         static_cast<const AppDeviceState&>(*state),
+        static_cast<const AppMarkerState&>(*state),
         state->sessionName
     );
     appendDebugLog(*state, recordingExportStartLogMessage(format));
@@ -42,7 +43,8 @@ void exportCurrentSession(HWND hwnd, const ExportFormat format)
         plan.session,
         format,
         plan.exportDirectory,
-        plan.exportSampleRate
+        plan.exportSampleRate,
+        plan.staticTracks
     );
 
     if (result.success) {

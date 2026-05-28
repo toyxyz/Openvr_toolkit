@@ -16,6 +16,7 @@ bool handleOriginStepperClick(HWND hwnd, AppWindowState& state, int clientWidth,
 bool handleDebugResizeClick(HWND hwnd, AppWindowState& state, int clientWidth, int clientHeight, POINT point);
 bool handleDeviceSplitterClick(HWND hwnd, AppWindowState& state, int clientWidth, int clientHeight, POINT point);
 bool handleDeviceListClick(HWND hwnd, AppWindowState& state, int clientWidth, int clientHeight, POINT point);
+bool handleMarkerListClick(HWND hwnd, AppWindowState& state, int clientWidth, int clientHeight, POINT point);
 bool handleDebugToggleClick(HWND hwnd, AppWindowState& state, int clientWidth, int clientHeight, POINT point);
 
 } // namespace ovtr::win32

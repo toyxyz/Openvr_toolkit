@@ -131,13 +131,55 @@ void createViewportColorFooterControls(HWND hwnd, HFONT font, ViewportColorDialo
         nullptr,
         nullptr
     );
+    HWND markerSizeLabel = CreateWindowExW(
+        0,
+        L"STATIC",
+        L"Marker size",
+        WS_CHILD | WS_VISIBLE,
+        18,
+        378,
+        180,
+        20,
+        hwnd,
+        nullptr,
+        nullptr,
+        nullptr
+    );
+    controls.markerSizeEdit = CreateWindowExW(
+        WS_EX_CLIENTEDGE,
+        L"EDIT",
+        L"",
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL,
+        210,
+        374,
+        88,
+        24,
+        hwnd,
+        reinterpret_cast<HMENU>(kViewportMarkerSizeEditControlId),
+        nullptr,
+        nullptr
+    );
+    HWND markerSizeHint = CreateWindowExW(
+        0,
+        L"STATIC",
+        L"Edge meters, 0.01 - 2.0",
+        WS_CHILD | WS_VISIBLE,
+        312,
+        378,
+        180,
+        20,
+        hwnd,
+        nullptr,
+        nullptr,
+        nullptr
+    );
     HWND resetButton = CreateWindowExW(
         0,
         L"BUTTON",
         L"Reset",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
         270,
-        398,
+        434,
         78,
         26,
         hwnd,
@@ -151,7 +193,7 @@ void createViewportColorFooterControls(HWND hwnd, HFONT font, ViewportColorDialo
         L"OK",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
         360,
-        398,
+        434,
         78,
         26,
         hwnd,
@@ -165,7 +207,7 @@ void createViewportColorFooterControls(HWND hwnd, HFONT font, ViewportColorDialo
         L"Cancel",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
         450,
-        398,
+        434,
         78,
         26,
         hwnd,
@@ -178,6 +220,7 @@ void createViewportColorFooterControls(HWND hwnd, HFONT font, ViewportColorDialo
         outlineLabel, controls.outlineEdit, outlineHint,
         gridSizeLabel, controls.gridSizeEdit, gridSizeHint,
         gridDensityLabel, controls.gridDensityEdit, gridDensityHint,
+        markerSizeLabel, controls.markerSizeEdit, markerSizeHint,
         resetButton, okButton, cancelButton
     };
     for (HWND child : footerControls) {

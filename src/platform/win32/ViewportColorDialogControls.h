@@ -18,6 +18,7 @@ inline constexpr UINT_PTR kViewportOutlineEditControlId = 4200;
 inline constexpr UINT_PTR kViewportColorResetControlId = 4201;
 inline constexpr UINT_PTR kViewportGridSizeEditControlId = 4202;
 inline constexpr UINT_PTR kViewportGridDensityEditControlId = 4203;
+inline constexpr UINT_PTR kViewportMarkerSizeEditControlId = 4204;
 
 struct ViewportColorEditControls {
     HWND red = nullptr;
@@ -32,6 +33,7 @@ struct ViewportColorDialogControls {
     HWND outlineEdit = nullptr;
     HWND gridSizeEdit = nullptr;
     HWND gridDensityEdit = nullptr;
+    HWND markerSizeEdit = nullptr;
 };
 
 void createViewportColorDialogControls(HWND hwnd, ViewportColorDialogControls& controls);

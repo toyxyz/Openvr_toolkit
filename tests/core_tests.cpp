@@ -43,6 +43,9 @@ int main()
         ovtr::test::testWin32ImportedSceneLifecycle();
         ovtr::test::testWin32ImportedScenePlayback();
         ovtr::test::testWin32Layout();
+        ovtr::test::testWin32MarkerState();
+        ovtr::test::testWin32MarkerPoseCaptureAppliesOrigin();
+        ovtr::test::testWin32MarkerListLayout();
         ovtr::test::testWin32OriginLayout();
         ovtr::test::testWin32OriginFormatting();
         ovtr::test::testWin32OriginDialogState();

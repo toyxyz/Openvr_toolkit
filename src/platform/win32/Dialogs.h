@@ -29,6 +29,12 @@ bool promptForDeviceName(
     const std::wstring& initialName,
     std::wstring& outName
 );
+bool promptForMarkerName(
+    HWND parent,
+    const std::wstring& markerLabel,
+    const std::wstring& initialName,
+    std::wstring& outName
+);
 
 bool registerRecordSettingsDialogClass(HINSTANCE instance);
 bool promptForRecordSettings(

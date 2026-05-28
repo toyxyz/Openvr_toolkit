@@ -7,6 +7,7 @@
 #endif
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <limits>
 #include <thread>
@@ -41,6 +42,40 @@ RenderModelPositionBounds renderModelPositionBounds(const RenderModelGeometry& g
 
     bounds.valid = true;
     return bounds;
+}
+
+RenderModelGeometry makeBoxRenderModelGeometry(const float edgeMeters)
+{
+    const float half = edgeMeters > 0.0f ? edgeMeters * 0.5f : 0.05f;
+    const std::array<std::array<float, 3>, 8> corners{{
+        {{-half, -half, -half}}, {{ half, -half, -half}}, {{ half,  half, -half}}, {{-half,  half, -half}},
+        {{-half, -half,  half}}, {{ half, -half,  half}}, {{ half,  half,  half}}, {{-half,  half,  half}},
+    }};
+    const std::array<std::array<int, 4>, 6> faces{{
+        {{4, 5, 6, 7}}, {{1, 0, 3, 2}}, {{3, 7, 6, 2}},
+        {{0, 1, 5, 4}}, {{1, 2, 6, 5}}, {{0, 4, 7, 3}},
+    }};
+    const std::array<std::array<float, 3>, 6> normals{{
+        {{0.0f, 0.0f, 1.0f}}, {{0.0f, 0.0f, -1.0f}}, {{0.0f, 1.0f, 0.0f}},
+        {{0.0f, -1.0f, 0.0f}}, {{1.0f, 0.0f, 0.0f}}, {{-1.0f, 0.0f, 0.0f}},
+    }};
+
+    RenderModelGeometry geometry;
+    geometry.available = true;
+    geometry.vertices.reserve(24);
+    geometry.indices.reserve(36);
+    for (std::size_t faceIndex = 0; faceIndex < faces.size(); ++faceIndex) {
+        const std::uint16_t base = static_cast<std::uint16_t>(geometry.vertices.size());
+        for (const int cornerIndex : faces[faceIndex]) {
+            RenderModelVertex vertex;
+            vertex.position = corners[static_cast<std::size_t>(cornerIndex)];
+            vertex.normal = normals[faceIndex];
+            geometry.vertices.push_back(vertex);
+        }
+        geometry.indices.insert(geometry.indices.end(), {base, static_cast<std::uint16_t>(base + 1), static_cast<std::uint16_t>(base + 2)});
+        geometry.indices.insert(geometry.indices.end(), {base, static_cast<std::uint16_t>(base + 2), static_cast<std::uint16_t>(base + 3)});
+    }
+    return geometry;
 }
 
 RenderModelGeometry loadSteamVRRenderModelGeometry(const std::string& renderModelName)

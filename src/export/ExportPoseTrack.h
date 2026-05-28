@@ -23,12 +23,21 @@ struct ExportPoseTrack {
     RenderModelGeometry geometry;
 };
 
+struct ExportStaticPoseTrack {
+    DeviceDescriptor device;
+    std::string nodeName;
+    std::array<float, 3> translation{0.0f, 0.0f, 0.0f};
+    std::array<float, 4> rotation{0.0f, 0.0f, 0.0f, 1.0f};
+    RenderModelGeometry geometry;
+};
+
 using ExportGeometryProvider = std::function<RenderModelGeometry(const DeviceDescriptor&)>;
 
 struct ExportPoseTrackOptions {
     bool includeGeometry = true;
     bool includeTrackingReference = true;
     ExportGeometryProvider geometryProvider;
+    std::vector<ExportStaticPoseTrack> staticTracks;
 };
 
 bool collectExportPoseTracks(

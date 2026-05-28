@@ -12,6 +12,7 @@
 namespace ovtr::win32 {
 
 struct AppDeviceState;
+struct AppMarkerState;
 struct AppRuntimeState;
 struct AppWindowState;
 
@@ -38,6 +39,7 @@ OriginStepperButton originStepperButtonFromPoint(
     POINT point
 );
 DeviceListLayout deviceListLayoutForClient(const AppWindowState* state, int clientWidth, int clientHeight);
+MarkerListLayout markerListLayoutForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 RECT debugMessagesRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 RECT debugInfoRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 RECT debugResizeRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
@@ -49,6 +51,8 @@ int maxDebugInfoScrollOffset(const AppWindowState& state, int visibleLineCount);
 void clampDebugInfoScroll(AppWindowState& state, int visibleLineCount);
 int maxDeviceListScrollOffset(const AppWindowState& state, int visibleItemCount);
 void clampDeviceListScroll(AppWindowState& state, int visibleItemCount);
+int maxMarkerListScrollOffset(const AppWindowState& state, int visibleItemCount);
+void clampMarkerListScroll(AppWindowState& state, int visibleItemCount);
 std::uint32_t deviceRuntimeIndexFromListPoint(
     const AppRuntimeState& runtimeState,
     const AppDeviceState& deviceState,
@@ -58,6 +62,11 @@ std::uint32_t deviceRuntimeIndexFromListPoint(
 std::uint32_t deviceRuntimeIndexFromListPoint(
     const AppWindowState& state,
     const DeviceListLayout& layout,
+    POINT point
+);
+std::uint32_t markerIdFromListPoint(
+    const AppWindowState& state,
+    const MarkerListLayout& layout,
     POINT point
 );
 

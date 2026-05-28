@@ -6,31 +6,24 @@
 #include "platform/win32/ViewportDrawPrimitives.h"
 #include "platform/win32/ViewportGlMatrixScope.h"
 #include "platform/win32/ViewportGlStateScope.h"
+#include "platform/win32/ViewportGlTextureBindingScope.h"
 #include "platform/win32/ViewportImportedScenePrimitives.h"
+#include "platform/win32/ViewportRenderModelMatcap.h"
 
 #include <gl/GL.h>
 
 #include <array>
+#include <cstddef>
 
 namespace ovtr::win32 {
+namespace {
 
-void drawImportedGltfScene3D(
+void drawImportedSceneNodes(
     const AppImportedSceneState& importedSceneState,
-    const AppViewportState& viewportState
+    const AppViewportState& viewportState,
+    const double playbackTime
 )
 {
-    if (!importedSceneState.importedSceneLoaded) {
-        return;
-    }
-
-    const double playbackTime = importedScenePlaybackTime(importedSceneState);
-
-    ScopedGlCapability lighting(GL_LIGHTING, false);
-    ScopedGlCapability texture2D(GL_TEXTURE_2D, false);
-    ScopedGlCapability cullFace(GL_CULL_FACE, false);
-    ScopedGlDepthFunc depthFunc(GL_LEQUAL);
-    setGlColor(viewportState.viewportSettings.importedGlbColor);
-
     for (const ovtr::ImportedGltfNode& node : importedSceneState.importedScene.nodes) {
         std::array<float, 3> translation{};
         std::array<float, 4> rotation{};
@@ -54,6 +47,34 @@ void drawImportedGltfScene3D(
         } else {
             drawImportedFallbackMarker3D();
         }
+    }
+}
+
+} // namespace
+
+void drawImportedGltfScene3D(
+    const AppImportedSceneState& importedSceneState,
+    AppViewportState& viewportState
+)
+{
+    if (!importedSceneState.importedSceneLoaded) {
+        return;
+    }
+
+    const double playbackTime = importedScenePlaybackTime(importedSceneState);
+    ScopedGlCapability cullFace(GL_CULL_FACE, false);
+    ScopedGlDepthFunc depthFunc(GL_LEQUAL);
+    ScopedGlCapability lighting(GL_LIGHTING, false);
+
+    if (ensureRenderModelMatcapTexture(viewportState)) {
+        ScopedGlCapability texture2D(GL_TEXTURE_2D, true);
+        ScopedGlTexture2DBinding textureBinding(viewportState.renderModelMatcapTexture.get());
+        ScopedRenderModelMatcapMapping matcapMapping;
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        drawImportedSceneNodes(importedSceneState, viewportState, playbackTime);
+    } else {
+        ScopedGlCapability texture2D(GL_TEXTURE_2D, false);
+        drawImportedSceneNodes(importedSceneState, viewportState, playbackTime);
     }
 }
 

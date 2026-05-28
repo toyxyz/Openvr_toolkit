@@ -8,6 +8,34 @@
 #include <utility>
 
 namespace ovtr {
+namespace {
+
+void appendStaticPoseTracks(
+    const std::vector<ExportStaticPoseTrack>& staticTracks,
+    const bool includeGeometry,
+    const bool hasRecordedFrame,
+    const double firstTimeSeconds,
+    const double lastTimeSeconds,
+    std::vector<ExportPoseTrack>& tracks
+)
+{
+    for (const ExportStaticPoseTrack& source : staticTracks) {
+        ExportPoseTrack track;
+        track.device = source.device;
+        track.nodeName = source.nodeName.empty() ? makeDeviceSafeName(source.device) : source.nodeName;
+        if (includeGeometry) {
+            track.geometry = source.geometry;
+        }
+        const ExportPoseKey key{hasRecordedFrame ? firstTimeSeconds : 0.0, source.translation, normalizeQuaternion(source.rotation)};
+        track.keys.push_back(key);
+        if (hasRecordedFrame && lastTimeSeconds > firstTimeSeconds) {
+            track.keys.push_back({lastTimeSeconds, source.translation, normalizeQuaternion(source.rotation)});
+        }
+        tracks.push_back(std::move(track));
+    }
+}
+
+} // namespace
 
 bool collectExportPoseTracks(
     const RecordingSession& session,
@@ -25,7 +53,7 @@ bool collectExportPoseTracks(
         return false;
     }
 
-    tracks.reserve(session.devices.size());
+    tracks.reserve(session.devices.size() + options.staticTracks.size());
     for (const DeviceDescriptor& descriptor : session.devices) {
         if (!options.includeTrackingReference && descriptor.deviceClass == DeviceClass::TrackingReference) {
             continue;
@@ -51,12 +79,20 @@ bool collectExportPoseTracks(
         runtimeIndexToTrack[tracks[index].device.runtimeIndex] = index;
     }
 
+    bool hasRecordedFrame = false;
+    double firstTimeSeconds = 0.0;
+    double lastTimeSeconds = 0.0;
     for (std::uint64_t frameIndex = 0; frameIndex < reader.frameCount(); ++frameIndex) {
         FrameSample frame;
         if (!reader.readFrame(frameIndex, frame)) {
             error = "failed to read recorded frame: " + reader.lastError();
             return false;
         }
+        if (!hasRecordedFrame) {
+            firstTimeSeconds = frame.timeSeconds;
+            hasRecordedFrame = true;
+        }
+        lastTimeSeconds = frame.timeSeconds;
 
         for (const PoseSample& pose : frame.poses) {
             if ((pose.flags & PoseFlagPoseValid) == 0) {
@@ -76,6 +112,14 @@ bool collectExportPoseTracks(
         }
     }
 
+    appendStaticPoseTracks(
+        options.staticTracks,
+        options.includeGeometry,
+        hasRecordedFrame,
+        firstTimeSeconds,
+        lastTimeSeconds,
+        tracks
+    );
     return true;
 }
 

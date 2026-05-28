@@ -2,10 +2,12 @@
 
 #include "platform/win32/AppConfig.h"
 #include "platform/win32/AppDeviceState.h"
+#include "platform/win32/AppMarkerState.h"
 #include "platform/win32/AppRecordingState.h"
 #include "platform/win32/AppRuntimeState.h"
 #include "platform/win32/ConfigStore.h"
 #include "platform/win32/DeviceList.h"
+#include "platform/win32/MarkerExport.h"
 #include "platform/win32/RecordingSessionActions.h"
 #include "platform/win32/Win32String.h"
 
@@ -46,13 +48,24 @@ RecordingExportPlan makeRecordingExportPlan(
     const AppDeviceState& deviceState
 )
 {
-    return makeRecordingExportPlan(recordingState, runtimeState, deviceState, {});
+    return makeRecordingExportPlan(recordingState, runtimeState, deviceState, AppMarkerState{}, {});
 }
 
 RecordingExportPlan makeRecordingExportPlan(
     const AppRecordingState& recordingState,
     const AppRuntimeState& runtimeState,
     const AppDeviceState& deviceState,
+    const std::wstring& sessionName
+)
+{
+    return makeRecordingExportPlan(recordingState, runtimeState, deviceState, AppMarkerState{}, sessionName);
+}
+
+RecordingExportPlan makeRecordingExportPlan(
+    const AppRecordingState& recordingState,
+    const AppRuntimeState& runtimeState,
+    const AppDeviceState& deviceState,
+    const AppMarkerState& markerState,
     const std::wstring& sessionName
 )
 {
@@ -63,6 +76,7 @@ RecordingExportPlan makeRecordingExportPlan(
         runtimeState.devices
     );
     applyCustomNamesToExportDevices(deviceState, plan.session.devices);
+    plan.staticTracks = makeMarkerStaticExportTracks(markerState);
     plan.exportDirectory = sessionExportDirectoryPath(recordingState.exportDirectory, sessionName);
     plan.exportSampleRate = static_cast<double>(
         sanitizedExportSampleRate(recordingState.recordExportSampleRate, kDefaultRecordExportSampleRate)

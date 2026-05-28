@@ -68,6 +68,13 @@ bool readViewportColorDialogControls(HWND hwnd, ViewportColorDialogState& dialog
         return false;
     }
     dialog.workingSettings.gridCellDensity = gridCellDensity;
+
+    float markerSize = 0.10f;
+    if (!readFiniteFloatEdit(dialog.controls.markerSizeEdit, markerSize)) {
+        MessageBoxW(hwnd, L"Marker size must be a number from 0.01 to 2.0.", L"Appearance", MB_OK | MB_ICONWARNING);
+        return false;
+    }
+    dialog.workingSettings.markerSize = markerSize;
     return true;
 }
 
@@ -83,6 +90,7 @@ void updateViewportColorDialogControls(ViewportColorDialogState& dialog)
     setEditText(dialog.controls.outlineEdit, formatFloatText(dialog.workingSettings.outlineMultiplier));
     setEditText(dialog.controls.gridSizeEdit, formatFloatText(dialog.workingSettings.gridSize));
     setEditText(dialog.controls.gridDensityEdit, formatFloatText(dialog.workingSettings.gridCellDensity));
+    setEditText(dialog.controls.markerSizeEdit, formatFloatText(dialog.workingSettings.markerSize));
     invalidateColorSwatches(dialog.controls);
 }
 

@@ -62,4 +62,11 @@ ViewportSettings viewportSettingsWithDefaultGrid(ViewportSettings current) noexc
     return current;
 }
 
+ViewportSettings viewportSettingsWithDefaultMarker(ViewportSettings current) noexcept
+{
+    const ViewportSettings defaults;
+    current.markerSize = defaults.markerSize;
+    return current;
+}
+
 } // namespace ovtr::win32

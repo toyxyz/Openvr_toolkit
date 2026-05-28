@@ -9,7 +9,8 @@ ovtr::ExportResult exportRecordingSession(
     const ovtr::RecordingSession& session,
     const ExportFormat format,
     const std::filesystem::path& exportDirectory,
-    const double exportSampleRate
+    const double exportSampleRate,
+    const std::vector<ovtr::ExportStaticPoseTrack>& staticTracks
 )
 {
     if (format == ExportFormat::Fbx) {
@@ -18,6 +19,7 @@ ovtr::ExportResult exportRecordingSession(
         options.includeGeometry = true;
         options.includeTrackingReference = true;
         options.exportSampleRate = exportSampleRate;
+        options.staticTracks = staticTracks;
         return ovtr::exportSessionToFbxAscii(session, options);
     }
 
@@ -26,6 +28,7 @@ ovtr::ExportResult exportRecordingSession(
     options.includeTrackingReference = true;
     options.exportSampleRate = exportSampleRate;
     options.format = ovtr::GltfExportFormat::Glb;
+    options.staticTracks = staticTracks;
     return ovtr::exportSessionToGltf(session, options);
 }
 

@@ -9,7 +9,7 @@ void createDeviceNameDialogControls(HWND hwnd, DeviceNameDialogState& dialog)
     HWND deviceLabel = CreateWindowExW(
         0,
         L"STATIC",
-        L"Device",
+        dialog.subjectLabel.c_str(),
         WS_CHILD | WS_VISIBLE,
         16,
         14,

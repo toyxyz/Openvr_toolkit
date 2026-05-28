@@ -3,6 +3,7 @@
 #include "platform/win32/AppDebugUiState.h"
 #include "platform/win32/AppDeviceState.h"
 #include "platform/win32/AppImportedSceneState.h"
+#include "platform/win32/AppMarkerState.h"
 #include "platform/win32/AppOriginState.h"
 #include "platform/win32/AppPoseSamplingState.h"
 #include "platform/win32/AppRecordingState.h"
@@ -21,6 +22,7 @@ struct AppWindowState
     , AppSessionState
     , AppOriginState
     , AppImportedSceneState
+    , AppMarkerState
     , AppDeviceState
     , AppTopBarState
     , AppDebugUiState {

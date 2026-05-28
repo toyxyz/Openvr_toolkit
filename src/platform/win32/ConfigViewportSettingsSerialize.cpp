@@ -31,7 +31,8 @@ std::string serializeViewportSettingsConfig(ViewportSettings settings)
            << std::fixed << std::setprecision(6)
            << "outline_multiplier=" << settings.outlineMultiplier << "\n"
            << "grid_size=" << settings.gridSize << "\n"
-           << "grid_cell_density=" << settings.gridCellDensity << "\n";
+           << "grid_cell_density=" << settings.gridCellDensity << "\n"
+           << "marker_size=" << settings.markerSize << "\n";
     return output.str();
 }
 

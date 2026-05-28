@@ -9,5 +9,8 @@ namespace ovtr::win32 {
 
 inline constexpr UINT kDeviceContextMenuSetOriginId = 1001;
 inline constexpr UINT kDeviceContextMenuSetNameId = 1002;
+inline constexpr UINT kDeviceContextMenuAddMarkerId = 1003;
+inline constexpr UINT kMarkerContextMenuRenameId = 1101;
+inline constexpr UINT kMarkerContextMenuDeleteId = 1102;
 
 } // namespace ovtr::win32

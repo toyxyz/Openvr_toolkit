@@ -39,9 +39,14 @@ void resetViewportDialogColors(ViewportColorDialogState& dialog)
     if (readFiniteFloatEdit(dialog.controls.gridDensityEdit, currentGridDensity)) {
         dialog.workingSettings.gridCellDensity = currentGridDensity;
     }
+    float currentMarkerSize = dialog.workingSettings.markerSize;
+    if (readFiniteFloatEdit(dialog.controls.markerSizeEdit, currentMarkerSize)) {
+        dialog.workingSettings.markerSize = currentMarkerSize;
+    }
 
     dialog.workingSettings = viewportSettingsWithDefaultColors(dialog.workingSettings);
     dialog.workingSettings = viewportSettingsWithDefaultGrid(dialog.workingSettings);
+    dialog.workingSettings = viewportSettingsWithDefaultMarker(dialog.workingSettings);
     updateViewportColorDialogControls(dialog);
 }
 

@@ -35,6 +35,14 @@ bool handleMainWindowMouseWheel(HWND hwnd, WPARAM wparam, LPARAM lparam)
         return true;
     }
 
+    const MarkerListLayout markerListLayout = markerListLayoutForClient(state, clientWidth, clientHeight);
+    if (markerListLayout.valid && PtInRect(&markerListLayout.boxRect, point)) {
+        state->markerListScrollOffset -= wheelSteps * 3;
+        clampMarkerListScroll(*state, markerListLayout.visibleItemCount);
+        InvalidateRect(hwnd, &markerListLayout.boxRect, FALSE);
+        return true;
+    }
+
     const RECT debugInfoRect = debugInfoRectForClient(state, clientWidth, clientHeight);
     if (state->debugMonitorVisible && PtInRect(&debugInfoRect, point)) {
         const int visibleLineCount = visibleDebugLogLineCount(debugInfoRect);

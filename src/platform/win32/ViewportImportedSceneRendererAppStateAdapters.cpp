@@ -8,7 +8,7 @@ void drawImportedGltfScene3D(AppWindowState& state)
 {
     drawImportedGltfScene3D(
         static_cast<const AppImportedSceneState&>(state),
-        static_cast<const AppViewportState&>(state)
+        static_cast<AppViewportState&>(state)
     );
 }
 

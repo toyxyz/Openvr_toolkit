@@ -3,6 +3,7 @@
 #include "platform/win32/AppState.h"
 #include "platform/win32/AppLog.h"
 #include "platform/win32/DeviceList.h"
+#include "platform/win32/MarkerList.h"
 #include "platform/win32/OriginActions.h"
 #include "platform/win32/OriginEditor.h"
 #include "platform/win32/SessionEditor.h"
@@ -87,6 +88,28 @@ bool handleDeviceListClick(
         return false;
     }
     toggleListDeviceSelection(state, *clickedDevice);
+    if (state.glWindow) {
+        renderViewport(state.glWindow);
+    }
+    InvalidateRect(hwnd, nullptr, FALSE);
+    return true;
+}
+
+bool handleMarkerListClick(
+    HWND hwnd,
+    AppWindowState& state,
+    const int clientWidth,
+    const int clientHeight,
+    const POINT point
+)
+{
+    const MarkerListLayout markerListLayout = markerListLayoutForClient(&state, clientWidth, clientHeight);
+    const std::uint32_t clickedMarkerId = markerIdFromListPoint(state, markerListLayout, point);
+    if (clickedMarkerId == kNoSelectedMarkerId) {
+        return false;
+    }
+
+    toggleMarkerSelection(state, clickedMarkerId);
     if (state.glWindow) {
         renderViewport(state.glWindow);
     }

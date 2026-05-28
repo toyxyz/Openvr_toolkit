@@ -8,7 +8,7 @@ struct AppWindowState;
 
 void drawImportedGltfScene3D(
     const AppImportedSceneState& importedSceneState,
-    const AppViewportState& viewportState
+    AppViewportState& viewportState
 );
 void drawImportedGltfScene3D(AppWindowState& state);
 

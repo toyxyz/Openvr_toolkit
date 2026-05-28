@@ -24,6 +24,7 @@ void testWin32ViewportSettingsConfig()
     require(defaults.renderModelMaterialColor.b == 255, "default render model material b");
     require(win32ConfigNearlyEqual(defaults.gridSize, 5.0f), "default grid size");
     require(win32ConfigNearlyEqual(defaults.gridCellDensity, 2.0f), "default grid density");
+    require(win32ConfigNearlyEqual(defaults.markerSize, 0.10f), "default marker size");
 
     ovtr::win32::ViewportSettings settings;
     settings.labelTextColor = {-1, 12, 300};
@@ -35,6 +36,7 @@ void testWin32ViewportSettingsConfig()
     settings.outlineMultiplier = 12.0f;
     settings.gridSize = 100.0f;
     settings.gridCellDensity = 0.1f;
+    settings.markerSize = 4.0f;
     const ovtr::win32::ViewportSettings clampedSettings = ovtr::win32::clampViewportSettings(settings);
     require(
         clampedSettings.labelTextColor.r == 0 &&
@@ -44,6 +46,7 @@ void testWin32ViewportSettingsConfig()
     );
     require(win32ConfigNearlyEqual(clampedSettings.gridSize, 50.0f), "clamp viewport grid size");
     require(win32ConfigNearlyEqual(clampedSettings.gridCellDensity, 0.25f), "clamp viewport grid density");
+    require(win32ConfigNearlyEqual(clampedSettings.markerSize, 2.0f), "clamp viewport marker size");
     require(
         clampedSettings.gridColor.r == 255 &&
             clampedSettings.gridColor.g == 0 &&
@@ -71,6 +74,7 @@ void testWin32ViewportSettingsConfig()
         "outline_multiplier=12\n"
         "grid_size=12\n"
         "grid_cell_density=4\n"
+        "marker_size=0.25\n"
     );
     const ovtr::win32::ViewportSettings parsedViewport =
         ovtr::win32::parseViewportSettingsConfig(viewportInput, ovtr::win32::ViewportSettings{});
@@ -82,6 +86,7 @@ void testWin32ViewportSettingsConfig()
     require(win32ConfigNearlyEqual(parsedViewport.outlineMultiplier, 10.0f), "parse viewport clamps outline");
     require(win32ConfigNearlyEqual(parsedViewport.gridSize, 12.0f), "parse viewport grid size");
     require(win32ConfigNearlyEqual(parsedViewport.gridCellDensity, 4.0f), "parse viewport grid density");
+    require(win32ConfigNearlyEqual(parsedViewport.markerSize, 0.25f), "parse viewport marker size");
 
     const std::string serializedViewport = ovtr::win32::serializeViewportSettingsConfig(parsedViewport);
     require(
@@ -103,6 +108,10 @@ void testWin32ViewportSettingsConfig()
     require(
         serializedViewport.find("grid_cell_density=4.000000") != std::string::npos,
         "serialize grid density"
+    );
+    require(
+        serializedViewport.find("marker_size=0.250000") != std::string::npos,
+        "serialize marker size"
     );
 
     ovtr::win32::ViewportSettings slotSettings;
@@ -137,6 +146,7 @@ void testWin32ViewportSettingsConfig()
     slotSettings.outlineMultiplier = 3.5f;
     slotSettings.gridSize = 22.0f;
     slotSettings.gridCellDensity = 3.0f;
+    slotSettings.markerSize = 0.75f;
     const ovtr::win32::ViewportSettings defaultColors =
         ovtr::win32::viewportSettingsWithDefaultColors(slotSettings);
     require(
@@ -155,6 +165,10 @@ void testWin32ViewportSettingsConfig()
         win32ConfigNearlyEqual(defaultColors.gridSize, 22.0f),
         "viewport default color reset preserves grid size"
     );
+    require(
+        win32ConfigNearlyEqual(defaultColors.markerSize, 0.75f),
+        "viewport default color reset preserves marker size"
+    );
 
     const ovtr::win32::ViewportSettings defaultGrid =
         ovtr::win32::viewportSettingsWithDefaultGrid(slotSettings);
@@ -165,6 +179,12 @@ void testWin32ViewportSettingsConfig()
     require(
         win32ConfigNearlyEqual(defaultGrid.gridCellDensity, ovtr::win32::ViewportSettings{}.gridCellDensity),
         "viewport default grid reset restores grid density"
+    );
+    const ovtr::win32::ViewportSettings defaultMarker =
+        ovtr::win32::viewportSettingsWithDefaultMarker(slotSettings);
+    require(
+        win32ConfigNearlyEqual(defaultMarker.markerSize, ovtr::win32::ViewportSettings{}.markerSize),
+        "viewport default marker reset restores marker size"
     );
 }
 

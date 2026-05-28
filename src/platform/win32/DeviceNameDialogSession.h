@@ -13,6 +13,7 @@ inline constexpr UINT_PTR kDeviceNameEditControlId = 3001;
 
 struct DeviceNameDialogState {
     HWND editWindow = nullptr;
+    std::wstring subjectLabel = L"Device";
     std::wstring deviceLabel;
     std::wstring initialName;
     std::wstring resultName;

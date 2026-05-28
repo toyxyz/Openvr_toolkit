@@ -57,6 +57,7 @@ bool handleMainWindowLeftClickAtPoint(
         handleOriginStepperClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleDebugResizeClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleDeviceSplitterClick(hwnd, state, clientWidth, clientHeight, point) ||
+        handleMarkerListClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleDeviceListClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleDebugToggleClick(hwnd, state, clientWidth, clientHeight, point);
 }

@@ -1,11 +1,11 @@
 # CONTINUITY.md
 
 ## Snapshot
-- 2026-05-28 [USER] Goal: move the Session box from above the device list to the far right of the lower viewport control bar.
-- 2026-05-28 [USER] Success criteria: Session remains double-click editable and export routing behavior is unchanged, but the UI box appears on the right side of the Quad/Record control bar.
-- 2026-05-28 [ASSUMPTION] Current phase: implemented and automated build/test verified; manual UI placement/export acceptance remains.
+- 2026-05-28 [USER] Goal: render imported GLB viewport models with the same matcap material as device models, tinted by Appearance color, without outline.
+- 2026-05-28 [USER] Success criteria: imported GLB surfaces use the shared render-model matcap, respect the Imported GLB color setting, and do not gain a model outline pass.
+- 2026-05-28 [ASSUMPTION] Current phase: implemented and automated build/test verified; manual GLB visual acceptance remains.
 - 2026-05-28 [CODE] Current architecture: C++20 native Win32/OpenVR tracker recorder with modular `src` areas for app, data, export, import, math, platform, recording, render, ui, util, and vr.
-- 2026-05-28 [TOOL] Last verified state: default clean build/tests and VS2022 Debug build/tests passed after moving Session to the viewport control bar.
+- 2026-05-28 [TOOL] Last verified state: default and VS2022 Debug builds/tests passed after imported GLB matcap viewport rendering.
 
 ## Invariants / Constraints
 - 2026-05-28 [USER] Code files must stay under 300 physical lines unless explicitly exempted in this ledger.
@@ -29,6 +29,9 @@
 - D004 ACTIVE 2026-05-28 [USER] Keep VSync/rendering behavior unchanged and move pose polling/recording append to a fixed 90Hz worker.
   - Rationale: preserve viewport presentation behavior while making pose capture independent of monitor refresh.
   - Supersedes: main-loop-coupled pose polling and recording append.
+- D005 ACTIVE 2026-05-28 [USER] Export runtime markers as static cube pose tracks without mutating binary recordings.
+  - Rationale: markers should travel with GLB/FBX exports like devices while remaining runtime-only state.
+  - Supersedes: none.
 
 ## State
 
@@ -77,56 +80,38 @@
 - 2026-05-28 [CODE] Export planning now routes non-blank Session values to a sanitized session subfolder under the configured export directory.
 - 2026-05-28 [CODE] Added tests for Session layout/export path behavior, including whitespace-only sessions and invalid Windows filename characters.
 - 2026-05-28 [CODE] Moved the Session box from the device list area to the far right of the lower viewport control bar; Session editing/export behavior is unchanged.
+- 2026-05-28 [CODE] Added runtime marker state, device context-menu Add marker action, marker list UI with selection/rename/delete/scroll, and marker cube viewport rendering.
+- 2026-05-28 [CODE] Added GLB/FBX export support for marker static cube tracks using high-range synthetic device runtime indices.
+- 2026-05-28 [CODE] Added marker state/layout/export tests and extended GLB/FBX export tests for marker nodes, geometry, and static keys.
+- 2026-05-28 [CODE] Changed marker list left-click behavior so clicking the selected marker clears marker selection.
+- 2026-05-28 [CODE] Added `marker_size` to viewport settings config and Setting > Appearance; applied it to new markers and existing runtime markers on OK.
+- 2026-05-28 [CODE] Changed imported GLB viewport rendering to use the shared render-model matcap tinted by the Appearance Imported GLB color, with no outline pass.
 
 ### Now
-- 2026-05-28 [ASSUMPTION] Session control-bar placement is built into the latest VS2022 Debug exe and automated tests pass.
+- 2026-05-28 [ASSUMPTION] Imported GLB matcap rendering is built into the latest VS2022 Debug exe and automated tests pass.
 
 ### Next
-- 2026-05-28 [ASSUMPTION] Manually verify Session appears at the lower control bar's far right and remains double-click editable.
+- 2026-05-28 [ASSUMPTION] Manually verify an imported GLB visually uses the matcap texture and follows the Imported GLB color setting.
 
 ## Open Questions
 - 2026-05-28 [ASSUMPTION] Whether to remove the explicit procedural fallback after runtime PNG loading is visually confirmed is not yet decided.
-- 2026-05-28 [CODE] `CMakeLists.txt` is an existing 300-line rule exception at 591 lines; this task made a small target property edit there.
+- 2026-05-28 [CODE] `CMakeLists.txt` is an existing 300-line rule exception; marker source/test target edits were added there.
 
 ## Working Set
-- 2026-05-28 [TOOL] AGENTS.md
-- 2026-05-28 [TOOL] CONTINUITY.md
-- 2026-05-28 [CODE] CMakeLists.txt
-- 2026-05-28 [CODE] src/platform/win32/ConfigTypes.h
-- 2026-05-28 [CODE] src/platform/win32/ConfigViewportSettings*.cpp
-- 2026-05-28 [CODE] src/platform/win32/ViewportSettingsModel.{h,cpp}
-- 2026-05-28 [CODE] src/platform/win32/ViewportColorDialog*.{h,cpp}
-- 2026-05-28 [CODE] src/platform/win32/ViewportRenderModel*.{h,cpp}
-- 2026-05-28 [CODE] src/platform/win32/Win32WicImageLoader.{h,cpp}
-- 2026-05-28 [CODE] src/platform/win32/AppViewportState.h
-- 2026-05-28 [CODE] src/platform/win32/AppTopBarState.h
-- 2026-05-28 [CODE] src/platform/win32/PaintWidgets.{h,cpp}
-- 2026-05-28 [CODE] src/platform/win32/WindowChromePainter.{h,cpp}
-- 2026-05-28 [CODE] src/platform/win32/TopMenus.cpp
-- 2026-05-28 [CODE] src/platform/win32/ViewportControlLayoutMetrics.h
-- 2026-05-28 [CODE] src/platform/win32/ViewportControlLayout.cpp
-- 2026-05-28 [CODE] src/platform/win32/ViewportControlPainter.cpp
-- 2026-05-28 [CODE] src/platform/win32/ViewportPaneTypes.h
-- 2026-05-28 [CODE] src/platform/win32/ViewportQuadView.{h,cpp}
-- 2026-05-28 [CODE] src/platform/win32/ViewportRenderer.cpp
-- 2026-05-28 [CODE] src/platform/win32/ViewportWindowInput.{h,cpp}
-- 2026-05-28 [CODE] src/platform/win32/WindowCameraKeyboard.cpp
-- 2026-05-28 [CODE] src/platform/win32/ViewportOverlayRenderer.cpp
-- 2026-05-28 [CODE] src/platform/win32/ViewportGlFonts.cpp
-- 2026-05-28 [CODE] src/platform/win32/ViewportGlResources.cpp
-- 2026-05-28 [CODE] src/platform/win32/AppPoseSamplingState.h
-- 2026-05-28 [CODE] src/platform/win32/PoseSamplingWorker.{h,cpp}
-- 2026-05-28 [CODE] src/platform/win32/FrameUpdate.cpp
-- 2026-05-28 [CODE] src/platform/win32/RuntimeDeviceRefresh.cpp
-- 2026-05-28 [CODE] src/platform/win32/RuntimeFpsCounters.cpp
-- 2026-05-28 [CODE] src/platform/win32/RecordingStartActions.cpp
-- 2026-05-28 [CODE] src/platform/win32/RecordingUiActions.cpp
-- 2026-05-28 [CODE] src/platform/win32/RecordingStateQueries.{h,cpp}
-- 2026-05-28 [CODE] src/platform/win32/AppSessionState.h
-- 2026-05-28 [CODE] src/platform/win32/SessionEditor.{h,cpp}
-- 2026-05-28 [CODE] tests/test_win32_pose_sampling.cpp
-- 2026-05-28 [CODE] tests/test_win32_viewport_settings_config.cpp
-- 2026-05-28 [CODE] tests/test_win32_viewport_control_layout.cpp
+- 2026-05-28 [CODE] src/platform/win32/AppMarkerState.h
+- 2026-05-28 [CODE] src/platform/win32/MarkerList.{h,cpp}
+- 2026-05-28 [CODE] src/platform/win32/MarkerListLayout.cpp
+- 2026-05-28 [CODE] src/platform/win32/MarkerPanelPainter.{h,cpp}
+- 2026-05-28 [CODE] src/platform/win32/MarkerActions.{h,cpp}
+- 2026-05-28 [CODE] src/platform/win32/MarkerPoseActions.{h,cpp}
+- 2026-05-28 [CODE] src/platform/win32/MarkerExport.{h,cpp}
+- 2026-05-28 [CODE] src/platform/win32/ViewportMarkerRenderer.{h,cpp}
+- 2026-05-28 [CODE] src/export/ExportPoseTrack.{h,cpp}
+- 2026-05-28 [CODE] src/export/*Exporter*.{h,cpp}
+- 2026-05-28 [CODE] src/export/RenderModelGeometry.{h,cpp}
+- 2026-05-28 [CODE] tests/test_win32_marker_state.cpp and marker-related GLB/FBX export tests
+- 2026-05-28 [CODE] src/platform/win32/ViewportImportedSceneRenderer.{h,cpp}
+- 2026-05-28 [CODE] src/platform/win32/ViewportImportedSceneRendererAppStateAdapters.cpp
 
 ## Packages
 - 2026-05-28 [TOOL] `toyxyz_vr_toolkit_v1/` contains `OpenVRTrackerRecorderDesktop.exe` built from `build/vs2022/Release`, `openvr_api.dll`, VC143 CRT DLLs, portable `config/`, empty `recordings/` and `exports/`, and `licenses/OpenVR_LICENSE.txt`.
@@ -244,3 +229,27 @@
 - 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022 --output-on-failure`; Debug app rebuilt and `core_tests` passed after Session control-bar move.
 - 2026-05-28 [TOOL] Latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-28 22:40:44 KST.
 - 2026-05-28 [TOOL] Checked touched Session/control-bar layout code/test file lengths; all were under 300 lines.
+- 2026-05-28 [TOOL] Initial clean default build after marker changes failed because `MarkerActions.cpp` missed the `trimAscii` declaration; fixed by including `ConfigStore.h`.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default --clean-first`; succeeded after marker UI/render/export changes.
+- 2026-05-28 [TOOL] Ran `ctest --preset default --output-on-failure`; `core_tests` passed after marker UI/render/export changes.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop`; Debug app rebuilt after marker UI/render/export changes.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target openvr_tracker_recorder_tests` and `ctest --preset vs2022 --output-on-failure`; `core_tests` passed after marker UI/render/export changes.
+- 2026-05-28 [TOOL] Latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-28 23:26:32 KST.
+- 2026-05-28 [TOOL] Checked touched marker/export code/test file lengths; all were under 300 lines.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default --target openvr_tracker_recorder_tests` and `ctest --preset default --output-on-failure`; `core_tests` passed after marker selection toggle change.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop`; Debug app rebuilt after marker selection toggle change.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target openvr_tracker_recorder_tests` and `ctest --preset vs2022 --output-on-failure`; `core_tests` passed after marker selection toggle change.
+- 2026-05-28 [TOOL] Latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-28 23:36:17 KST.
+- 2026-05-28 [TOOL] Checked touched marker selection code/test file lengths; all were under 300 lines.
+- 2026-05-28 [TOOL] Initial default app build after marker size UI failed because the new label missed the Win32 `STATIC` class argument; fixed in `ViewportColorDialogFooterControls.cpp`.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default` and `ctest --preset default --output-on-failure`; build and `core_tests` passed after marker size setting changes.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop`; Debug app rebuilt after marker size setting changes.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target openvr_tracker_recorder_tests` and `ctest --preset vs2022 --output-on-failure`; `core_tests` passed after marker size setting changes.
+- 2026-05-28 [TOOL] Latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-28 23:49:41 KST.
+- 2026-05-28 [TOOL] Checked touched marker size code/test file lengths; all were under 300 lines.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default --target OpenVRTrackerRecorderDesktop`; succeeded after imported GLB matcap viewport rendering.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default` and `ctest --preset default --output-on-failure`; build and `core_tests` passed after imported GLB matcap viewport rendering.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop`; Debug app rebuilt after imported GLB matcap viewport rendering.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target openvr_tracker_recorder_tests` and `ctest --preset vs2022 --output-on-failure`; `core_tests` passed after imported GLB matcap viewport rendering.
+- 2026-05-28 [TOOL] Latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-28 23:58:04 KST.
+- 2026-05-28 [TOOL] Checked touched imported GLB matcap code file lengths; all were under 300 lines.

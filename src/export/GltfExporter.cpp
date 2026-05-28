@@ -31,7 +31,12 @@ ExportResult exportSessionToGltf(const RecordingSession& session, const GltfExpo
     std::string trackError;
     if (!collectExportPoseTracks(
             session,
-            {options.includeGeometry, options.includeTrackingReference, options.geometryProvider},
+            {
+                options.includeGeometry,
+                options.includeTrackingReference,
+                options.geometryProvider,
+                options.staticTracks
+            },
             tracks,
             trackError
         )) {

@@ -18,6 +18,9 @@ bool showViewportColorSettings(HWND parent, AppWindowState& state)
     }
 
     state.viewportSettings = result;
+    for (SceneMarker& marker : state.markers) {
+        marker.sizeMeters = state.viewportSettings.markerSize;
+    }
     saveViewportSettingsConfig(state);
     appendDebugLog(state, L"Viewport appearance settings applied");
     if (state.glWindow) {

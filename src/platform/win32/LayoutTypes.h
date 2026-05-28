@@ -39,6 +39,14 @@ struct DeviceListLayout {
     bool valid = false;
 };
 
+struct MarkerListLayout {
+    RECT boxRect{0, 0, 0, 0};
+    RECT headerRect{0, 0, 0, 0};
+    RECT contentRect{0, 0, 0, 0};
+    int visibleItemCount = 0;
+    bool valid = false;
+};
+
 struct OriginPanelLayout {
     RECT boxRect{0, 0, 0, 0};
     RECT valueRect{0, 0, 0, 0};

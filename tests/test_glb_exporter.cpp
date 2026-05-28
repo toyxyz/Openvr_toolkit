@@ -11,6 +11,29 @@
 #include <string>
 
 namespace ovtr::test {
+namespace {
+
+ovtr::ExportStaticPoseTrack makeStaticMarkerTrack()
+{
+    ovtr::DeviceDescriptor marker;
+    marker.id = 0xF0000001u;
+    marker.runtimeIndex = 0xF0000001u;
+    marker.serial = "marker_1";
+    marker.displayName = "marker_1";
+    marker.role = "marker";
+    marker.modelName = "Marker Box";
+    marker.deviceClass = ovtr::DeviceClass::Other;
+
+    ovtr::ExportStaticPoseTrack track;
+    track.device = marker;
+    track.nodeName = "marker_1";
+    track.translation = {4.0f, 5.0f, 6.0f};
+    track.rotation = {0.0f, 0.0f, 0.0f, 1.0f};
+    track.geometry = ovtr::makeBoxRenderModelGeometry(0.10f);
+    return track;
+}
+
+} // namespace
 
 void testGlbExport()
 {
@@ -43,6 +66,7 @@ void testGlbExport()
     options.geometryProvider = [](const ovtr::DeviceDescriptor&) {
         return makeTriangleGeometry();
     };
+    options.staticTracks.push_back(makeStaticMarkerTrack());
     const ovtr::ExportResult result = ovtr::exportSessionToGltf(session, options);
     require(result.success, "GLB export failed: " + result.error);
 
@@ -61,6 +85,9 @@ void testGlbExport()
     require(json.find("\"mesh\": 0") != std::string::npos, "GLB device node should reference the mesh");
     require(json.find("\"POSITION\"") != std::string::npos, "GLB mesh should contain positions");
     require(json.find("\"NORMAL\"") != std::string::npos, "GLB mesh should contain normals");
+    require(json.find("\"name\": \"marker_1\"") != std::string::npos, "GLB marker node missing");
+    require(json.find("\"role\": \"marker\"") != std::string::npos, "GLB marker extras missing");
+    require(json.find("\"mesh\": 1") != std::string::npos, "GLB marker node should reference second mesh");
     require(json.find("\"indices\"") != std::string::npos, "GLB mesh should contain indices");
     require(json.find("\"componentType\": 5123") != std::string::npos, "GLB mesh indices should be unsigned short");
     require(json.find("\"target\": 34963") != std::string::npos, "GLB index bufferView should use element-array target");
@@ -81,8 +108,20 @@ void testGlbExport()
     require(importedTracker != nullptr, "GLB import should keep the mesh node");
     require(importedTracker->meshIndex == 0, "GLB imported node mesh index mismatch");
     require(importResult.scene.meshes[0].vertices.size() == 3, "GLB imported mesh vertex count mismatch");
+    require(importResult.scene.meshes.size() >= 2, "GLB import should include marker mesh");
     require(importResult.scene.meshes[0].indices.size() == 3, "GLB imported mesh index count mismatch");
     require(importedTracker->keys.size() >= 2, "GLB imported animation key count mismatch");
+
+    const ovtr::ImportedGltfNode* importedMarker = nullptr;
+    for (const ovtr::ImportedGltfNode& node : importResult.scene.nodes) {
+        if (node.name == "marker_1") {
+            importedMarker = &node;
+            break;
+        }
+    }
+    require(importedMarker != nullptr, "GLB import should keep marker node");
+    require(importedMarker->meshIndex == 1, "GLB imported marker mesh index mismatch");
+    require(importedMarker->keys.size() >= 2, "GLB marker should keep static timeline keys");
 
     std::array<float, 3> importedTranslation{};
     std::array<float, 4> importedRotation{};
@@ -101,6 +140,16 @@ void testGlbExport()
         "GLB imported node should sample at end"
     );
     require(std::fabs(importedTranslation[0] - 2.0f) < 0.0001f, "GLB imported final translation mismatch");
+    require(
+        ovtr::sampleImportedGltfNodePose(
+            *importedMarker,
+            importResult.scene.durationSeconds,
+            importedTranslation,
+            importedRotation
+        ),
+        "GLB imported marker should sample at end"
+    );
+    require(std::fabs(importedTranslation[0] - 4.0f) < 0.0001f, "GLB marker static x mismatch");
 
     std::filesystem::remove_all(testDir, ignored);
 }

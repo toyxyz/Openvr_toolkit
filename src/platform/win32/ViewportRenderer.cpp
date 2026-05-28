@@ -5,6 +5,7 @@
 #include "platform/win32/ViewportDrawPrimitives.h"
 #include "platform/win32/ViewportGlStateScope.h"
 #include "platform/win32/ViewportImportedSceneRenderer.h"
+#include "platform/win32/ViewportMarkerRenderer.h"
 #include "platform/win32/ViewportMath.h"
 #include "platform/win32/ViewportOverlayRenderer.h"
 #include "platform/win32/ViewportQuadView.h"
@@ -133,6 +134,13 @@ void drawScene3D(AppWindowState& state, const int paneHeight, const CameraView& 
         orthoPixelSize
     );
     drawImportedGltfScene3D(state);
+    drawSceneMarkers3D(
+        static_cast<const AppMarkerState&>(state),
+        static_cast<AppViewportState&>(state),
+        paneHeight,
+        camera,
+        orthoPixelSize
+    );
 }
 
 void drawLabels3D(AppWindowState& state)

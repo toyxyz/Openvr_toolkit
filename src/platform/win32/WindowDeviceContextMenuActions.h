@@ -10,5 +10,6 @@ namespace ovtr::win32 {
 struct AppWindowState;
 
 bool executeDeviceContextMenuCommand(HWND hwnd, AppWindowState& state, UINT command);
+bool executeMarkerContextMenuCommand(HWND hwnd, AppWindowState& state, UINT command);
 
 } // namespace ovtr::win32

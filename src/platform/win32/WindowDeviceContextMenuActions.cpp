@@ -4,6 +4,7 @@
 #include "platform/win32/DeviceActions.h"
 #include "platform/win32/DeviceList.h"
 #include "platform/win32/FrameUpdate.h"
+#include "platform/win32/MarkerActions.h"
 #include "platform/win32/OriginActions.h"
 #include "platform/win32/PoseSamplingWorker.h"
 #include "platform/win32/WindowDeviceContextMenuIds.h"
@@ -17,6 +18,16 @@ bool executeDeviceContextMenuCommand(HWND hwnd, AppWindowState& state, const UIN
         const ovtr::DeviceDescriptor* selected = selectedListDevice(state);
         if (selected) {
             setDeviceCustomName(hwnd, state, *selected);
+        }
+        invalidateStatusPanel(hwnd);
+        InvalidateRect(hwnd, nullptr, FALSE);
+        return true;
+    }
+
+    if (command == kDeviceContextMenuAddMarkerId) {
+        const ovtr::DeviceDescriptor* selected = selectedListDevice(state);
+        if (selected) {
+            addMarkerFromSelectedDevice(hwnd, state, *selected);
         }
         invalidateStatusPanel(hwnd);
         InvalidateRect(hwnd, nullptr, FALSE);
@@ -41,6 +52,25 @@ bool executeDeviceContextMenuCommand(HWND hwnd, AppWindowState& state, const UIN
         if (setOriginFromDevice(state, selectedSnapshot)) {
             refreshPoseAndViewport(hwnd);
         }
+        invalidateStatusPanel(hwnd);
+        InvalidateRect(hwnd, nullptr, FALSE);
+        return true;
+    }
+
+    return false;
+}
+
+bool executeMarkerContextMenuCommand(HWND hwnd, AppWindowState& state, const UINT command)
+{
+    if (command == kMarkerContextMenuRenameId) {
+        renameSelectedMarker(hwnd, state);
+        invalidateStatusPanel(hwnd);
+        InvalidateRect(hwnd, nullptr, FALSE);
+        return true;
+    }
+
+    if (command == kMarkerContextMenuDeleteId) {
+        deleteSelectedMarker(hwnd, state);
         invalidateStatusPanel(hwnd);
         InvalidateRect(hwnd, nullptr, FALSE);
         return true;
