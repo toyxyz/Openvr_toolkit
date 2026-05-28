@@ -316,6 +316,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/ViewportGlFonts.cpp
         src/platform/win32/ViewportGlResources.cpp
         src/platform/win32/ViewportGridAxes.cpp
+        src/platform/win32/ViewportImportedSceneCache.cpp
         src/platform/win32/ViewportImportedScenePrimitives.cpp
         src/platform/win32/ViewportImportedSceneRenderer.cpp
         src/platform/win32/ViewportImportedSceneRendererAppStateAdapters.cpp
@@ -333,6 +334,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/ViewportRenderer.cpp
         src/platform/win32/ViewportSceneRenderer.cpp
         src/platform/win32/ViewportSceneRendererAppStateAdapters.cpp
+        src/platform/win32/ViewportTriangleDisplayList.cpp
         src/platform/win32/ViewportCameraMath.cpp
         src/platform/win32/ViewportMath.cpp
         src/platform/win32/ViewportProjectionMath.cpp

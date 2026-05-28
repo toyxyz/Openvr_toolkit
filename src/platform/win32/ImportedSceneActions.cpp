@@ -6,6 +6,7 @@
 #include "platform/win32/AppLog.h"
 #include "platform/win32/Dialogs.h"
 #include "platform/win32/ImportedScenePlayback.h"
+#include "platform/win32/ViewportImportedSceneCache.h"
 #include "platform/win32/ViewportRenderer.h"
 #include "platform/win32/WindowLayout.h"
 #include "platform/win32/Win32String.h"
@@ -15,6 +16,17 @@
 #include <string>
 
 namespace ovtr::win32 {
+namespace {
+
+void resetImportedSceneRenderCacheWithContext(AppWindowState& state) noexcept
+{
+    if (state.glDeviceContext && state.glContext) {
+        wglMakeCurrent(state.glDeviceContext.get(), state.glContext.get());
+    }
+    resetImportedSceneRenderCache(state);
+}
+
+} // namespace
 
 void importGlbFromFile(HWND hwnd, AppWindowState& state)
 {
@@ -35,6 +47,7 @@ void importGlbFromFile(HWND hwnd, AppWindowState& state)
         return;
     }
 
+    resetImportedSceneRenderCacheWithContext(state);
     state.importedScene = std::move(result.scene);
     state.importedSceneLoaded = true;
     state.importedScenePlaying = false;
@@ -58,6 +71,7 @@ void closeImportedGlb(HWND hwnd, AppWindowState& state)
         return;
     }
 
+    resetImportedSceneRenderCacheWithContext(state);
     appendDebugLog(state, state.importStatusMessage);
     layoutChildWindows(hwnd);
     invalidateWindowLayout(hwnd);

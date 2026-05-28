@@ -6,9 +6,11 @@
 #include "platform/win32/ViewportDrawPrimitives.h"
 #include "platform/win32/ViewportGlMatrixScope.h"
 #include "platform/win32/ViewportGlStateScope.h"
+#include "platform/win32/ViewportImportedSceneCache.h"
 #include "platform/win32/ViewportGlTextureBindingScope.h"
 #include "platform/win32/ViewportImportedScenePrimitives.h"
 #include "platform/win32/ViewportRenderModelMatcap.h"
+#include "platform/win32/ViewportTriangleDisplayList.h"
 
 #include <gl/GL.h>
 
@@ -20,7 +22,7 @@ namespace {
 
 void drawImportedSceneNodes(
     const AppImportedSceneState& importedSceneState,
-    const AppViewportState& viewportState,
+    AppViewportState& viewportState,
     const double playbackTime
 )
 {
@@ -37,10 +39,13 @@ void drawImportedSceneNodes(
 
         if (node.meshIndex >= 0 &&
             static_cast<std::size_t>(node.meshIndex) < importedSceneState.importedScene.meshes.size()) {
-            const ovtr::RenderModelGeometry& mesh =
-                importedSceneState.importedScene.meshes[static_cast<std::size_t>(node.meshIndex)];
+            const std::size_t meshIndex = static_cast<std::size_t>(node.meshIndex);
+            const ovtr::RenderModelGeometry& mesh = importedSceneState.importedScene.meshes[meshIndex];
             if (mesh.available) {
-                drawImportedGltfMeshTriangles(mesh);
+                ViewportTriangleDisplayListCache& cache = importedSceneMeshCache(viewportState, meshIndex);
+                if (!drawCachedImportedGltfMeshTriangles(cache, mesh)) {
+                    drawImportedGltfMeshTriangles(mesh);
+                }
             } else {
                 drawImportedFallbackMarker3D();
             }

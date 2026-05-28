@@ -1,11 +1,11 @@
 # CONTINUITY.md
 
 ## Snapshot
-- 2026-05-29 [USER] Goal: remove practical GLB import vertex-count restrictions for external GLB files.
-- 2026-05-29 [USER] Success criteria: GLB import accepts 32-bit mesh indices above 65535 and exported GLB uses 32-bit indices when needed.
-- 2026-05-29 [ASSUMPTION] Current phase: implemented and automated build/test verified; manual large-GLB viewport acceptance remains.
+- 2026-05-29 [USER] Goal: optimize high-polygon viewport rendering by caching imported GLB and SteamVR render-model surface draw calls.
+- 2026-05-29 [USER] Success criteria: GLB and device render-model surfaces use fixed-function OpenGL display list caches while preserving matcap, outline, and lifecycle behavior.
+- 2026-05-29 [ASSUMPTION] Current phase: implemented and automated build/test verified; manual large-GLB viewport FPS acceptance remains.
 - 2026-05-28 [CODE] Current architecture: C++20 native Win32/OpenVR tracker recorder with modular `src` areas for app, data, export, import, math, platform, recording, render, ui, util, and vr.
-- 2026-05-29 [TOOL] Last verified state: default and VS2022 Debug builds/tests passed after GLB 32-bit index support.
+- 2026-05-29 [TOOL] Last verified state: default and VS2022 Debug builds/tests passed after display-list render cache optimization.
 
 ## Invariants / Constraints
 - 2026-05-28 [USER] Code files must stay under 300 physical lines unless explicitly exempted in this ledger.
@@ -35,6 +35,9 @@
 - D006 ACTIVE 2026-05-29 [USER] Store common import/export mesh indices as 32-bit values.
   - Rationale: external GLB files can exceed 65535 vertex indices and should import without the old viewer-path cap.
   - Supersedes: 16-bit-only `RenderModelGeometry::indices` for imported/exported geometry.
+- D007 ACTIVE 2026-05-29 [USER] Use fixed-function OpenGL display lists for imported GLB and device render-model surface caching.
+  - Rationale: reduce per-frame CPU immediate-mode vertex submission without adding shader/VBO dependencies.
+  - Supersedes: per-frame immediate-mode surface rendering for imported GLB and device render-model surfaces.
 
 ## State
 
@@ -92,12 +95,15 @@
 - 2026-05-29 [CODE] Changed common import/export `RenderModelGeometry` indices to 32-bit and removed the GLB import rejection for indices above 65535.
 - 2026-05-29 [CODE] Updated GLB export to keep 16-bit indices for small meshes and write 32-bit indices for large meshes.
 - 2026-05-29 [CODE] Added tests that import and export/re-import a GLB mesh referencing index 65536.
+- 2026-05-29 [CODE] Added shared viewport triangle display-list caches with one-time build and immediate-mode fallback on `glGenLists` failure.
+- 2026-05-29 [CODE] Cached imported GLB mesh surface rendering per mesh and reset GLB display lists on import, close, and OpenGL shutdown.
+- 2026-05-29 [CODE] Cached SteamVR render-model surface rendering while keeping outline rendering immediate-mode for camera-dependent expansion.
 
 ### Now
-- 2026-05-29 [ASSUMPTION] GLB 32-bit index support is built into the latest VS2022 Debug exe and automated tests pass.
+- 2026-05-29 [ASSUMPTION] Display-list render caching is built into the latest VS2022 Debug exe and automated tests pass.
 
 ### Next
-- 2026-05-29 [ASSUMPTION] Manually import a large external GLB and check viewport performance/appearance.
+- 2026-05-29 [ASSUMPTION] Manually import a large external GLB and compare single/Quad view FPS and interaction smoothness.
 
 ## Open Questions
 - 2026-05-28 [ASSUMPTION] Whether to remove the explicit procedural fallback after runtime PNG loading is visually confirmed is not yet decided.
@@ -126,6 +132,9 @@
 - 2026-05-29 [CODE] src/export/FbxAsciiGeometryWriter.cpp
 - 2026-05-29 [CODE] src/platform/win32/ViewportImportedScenePrimitives.cpp
 - 2026-05-29 [CODE] tests/test_glb_import_accessors.cpp and tests/test_glb_exporter.cpp
+- 2026-05-29 [CODE] src/platform/win32/ViewportTriangleDisplayList*.{h,cpp}
+- 2026-05-29 [CODE] src/platform/win32/ViewportImportedSceneCache.{h,cpp}
+- 2026-05-29 [CODE] src/platform/win32/ViewportRenderModelRenderer.cpp and imported-scene render/cache lifecycle files
 
 ## Packages
 - 2026-05-28 [TOOL] `toyxyz_vr_toolkit_v1/` contains `OpenVRTrackerRecorderDesktop.exe` built from `build/vs2022/Release`, `openvr_api.dll`, VC143 CRT DLLs, portable `config/`, empty `recordings/` and `exports/`, and `licenses/OpenVR_LICENSE.txt`.
@@ -274,3 +283,10 @@
 - 2026-05-29 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target openvr_tracker_recorder_tests` and `ctest --preset vs2022 --output-on-failure`; `core_tests` passed after GLB 32-bit index support.
 - 2026-05-29 [TOOL] Latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-29 00:28:44 KST.
 - 2026-05-29 [TOOL] Checked touched GLB 32-bit index code/test file lengths; all were under 300 lines.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default --target openvr_tracker_recorder_tests --clean-first`; succeeded after display-list render cache changes.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + `ctest --preset default --output-on-failure`; `core_tests` passed after display-list render cache changes.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default --target OpenVRTrackerRecorderDesktop`; succeeded after display-list render cache changes.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop`; Debug app rebuilt after display-list render cache changes.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target openvr_tracker_recorder_tests` and `ctest --preset vs2022 --output-on-failure`; `core_tests` passed after display-list render cache changes.
+- 2026-05-29 [TOOL] Latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-29 00:49:45 KST.
+- 2026-05-29 [TOOL] Checked touched display-list cache code file lengths; all were under 300 lines.

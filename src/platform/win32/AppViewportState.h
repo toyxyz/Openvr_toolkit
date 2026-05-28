@@ -8,6 +8,7 @@
 #include "platform/win32/ConfigTypes.h"
 #include "platform/win32/ViewportPaneTypes.h"
 #include "platform/win32/ViewportRenderModelTypes.h"
+#include "platform/win32/ViewportTriangleDisplayListCache.h"
 #include "platform/win32/Win32GlContextResource.h"
 #include "platform/win32/Win32GlDisplayListResource.h"
 #include "platform/win32/Win32GlTextureResource.h"
@@ -15,6 +16,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace ovtr::win32 {
 
@@ -57,6 +59,7 @@ struct AppViewportState {
     int lastMouseY = 0;
     ViewportSettings viewportSettings;
     std::unordered_map<std::string, RenderModelMesh> renderModelCache;
+    std::vector<ViewportTriangleDisplayListCache> importedSceneMeshDisplayLists;
     UniqueGlTexture renderModelMatcapTexture;
     bool renderModelMatcapTextureFailed = false;
 };

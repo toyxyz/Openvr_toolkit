@@ -11,6 +11,7 @@
 #include "platform/win32/ViewportRenderModelDraw.h"
 #include "platform/win32/ViewportRenderModelMatcap.h"
 #include "platform/win32/ViewportRenderer.h"
+#include "platform/win32/ViewportTriangleDisplayList.h"
 
 #include <gl/GL.h>
 
@@ -29,7 +30,14 @@ void setGlColorFromRgb(const RgbColor color) noexcept
     );
 }
 
-void drawRenderModelFallbackSurface(const RenderModelMesh& mesh, const RgbColor materialColor) noexcept
+void drawRenderModelSurface(RenderModelMesh& mesh)
+{
+    if (!drawCachedRenderModelTriangles(mesh.surfaceDisplayList, mesh)) {
+        drawRenderModelTriangles(mesh);
+    }
+}
+
+void drawRenderModelFallbackSurface(RenderModelMesh& mesh, const RgbColor materialColor)
 {
     ScopedGlCapability texture2D(GL_TEXTURE_2D, false);
     ScopedGlCapability lighting(GL_LIGHTING, true);
@@ -47,7 +55,7 @@ void drawRenderModelFallbackSurface(const RenderModelMesh& mesh, const RgbColor 
     glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 72.0f);
     glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
     setGlColorFromRgb(materialColor);
-    drawRenderModelTriangles(mesh);
+    drawRenderModelSurface(mesh);
 }
 
 } // namespace
@@ -100,7 +108,7 @@ bool drawSteamVRRenderModel3D(
             ScopedRenderModelMatcapMapping matcapMapping;
             glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
             setGlColorFromRgb(state.viewportSettings.renderModelMaterialColor);
-            drawRenderModelTriangles(mesh);
+            drawRenderModelSurface(mesh);
         } else {
             drawRenderModelFallbackSurface(mesh, state.viewportSettings.renderModelMaterialColor);
         }
