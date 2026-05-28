@@ -5,6 +5,7 @@
 #include "platform/win32/DeviceList.h"
 #include "platform/win32/OriginActions.h"
 #include "platform/win32/OriginEditor.h"
+#include "platform/win32/SessionEditor.h"
 #include "platform/win32/ViewportRenderer.h"
 #include "platform/win32/WindowLayout.h"
 
@@ -29,6 +30,9 @@ bool handleDeviceToggleClick(
     state.splitterDragging = false;
     if (!state.devicePanelVisible && state.originEditWindow) {
         closeOriginEditor(hwnd, state);
+    }
+    if (!state.devicePanelVisible && state.sessionEditWindow) {
+        closeSessionEditor(hwnd, state);
     }
     appendDebugLog(
         state,

@@ -7,6 +7,7 @@
 #include "platform/win32/AppPoseSamplingState.h"
 #include "platform/win32/AppRecordingState.h"
 #include "platform/win32/AppRuntimeState.h"
+#include "platform/win32/AppSessionState.h"
 #include "platform/win32/AppTopBarState.h"
 #include "platform/win32/AppViewportState.h"
 
@@ -17,6 +18,7 @@ struct AppWindowState
     , AppPoseSamplingState
     , AppViewportState
     , AppRecordingState
+    , AppSessionState
     , AppOriginState
     , AppImportedSceneState
     , AppDeviceState

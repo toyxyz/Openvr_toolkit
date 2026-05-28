@@ -279,6 +279,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/StatusBarText.cpp
         src/platform/win32/StatusPanel.cpp
         src/platform/win32/StatusPanelAppStateAdapters.cpp
+        src/platform/win32/SessionEditor.cpp
         src/platform/win32/TopMenuSettingsActions.cpp
         src/platform/win32/TopMenus.cpp
         src/platform/win32/TopBarLayout.cpp
@@ -461,6 +462,7 @@ if(OVTR_BUILD_TESTS)
     if(WIN32)
         target_sources(openvr_tracker_recorder_tests
             PRIVATE
+                src/platform/win32/AppLog.cpp
                 src/platform/win32/ConfigStore.cpp
                 src/platform/win32/ConfigDeviceNamesText.cpp
                 src/platform/win32/ConfigExportPaths.cpp
@@ -519,6 +521,7 @@ if(OVTR_BUILD_TESTS)
                 src/platform/win32/RecordingStartPlan.cpp
                 src/platform/win32/RecordingStateQueries.cpp
                 src/platform/win32/RuntimeFpsCounters.cpp
+                src/platform/win32/SessionEditor.cpp
                 src/platform/win32/StatusPanel.cpp
                 src/platform/win32/StatusPanelAppStateAdapters.cpp
                 src/platform/win32/StatusBarText.cpp

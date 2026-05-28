@@ -3,9 +3,12 @@
 #include <windowsx.h>
 
 #include "platform/win32/AppState.h"
+#include "platform/win32/ImportedScenePlayback.h"
+#include "platform/win32/PoseSamplingWorker.h"
 #include "platform/win32/ViewportMath.h"
 #include "platform/win32/ViewportQuadView.h"
 #include "platform/win32/ViewportRenderer.h"
+#include "platform/win32/WindowLayout.h"
 #include "platform/win32/WindowStateAccess.h"
 
 #include <cmath>
@@ -104,6 +107,36 @@ void applyOrthoPan(AppViewportState& state, const ViewportPaneKind pane, const V
     }
 }
 
+void invalidateImportedAnimationControls(HWND viewportHwnd, const AppWindowState& state)
+{
+    if (!state.importedSceneLoaded) {
+        return;
+    }
+    HWND parent = GetParent(viewportHwnd);
+    if (!parent) {
+        return;
+    }
+
+    RECT clientRect;
+    GetClientRect(parent, &clientRect);
+    const ViewportControlLayout controls = viewportControlLayoutForClient(
+        &state,
+        clientRect.right - clientRect.left,
+        clientRect.bottom - clientRect.top
+    );
+    if (controls.animationValid) {
+        InvalidateRect(parent, &controls.animationBarRect, FALSE);
+    }
+}
+
+void refreshInteractiveViewport(HWND hwnd, AppWindowState& state)
+{
+    updateImportedScenePlayback(state);
+    state.poses = copyLatestPoseSnapshot(state);
+    renderViewport(hwnd);
+    invalidateImportedAnimationControls(hwnd, state);
+}
+
 } // namespace
 
 void handleViewportLeftButtonDown(HWND hwnd, LPARAM lparam)
@@ -193,7 +226,7 @@ void handleViewportMouseMove(HWND hwnd, LPARAM lparam)
             -10.0f,
             80.0f
         );
-        renderViewport(hwnd);
+        refreshInteractiveViewport(hwnd, *state);
     } else if (state->panDragging) {
         if (state->activeDragPane == ViewportPaneKind::Perspective) {
             applyScreenSpacePan(*state, dx, dy);
@@ -201,7 +234,7 @@ void handleViewportMouseMove(HWND hwnd, LPARAM lparam)
             const float unitsPerPixel = orthoWorldUnitsPerPixel(hwnd, *state, state->activeDragPane);
             applyOrthoPan(*state, state->activeDragPane, orthoPanePanOffset(state->activeDragPane, dx, dy, unitsPerPixel));
         }
-        renderViewport(hwnd);
+        refreshInteractiveViewport(hwnd, *state);
     }
 }
 
@@ -229,7 +262,7 @@ void handleViewportMouseWheel(HWND hwnd, WPARAM wparam, LPARAM lparam)
     } else {
         setOrthoZoomForPane(*state, pane, orthoViewZoomAfterWheel(orthoZoomForPane(*state, pane), zoomSteps));
     }
-    renderViewport(hwnd);
+    refreshInteractiveViewport(hwnd, *state);
 }
 
 } // namespace ovtr::win32

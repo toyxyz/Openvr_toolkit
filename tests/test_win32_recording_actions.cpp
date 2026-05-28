@@ -132,6 +132,29 @@ void testWin32RecordingActions()
     require(exportPlan.session.devices[0].displayName == "Named tracker", "recording export plan custom names");
     require(exportPlan.exportDirectory == root, "recording export plan uses session parent directory fallback");
     require(exportPlan.exportSampleRate == 180.0, "recording export plan sample rate");
+    require(
+        ovtr::win32::sanitizedSessionFolderName(L"  Project:01  ") == L"Project_01",
+        "session folder name trims and sanitizes invalid characters"
+    );
+    require(
+        ovtr::win32::sanitizedSessionFolderName(L"CON") == L"_CON",
+        "session folder name avoids reserved device names"
+    );
+    require(
+        ovtr::win32::sessionExportDirectoryPath(root, L"  ") == root.lexically_normal(),
+        "blank session export path uses base export folder"
+    );
+    require(
+        ovtr::win32::sessionExportDirectoryPath(root, L"Take/01") ==
+            (root / std::filesystem::path(L"Take_01")).lexically_normal(),
+        "session export path uses sanitized session folder"
+    );
+    ovtr::win32::RecordingExportPlan sessionExportPlan =
+        ovtr::win32::makeRecordingExportPlan(recordingState, runtimeState, deviceState, L" Session: A ");
+    require(
+        sessionExportPlan.exportDirectory == (root / std::filesystem::path(L"Session_ A")).lexically_normal(),
+        "recording export plan uses session folder when provided"
+    );
 
     const ovtr::win32::RecordingExportUiMessages successMessages =
         ovtr::win32::recordingExportSuccessUiMessages(

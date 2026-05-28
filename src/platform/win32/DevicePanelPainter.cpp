@@ -2,6 +2,7 @@
 
 #include "platform/win32/AppDeviceState.h"
 #include "platform/win32/AppRuntimeState.h"
+#include "platform/win32/AppSessionState.h"
 #include "platform/win32/DeviceList.h"
 #include "platform/win32/DevicePanelTablePainter.h"
 #include "platform/win32/Layout.h"
@@ -10,12 +11,51 @@
 #include <vector>
 
 namespace ovtr::win32 {
+namespace {
+
+void paintSessionBox(
+    HDC drawDc,
+    HFONT font,
+    const AppSessionState& sessionState,
+    const DeviceListLayout& layout
+)
+{
+    RECT boxRect = layout.sessionBoxRect;
+    UniqueBrush boxBrush(CreateSolidBrush(RGB(20, 23, 28)));
+    FillRect(drawDc, &boxRect, boxBrush.get());
+
+    UniquePen boxPen(CreatePen(PS_SOLID, 1, RGB(58, 64, 76)));
+    {
+        SelectObjectGuard penSelection(drawDc, boxPen.get());
+        SelectObjectGuard brushSelection(drawDc, GetStockObject(NULL_BRUSH));
+        Rectangle(drawDc, boxRect.left, boxRect.top, boxRect.right, boxRect.bottom);
+    }
+
+    SelectObject(drawDc, font);
+    SetBkMode(drawDc, TRANSPARENT);
+    SetTextColor(drawDc, RGB(168, 180, 196));
+    RECT labelRect = layout.sessionLabelRect;
+    DrawTextW(drawDc, L"Session", -1, &labelRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+
+    SetTextColor(drawDc, RGB(220, 228, 238));
+    RECT valueRect = layout.sessionValueRect;
+    DrawTextW(
+        drawDc,
+        sessionState.sessionName.c_str(),
+        -1,
+        &valueRect,
+        DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS
+    );
+}
+
+} // namespace
 
 void paintDeviceListPanel(
     HDC drawDc,
     HFONT bodyFont,
     HFONT headerFont,
     const AppRuntimeState& runtimeState,
+    const AppSessionState& sessionState,
     AppDeviceState& deviceState,
     const DeviceListLayout& layout
 )
@@ -30,6 +70,8 @@ void paintDeviceListPanel(
         static_cast<int>(deviceRows.size()),
         layout.visibleItemCount
     );
+
+    paintSessionBox(drawDc, bodyFont, sessionState, layout);
 
     RECT deviceBoxRect = layout.boxRect;
     UniqueBrush boxBrush(CreateSolidBrush(RGB(20, 23, 28)));

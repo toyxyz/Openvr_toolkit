@@ -3,6 +3,7 @@
 #include "platform/win32/AppState.h"
 #include "platform/win32/Layout.h"
 #include "platform/win32/OriginEditor.h"
+#include "platform/win32/SessionEditor.h"
 #include "platform/win32/WindowClickActionSections.h"
 #include "platform/win32/WindowLayout.h"
 
@@ -16,6 +17,12 @@ bool handleMainWindowDoubleClickAtPoint(
     const POINT point
 )
 {
+    const DeviceListLayout deviceListLayout = deviceListLayoutForClient(&state, clientWidth, clientHeight);
+    if (deviceListLayout.valid && PtInRect(&deviceListLayout.sessionBoxRect, point)) {
+        showSessionEditor(hwnd, state);
+        return true;
+    }
+
     const OriginPanelLayout originLayout = originPanelLayoutForClient(&state, clientWidth, clientHeight);
     const OriginStepperButton originButton = originStepperButtonFromPoint(
         &state,

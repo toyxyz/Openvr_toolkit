@@ -1,11 +1,11 @@
 # CONTINUITY.md
 
 ## Snapshot
-- 2026-05-28 [USER] Goal: add a Quad view toggle on the viewport control bar with Perspective, Front, Top, and Left panes.
-- 2026-05-28 [USER] Success criteria: Perspective keeps existing mouse controls; ortho panes allow middle-button pan only; recording delay/elapsed overlays stay at the original whole-viewport position.
-- 2026-05-28 [ASSUMPTION] Current phase: implemented and automated build/test verified; manual visual acceptance of corrected Top view pan remains.
+- 2026-05-28 [USER] Goal: add a Session box above the device list and route exports into a session-named folder when non-blank.
+- 2026-05-28 [USER] Success criteria: Session starts blank, double-click editing works, blank/whitespace session keeps the configured export folder, non-blank session creates/uses a subfolder under that export folder.
+- 2026-05-28 [ASSUMPTION] Current phase: implemented and automated build/test verified; manual UI/export acceptance remains.
 - 2026-05-28 [CODE] Current architecture: C++20 native Win32/OpenVR tracker recorder with modular `src` areas for app, data, export, import, math, platform, recording, render, ui, util, and vr.
-- 2026-05-28 [TOOL] Last verified state: default and VS2022 tests passed; VS2022 Debug app rebuilt after correcting Top view vertical pan.
+- 2026-05-28 [TOOL] Last verified state: default clean build/tests and VS2022 Debug build/tests passed after Session export-folder changes.
 
 ## Invariants / Constraints
 - 2026-05-28 [USER] Code files must stay under 300 physical lines unless explicitly exempted in this ledger.
@@ -72,12 +72,16 @@
 - 2026-05-28 [CODE] Added per-pane Front/Top/Left ortho scroll zoom and included ortho zoom in `F3` reset.
 - 2026-05-28 [CODE] Corrected Quad Top view camera pitch from bottom-view orientation to top-view orientation.
 - 2026-05-28 [CODE] Corrected Quad Top view vertical middle-drag pan direction after the Top camera orientation fix.
+- 2026-05-28 [CODE] Updated viewport drag/wheel immediate rendering to advance imported GLB playback time and copy the latest pose snapshot before drawing.
+- 2026-05-28 [CODE] Added a Session box above the device list with double-click in-place editing; session text is runtime-only and defaults to blank.
+- 2026-05-28 [CODE] Export planning now routes non-blank Session values to a sanitized session subfolder under the configured export directory.
+- 2026-05-28 [CODE] Added tests for Session layout/export path behavior, including whitespace-only sessions and invalid Windows filename characters.
 
 ### Now
-- 2026-05-28 [ASSUMPTION] Corrected Top view vertical pan is built into the latest VS2022 Debug exe and automated tests pass.
+- 2026-05-28 [ASSUMPTION] Session box/export-folder behavior is built into the latest VS2022 Debug exe and automated tests pass.
 
 ### Next
-- 2026-05-28 [ASSUMPTION] Manually verify Top view up/down pan now follows mouse drag direction.
+- 2026-05-28 [ASSUMPTION] Manually verify double-click Session editing and export output folder creation in the Win32 app.
 
 ## Open Questions
 - 2026-05-28 [ASSUMPTION] Whether to remove the explicit procedural fallback after runtime PNG loading is visually confirmed is not yet decided.
@@ -117,6 +121,8 @@
 - 2026-05-28 [CODE] src/platform/win32/RecordingStartActions.cpp
 - 2026-05-28 [CODE] src/platform/win32/RecordingUiActions.cpp
 - 2026-05-28 [CODE] src/platform/win32/RecordingStateQueries.{h,cpp}
+- 2026-05-28 [CODE] src/platform/win32/AppSessionState.h
+- 2026-05-28 [CODE] src/platform/win32/SessionEditor.{h,cpp}
 - 2026-05-28 [CODE] tests/test_win32_pose_sampling.cpp
 - 2026-05-28 [CODE] tests/test_win32_viewport_settings_config.cpp
 - 2026-05-28 [CODE] tests/test_win32_viewport_control_layout.cpp
@@ -222,3 +228,13 @@
 - 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default && ctest --preset default && cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022`; both `core_tests` runs passed after correcting Top view vertical pan.
 - 2026-05-28 [TOOL] Confirmed latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-28 20:11:12 KST.
 - 2026-05-28 [TOOL] Checked touched file lengths after Top view vertical pan fix: `ViewportQuadView.cpp` 122, `test_win32_viewport_math.cpp` 176.
+- 2026-05-28 [TOOL] Initial build after interactive GLB refresh fix failed because `viewportControlLayoutForClient` needed a state pointer; changed the call to pass `&state`.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default && ctest --preset default && cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022`; both `core_tests` runs passed after interactive GLB playback refresh fix.
+- 2026-05-28 [TOOL] Confirmed latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-28 20:23:12 KST.
+- 2026-05-28 [TOOL] Checked `src/platform/win32/ViewportWindowInput.cpp`; 268 lines after interactive GLB playback refresh fix.
+- 2026-05-28 [TOOL] Initial incremental default build after adding Session layout failed one layout test due stale `DeviceListLayout` object layout; clean rebuild mitigated it.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default --clean-first && ctest --preset default --output-on-failure`; `core_tests` passed after Session changes.
+- 2026-05-28 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022 --output-on-failure`; Debug app rebuilt and `core_tests` passed after Session changes.
+- 2026-05-28 [TOOL] Re-ran VS Developer Command Prompt + `cmake --build --preset default && ctest --preset default --output-on-failure && cmake --build --preset vs2022 --target OpenVRTrackerRecorderDesktop && ctest --preset vs2022 --output-on-failure`; both `core_tests` runs passed after final Session editor cleanup.
+- 2026-05-28 [TOOL] Latest Debug exe `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp is 2026-05-28 20:46:00 KST.
+- 2026-05-28 [TOOL] Checked touched Session/layout/export code/test file lengths; all were under 300 lines.

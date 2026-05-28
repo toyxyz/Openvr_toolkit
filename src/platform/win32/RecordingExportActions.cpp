@@ -34,7 +34,8 @@ void exportCurrentSession(HWND hwnd, const ExportFormat format)
     const RecordingExportPlan plan = makeRecordingExportPlan(
         static_cast<const AppRecordingState&>(*state),
         static_cast<const AppRuntimeState&>(*state),
-        static_cast<const AppDeviceState&>(*state)
+        static_cast<const AppDeviceState&>(*state),
+        state->sessionName
     );
     appendDebugLog(*state, recordingExportStartLogMessage(format));
     const ovtr::ExportResult result = exportRecordingSession(

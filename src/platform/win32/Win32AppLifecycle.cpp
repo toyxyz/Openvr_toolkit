@@ -7,6 +7,7 @@
 #include "platform/win32/AppLog.h"
 #include "platform/win32/AppState.h"
 #include "platform/win32/PoseSamplingWorker.h"
+#include "platform/win32/SessionEditor.h"
 #include "platform/win32/ViewportRenderer.h"
 #include "platform/win32/WindowStateAccess.h"
 
@@ -57,6 +58,9 @@ void destroyAppWindowState(HWND hwnd)
             DestroyWindow(state->originEditWindow);
             state->originEditWindow = nullptr;
             state->originEditOriginalProc = nullptr;
+        }
+        if (state->sessionEditWindow) {
+            closeSessionEditor(hwnd, *state);
         }
         stopPoseSamplingWorker(*state);
         {

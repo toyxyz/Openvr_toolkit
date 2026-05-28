@@ -3,6 +3,7 @@
 #include "data/SessionTypes.h"
 
 #include <filesystem>
+#include <string>
 
 namespace ovtr::win32 {
 
@@ -20,6 +21,17 @@ RecordingExportPlan makeRecordingExportPlan(
     const AppRecordingState& recordingState,
     const AppRuntimeState& runtimeState,
     const AppDeviceState& deviceState
+);
+RecordingExportPlan makeRecordingExportPlan(
+    const AppRecordingState& recordingState,
+    const AppRuntimeState& runtimeState,
+    const AppDeviceState& deviceState,
+    const std::wstring& sessionName
+);
+std::wstring sanitizedSessionFolderName(std::wstring sessionName);
+std::filesystem::path sessionExportDirectoryPath(
+    const std::filesystem::path& exportDirectory,
+    const std::wstring& sessionName
 );
 
 } // namespace ovtr::win32

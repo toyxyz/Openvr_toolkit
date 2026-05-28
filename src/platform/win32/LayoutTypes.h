@@ -29,6 +29,9 @@ struct ViewportControlLayout {
 };
 
 struct DeviceListLayout {
+    RECT sessionBoxRect{0, 0, 0, 0};
+    RECT sessionLabelRect{0, 0, 0, 0};
+    RECT sessionValueRect{0, 0, 0, 0};
     RECT boxRect{0, 0, 0, 0};
     RECT headerRect{0, 0, 0, 0};
     RECT contentRect{0, 0, 0, 0};
