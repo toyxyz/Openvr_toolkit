@@ -230,6 +230,9 @@ void OpenVRProvider::appendSkeletalPoses(PosePollResult& outResult)
 
         const PoseSample rootPose = openvr_provider_detail::makePoseSample(0, poseData.pose);
         for (std::uint32_t i = 0; i < boneCount; ++i) {
+            if (!shouldRecordSkeletalBoneIndex(i)) {
+                continue;
+            }
             outResult.poses.push_back(makeSkeletalBonePose(rootPose, side, i, bones[i]));
         }
     };

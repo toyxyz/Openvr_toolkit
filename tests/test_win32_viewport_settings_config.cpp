@@ -23,6 +23,7 @@ void testWin32ViewportSettingsConfig()
     require(defaults.renderModelOutlineColor.g == 133, "default render model outline g");
     require(defaults.renderModelMaterialColor.b == 255, "default render model material b");
     require(defaults.fingerBoxColor.g == 230, "default finger box g");
+    require(defaults.markerColor.r == 255, "default marker color r");
     require(win32ConfigNearlyEqual(defaults.gridSize, 5.0f), "default grid size");
     require(win32ConfigNearlyEqual(defaults.gridCellDensity, 2.0f), "default grid density");
     require(win32ConfigNearlyEqual(defaults.markerSize, 0.10f), "default marker size");
@@ -35,6 +36,7 @@ void testWin32ViewportSettingsConfig()
     settings.renderModelOutlineColor = {12, 300, -8};
     settings.renderModelMaterialColor = {300, 24, -1};
     settings.fingerBoxColor = {-2, 512, 33};
+    settings.markerColor = {300, -1, 44};
     settings.outlineMultiplier = 12.0f;
     settings.gridSize = 100.0f;
     settings.gridCellDensity = 0.1f;
@@ -72,6 +74,12 @@ void testWin32ViewportSettingsConfig()
             clampedSettings.fingerBoxColor.b == 33,
         "clamp finger box color"
     );
+    require(
+        clampedSettings.markerColor.r == 255 &&
+            clampedSettings.markerColor.g == 0 &&
+            clampedSettings.markerColor.b == 44,
+        "clamp marker color"
+    );
 
     std::istringstream viewportInput(
         "label_r=-5\n"
@@ -80,6 +88,7 @@ void testWin32ViewportSettingsConfig()
         "render_model_outline_g=123\n"
         "render_model_material_b=77\n"
         "finger_g=88\n"
+        "marker_b=99\n"
         "outline_multiplier=12\n"
         "grid_size=12\n"
         "grid_cell_density=4\n"
@@ -93,6 +102,7 @@ void testWin32ViewportSettingsConfig()
     require(parsedViewport.renderModelOutlineColor.g == 123, "parse render model outline g");
     require(parsedViewport.renderModelMaterialColor.b == 77, "parse render model material b");
     require(parsedViewport.fingerBoxColor.g == 88, "parse finger box g");
+    require(parsedViewport.markerColor.b == 99, "parse marker b");
     require(win32ConfigNearlyEqual(parsedViewport.outlineMultiplier, 10.0f), "parse viewport clamps outline");
     require(win32ConfigNearlyEqual(parsedViewport.gridSize, 12.0f), "parse viewport grid size");
     require(win32ConfigNearlyEqual(parsedViewport.gridCellDensity, 4.0f), "parse viewport grid density");
@@ -116,6 +126,10 @@ void testWin32ViewportSettingsConfig()
         "serialize finger box color"
     );
     require(
+        serializedViewport.find("marker_b=99") != std::string::npos,
+        "serialize marker color"
+    );
+    require(
         serializedViewport.find("grid_size=12.000000") != std::string::npos,
         "serialize grid size"
     );
@@ -136,6 +150,7 @@ void testWin32ViewportSettingsConfig()
     ovtr::win32::setViewportColorSlot(slotSettings, 4, {10, 11, 12});
     ovtr::win32::setViewportColorSlot(slotSettings, 5, {13, 14, 15});
     ovtr::win32::setViewportColorSlot(slotSettings, 6, {16, 17, 18});
+    ovtr::win32::setViewportColorSlot(slotSettings, 7, {19, 20, 21});
     require(
         slotSettings.labelTextColor.r == 0 &&
             slotSettings.labelTextColor.g == 12 &&
@@ -162,6 +177,10 @@ void testWin32ViewportSettingsConfig()
         ovtr::win32::viewportColorSlot(slotSettings, 6).g == 17,
         "viewport color slot reads finger box color"
     );
+    require(
+        ovtr::win32::viewportColorSlot(slotSettings, 7).b == 21,
+        "viewport color slot reads marker color"
+    );
     slotSettings.outlineMultiplier = 3.5f;
     slotSettings.gridSize = 22.0f;
     slotSettings.gridCellDensity = 3.0f;
@@ -179,6 +198,10 @@ void testWin32ViewportSettingsConfig()
     require(
         defaultColors.fingerBoxColor.g == ovtr::win32::ViewportSettings{}.fingerBoxColor.g,
         "viewport default color reset restores finger box color"
+    );
+    require(
+        defaultColors.markerColor.r == ovtr::win32::ViewportSettings{}.markerColor.r,
+        "viewport default color reset restores marker color"
     );
     require(
         win32ConfigNearlyEqual(defaultColors.outlineMultiplier, 3.5f),

@@ -13,5 +13,6 @@ void drawSceneMarkers3D(
     const CameraView& cameraView,
     float outlineWorldUnitsPerPixel
 );
+void drawSceneMarkerLabels3D(const AppMarkerState& markerState, const AppViewportState& viewportState);
 
 } // namespace ovtr::win32

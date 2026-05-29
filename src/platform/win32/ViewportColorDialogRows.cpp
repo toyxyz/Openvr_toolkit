@@ -13,6 +13,7 @@ void createViewportColorRows(HWND hwnd, HFONT font, ViewportColorDialogControls&
         L"Render model outline",
         L"Render model material",
         L"Finger color",
+        L"Marker color",
     };
 
     for (int i = 0; i < kViewportColorSlotCount; ++i) {

@@ -28,5 +28,7 @@ DeviceDescriptor makeSkeletalBoneDeviceDescriptor(SkeletalHandSide side, std::ui
 std::string skeletalBoneName(std::uint32_t boneIndex);
 std::string skeletalBoneNodeName(SkeletalHandSide side, std::uint32_t boneIndex);
 bool skeletalBoneParentIndex(std::uint32_t boneIndex, std::uint32_t& outParentIndex) noexcept;
+bool isSkeletalAuxBoneIndex(std::uint32_t boneIndex) noexcept;
+bool shouldRecordSkeletalBoneIndex(std::uint32_t boneIndex) noexcept;
 
 } // namespace ovtr

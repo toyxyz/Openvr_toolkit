@@ -60,6 +60,12 @@ ViewportSettings parseViewportSettingsConfig(std::istream& input, ViewportSettin
             settings.fingerBoxColor.g = intValue;
         } else if (key == "finger_b" && parseIntConfigValue(value, intValue)) {
             settings.fingerBoxColor.b = intValue;
+        } else if (key == "marker_r" && parseIntConfigValue(value, intValue)) {
+            settings.markerColor.r = intValue;
+        } else if (key == "marker_g" && parseIntConfigValue(value, intValue)) {
+            settings.markerColor.g = intValue;
+        } else if (key == "marker_b" && parseIntConfigValue(value, intValue)) {
+            settings.markerColor.b = intValue;
         } else if (key == "outline_multiplier" && parseFloatConfigValue(value, floatValue) && std::isfinite(floatValue)) {
             settings.outlineMultiplier = floatValue;
         } else if (key == "grid_size" && parseFloatConfigValue(value, floatValue) && std::isfinite(floatValue)) {

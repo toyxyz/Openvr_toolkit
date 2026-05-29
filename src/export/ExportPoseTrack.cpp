@@ -77,6 +77,9 @@ bool makeSkeletalPoseTrackForRuntimeIndex(
     if (!decodeSkeletalBoneRuntimeIndex(runtimeIndex, side, boneIndex)) {
         return false;
     }
+    if (!shouldRecordSkeletalBoneIndex(boneIndex)) {
+        return false;
+    }
     outTrack = makeRecordedPoseTrack(makeSkeletalBoneDeviceDescriptor(side, boneIndex), options);
     outTrack.nodeName = skeletalBoneNodeName(side, boneIndex);
     return true;

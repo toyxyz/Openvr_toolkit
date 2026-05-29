@@ -31,6 +31,9 @@ std::string serializeViewportSettingsConfig(ViewportSettings settings)
            << "finger_r=" << settings.fingerBoxColor.r << "\n"
            << "finger_g=" << settings.fingerBoxColor.g << "\n"
            << "finger_b=" << settings.fingerBoxColor.b << "\n"
+           << "marker_r=" << settings.markerColor.r << "\n"
+           << "marker_g=" << settings.markerColor.g << "\n"
+           << "marker_b=" << settings.markerColor.b << "\n"
            << std::fixed << std::setprecision(6)
            << "outline_multiplier=" << settings.outlineMultiplier << "\n"
            << "grid_size=" << settings.gridSize << "\n"

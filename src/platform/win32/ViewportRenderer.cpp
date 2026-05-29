@@ -151,6 +151,10 @@ void drawLabels3D(AppWindowState& state)
     }
     setGlColor(state.viewportSettings.labelTextColor);
     drawTrackedDeviceLabels3D(state);
+    drawSceneMarkerLabels3D(
+        static_cast<const AppMarkerState&>(state),
+        static_cast<const AppViewportState&>(state)
+    );
 }
 
 void renderPane(AppWindowState& state, const int fullHeight, const RenderPane& pane)

@@ -103,13 +103,20 @@ void drawMarker3D(
         ScopedGlTexture2DBinding textureBinding(state.renderModelMatcapTexture.get());
         ScopedRenderModelMatcapMapping matcapMapping;
         glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-        setGlColor(state.viewportSettings.renderModelMaterialColor);
+        setGlColor(state.viewportSettings.markerColor);
         drawCubeFaces(halfSize);
     } else {
         ScopedGlCapability texture2D(GL_TEXTURE_2D, false);
-        setGlColor(state.viewportSettings.renderModelMaterialColor);
+        setGlColor(state.viewportSettings.markerColor);
         drawCubeFaces(halfSize);
     }
+}
+
+void drawMarkerLabel3D(const SceneMarker& marker, const GLuint fontBase)
+{
+    const float labelLift = marker.sizeMeters * 0.5f + 0.04f;
+    glRasterPos3f(marker.position[0], marker.position[1] + labelLift, marker.position[2]);
+    drawLabelText3D(marker.name, fontBase);
 }
 
 } // namespace
@@ -131,6 +138,13 @@ void drawSceneMarkers3D(
             cameraView,
             outlineWorldUnitsPerPixel
         );
+    }
+}
+
+void drawSceneMarkerLabels3D(const AppMarkerState& markerState, const AppViewportState& viewportState)
+{
+    for (const SceneMarker& marker : markerState.markers) {
+        drawMarkerLabel3D(marker, viewportState.glLabelFontBase.get());
     }
 }
 

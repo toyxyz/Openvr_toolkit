@@ -24,7 +24,10 @@ RgbColor viewportColorSlot(const ViewportSettings& settings, const int index) no
     if (index == 5) {
         return settings.renderModelMaterialColor;
     }
-    return settings.fingerBoxColor;
+    if (index == 6) {
+        return settings.fingerBoxColor;
+    }
+    return settings.markerColor;
 }
 
 void setViewportColorSlot(ViewportSettings& settings, const int index, const RgbColor color) noexcept
@@ -42,8 +45,10 @@ void setViewportColorSlot(ViewportSettings& settings, const int index, const Rgb
         settings.renderModelOutlineColor = clamped;
     } else if (index == 5) {
         settings.renderModelMaterialColor = clamped;
-    } else {
+    } else if (index == 6) {
         settings.fingerBoxColor = clamped;
+    } else {
+        settings.markerColor = clamped;
     }
 }
 
@@ -57,6 +62,7 @@ ViewportSettings viewportSettingsWithDefaultColors(ViewportSettings current) noe
     current.renderModelOutlineColor = defaults.renderModelOutlineColor;
     current.renderModelMaterialColor = defaults.renderModelMaterialColor;
     current.fingerBoxColor = defaults.fingerBoxColor;
+    current.markerColor = defaults.markerColor;
     return current;
 }
 

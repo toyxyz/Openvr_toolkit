@@ -5,7 +5,7 @@ namespace ovtr::win32 {
 
 void createViewportColorFooterControls(HWND hwnd, HFONT font, ViewportColorDialogControls& controls)
 {
-    constexpr int yOffset = 38;
+    constexpr int yOffset = 76;
     HWND outlineLabel = CreateWindowExW(
         0,
         L"STATIC",

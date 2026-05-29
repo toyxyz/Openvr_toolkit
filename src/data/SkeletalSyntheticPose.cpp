@@ -112,6 +112,16 @@ bool skeletalBoneParentIndex(const std::uint32_t boneIndex, std::uint32_t& outPa
     return true;
 }
 
+bool isSkeletalAuxBoneIndex(const std::uint32_t boneIndex) noexcept
+{
+    return boneIndex >= 26u && boneIndex < kSkeletalHandBoneCount;
+}
+
+bool shouldRecordSkeletalBoneIndex(const std::uint32_t boneIndex) noexcept
+{
+    return boneIndex < kSkeletalHandBoneCount && !isSkeletalAuxBoneIndex(boneIndex);
+}
+
 DeviceDescriptor makeSkeletalBoneDeviceDescriptor(const SkeletalHandSide side, const std::uint32_t boneIndex)
 {
     DeviceDescriptor descriptor;

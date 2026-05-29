@@ -88,6 +88,9 @@ void testSkeletalSyntheticPoseExportTracks()
     require(decodedSide == ovtr::SkeletalHandSide::Left && decodedBone == 7, "skeletal index decode mismatch");
     require(ovtr::skeletalBoneName(2) == "Thumb_0", "thumb bone name mismatch");
     require(ovtr::skeletalBoneName(7) == "Index_1", "index bone name mismatch");
+    require(ovtr::isSkeletalAuxBoneIndex(27), "aux index should be recognized");
+    require(!ovtr::shouldRecordSkeletalBoneIndex(27), "aux index should be excluded");
+    require(ovtr::shouldRecordSkeletalBoneIndex(7), "finger index should be included");
     std::uint32_t parentBone = 0;
     require(ovtr::skeletalBoneParentIndex(7, parentBone) && parentBone == 6, "index parent mismatch");
     require(!ovtr::skeletalBoneParentIndex(0, parentBone), "root should not have a parent");
@@ -99,6 +102,7 @@ void testSkeletalSyntheticPoseExportTracks()
 
     ovtr::FrameSample frame = makeTestFrame(0);
     frame.poses.push_back(makeSyntheticBonePose());
+    frame.poses.push_back(makeSyntheticBonePose(ovtr::SkeletalHandSide::Right, 27, {0.22f, 0.44f, 0.66f}));
     const std::filesystem::path framesPath = testDir / "frames.bin";
     const std::filesystem::path indexPath = testDir / "frame_index.bin";
     writeFrameSamples(framesPath, indexPath, {frame}, "skeletal pose");
@@ -116,6 +120,7 @@ void testSkeletalSyntheticPoseExportTracks()
     require(ovtr::collectExportPoseTracks(session, {}, tracks, error), "skeletal collect failed: " + error);
 
     const ovtr::ExportPoseTrack* track = findTrack(tracks, "Skeletal_Left_Index_1");
+    require(findTrack(tracks, "Skeletal_Right_Aux_Index") == nullptr, "aux skeletal pose should not export a track");
     require(track != nullptr, "skeletal recorded pose should create an export track");
     require(track->keys.size() == 1, "skeletal export track should keep recorded key");
     require(track->geometry.available, "skeletal export track should include box geometry");
@@ -139,6 +144,7 @@ void testSkeletalSyntheticPoseExportTracks()
     require(result.success, "skeletal GLB box export failed: " + result.error);
     const std::string json = readGlbJson(glbPath);
     require(json.find("\"name\": \"Skeletal_Left_Index_1\"") != std::string::npos, "skeletal GLB node missing");
+    require(json.find("Skeletal_Right_Aux_Index") == std::string::npos, "skeletal GLB should not export aux nodes");
     require(json.find("\"name\": \"Skeletal_Left_Index_1_Mesh\"") != std::string::npos, "skeletal GLB box mesh missing");
     require(json.find("\"modelName\": \"ovtr_skeletal_bone_box\"") != std::string::npos, "skeletal GLB model missing");
     require(json.find("\"mesh\"") != std::string::npos, "skeletal GLB should export box mesh reference");
