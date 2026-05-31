@@ -6,6 +6,9 @@
 #include "platform/win32/AppLog.h"
 #include "platform/win32/DeviceList.h"
 #include "platform/win32/MarkerList.h"
+#include "platform/win32/MappingActions.h"
+#include "platform/win32/MappingActorLayout.h"
+#include "platform/win32/MappingPanelLayout.h"
 #include "platform/win32/Menus.h"
 #include "platform/win32/ViewportRenderer.h"
 #include "platform/win32/Win32MenuResources.h"
@@ -120,6 +123,51 @@ bool showDeviceContextMenu(HWND hwnd, AppWindowState& state, const DeviceListLay
     return true;
 }
 
+bool showMappingActorContextMenu(HWND hwnd, AppWindowState& state, const POINT point, const int width, const int height)
+{
+    if (!state.mappingPanelVisible) {
+        return false;
+    }
+    const ProfilePanelLayout panel = profilePanelLayoutForClient(&state, width, height);
+    const MappingPanelControlsLayout controls = mappingControlsLayoutForPanel(panel);
+    const MappingActorRowLayout row =
+        mappingActorRowAtPoint(controls, state.mappingActors.size(), state.mappingActorScrollOffset, point);
+    if (!row.valid) {
+        return false;
+    }
+    state.selectedMappingActorId = state.mappingActors[row.actorIndex].id;
+    InvalidateRect(hwnd, &controls.actorListRect, FALSE);
+
+    UniqueMenu menu(CreatePopupMenu());
+    if (!menu) {
+        return false;
+    }
+    PopupMenuItem resetItem{kMappingActorContextMenuResetId, L"Reset"};
+    PopupMenuItem deleteItem{kMappingActorContextMenuDeleteId, L"Delete"};
+    appendPopupMenuItem(menu.get(), resetItem);
+    AppendMenuW(menu.get(), MF_SEPARATOR, 0, nullptr);
+    appendPopupMenuItem(menu.get(), deleteItem);
+
+    POINT screenPoint = point;
+    ClientToScreen(hwnd, &screenPoint);
+    SetForegroundWindow(hwnd);
+    const UINT command = TrackPopupMenu(
+        menu.get(),
+        TPM_RIGHTBUTTON | TPM_RETURNCMD,
+        screenPoint.x,
+        screenPoint.y,
+        0,
+        hwnd,
+        nullptr
+    );
+    if (command == kMappingActorContextMenuResetId) {
+        resetMappingActorAtIndex(hwnd, state, row.actorIndex);
+    } else if (command == kMappingActorContextMenuDeleteId) {
+        deleteMappingActorAtIndex(hwnd, state, row.actorIndex);
+    }
+    return true;
+}
+
 } // namespace
 
 bool handleMainWindowRButtonDown(HWND hwnd, LPARAM lparam)
@@ -134,6 +182,10 @@ bool handleMainWindowRButtonDown(HWND hwnd, LPARAM lparam)
     const int clientWidth = clientRect.right - clientRect.left;
     const int clientHeight = clientRect.bottom - clientRect.top;
     const POINT point{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+
+    if (showMappingActorContextMenu(hwnd, *state, point, clientWidth, clientHeight)) {
+        return true;
+    }
 
     const MarkerListLayout markerListLayout = markerListLayoutForClient(state, clientWidth, clientHeight);
     if (markerListLayout.valid && PtInRect(&markerListLayout.boxRect, point)) {

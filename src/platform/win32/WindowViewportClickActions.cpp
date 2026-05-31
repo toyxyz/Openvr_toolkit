@@ -24,10 +24,7 @@ bool handleViewportControlClick(
         return true;
     }
     if (viewportControls.valid && PtInRect(&viewportControls.quadViewButtonRect, point)) {
-        state.quadViewEnabled = !state.quadViewEnabled;
-        state.orbitDragging = false;
-        state.panDragging = false;
-        state.activeDragPane = ViewportPaneKind::None;
+        toggleQuadView(state);
         InvalidateRect(hwnd, &viewportControls.barRect, FALSE);
         if (state.glWindow) {
             InvalidateRect(state.glWindow, nullptr, FALSE);

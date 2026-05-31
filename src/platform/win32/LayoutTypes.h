@@ -47,6 +47,12 @@ struct MarkerListLayout {
     bool valid = false;
 };
 
+struct ProfilePanelLayout {
+    RECT panelRect{0, 0, 0, 0};
+    RECT splitterRect{0, 0, 0, 0};
+    bool valid = false;
+};
+
 struct OriginPanelLayout {
     RECT boxRect{0, 0, 0, 0};
     RECT valueRect{0, 0, 0, 0};

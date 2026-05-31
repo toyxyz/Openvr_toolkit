@@ -5,6 +5,7 @@
 #include "platform/win32/ConfigStore.h"
 #include "platform/win32/Dialogs.h"
 #include "platform/win32/RecordingStartActions.h"
+#include "platform/win32/SkeletonRecording.h"
 #include "platform/win32/WindowLayout.h"
 #include "platform/win32/WindowStateAccess.h"
 
@@ -58,6 +59,7 @@ void toggleRecording(HWND hwnd)
             const double durationSeconds = std::chrono::duration<double>(now - state->recordingStart).count();
             stopSucceeded = state->recorder.stop(durationSeconds, state->recordingDroppedFrames);
             if (stopSucceeded) {
+                finishSkeletonRecording(state->skeletonRecording);
                 stoppedFrameCount = state->recorder.frameCount();
                 stoppedDroppedFrames = state->recordingDroppedFrames;
             } else {

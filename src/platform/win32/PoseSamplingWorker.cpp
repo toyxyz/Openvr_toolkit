@@ -159,7 +159,6 @@ bool pollAndRecordPoseSampleOnce(
             return true;
         }
     }
-
     storeLatestPoseSnapshot(state, poses);
     ++state.posePollFrames;
     return appendRecordingFrameIfDue(state, poses, now);

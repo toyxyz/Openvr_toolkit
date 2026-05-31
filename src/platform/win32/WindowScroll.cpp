@@ -3,6 +3,11 @@
 #include <windowsx.h>
 
 #include "platform/win32/AppState.h"
+#include "platform/win32/MappingActorLayout.h"
+#include "platform/win32/MappingNameEditor.h"
+#include "platform/win32/MappingPanelLayout.h"
+#include "platform/win32/ProfileEditor.h"
+#include "platform/win32/ProfilePanelLayout.h"
 #include "platform/win32/WindowLayout.h"
 #include "platform/win32/WindowStateAccess.h"
 
@@ -25,6 +30,46 @@ bool handleMainWindowMouseWheel(HWND hwnd, WPARAM wparam, LPARAM lparam)
     int wheelSteps = wheelDelta / WHEEL_DELTA;
     if (wheelSteps == 0) {
         wheelSteps = wheelDelta > 0 ? 1 : -1;
+    }
+
+    const ProfilePanelControlsLayout profileControls =
+        profileControlsLayoutForPanel(profilePanelLayoutForClient(state, clientWidth, clientHeight));
+    if (state->profilePanelVisible && profileControls.valid && PtInRect(&profileControls.tableRect, point)) {
+        state->profileScrollOffset -= wheelSteps * 3;
+        state->profileScrollOffset = clampProfileScrollOffset(
+            state->profileScrollOffset,
+            profileControls.visibleRowCount
+        );
+        updateProfileEditorLayout(hwnd, *state);
+        InvalidateRect(hwnd, &profileControls.tableRect, FALSE);
+        return true;
+    }
+
+    const MappingPanelControlsLayout mappingControls =
+        mappingControlsLayoutForPanel(profilePanelLayoutForClient(state, clientWidth, clientHeight));
+    if (state->mappingPanelVisible && mappingControls.valid && PtInRect(&mappingControls.tableRect, point)) {
+        state->mappingScrollOffset -= wheelSteps * 3;
+        state->mappingScrollOffset = clampMappingScrollOffset(
+            state->mappingScrollOffset,
+            mappingControls.visibleRowCount
+        );
+        state->mappingDropdownSlot = -1;
+        state->mappingProfileDropdownOpen = false;
+        state->mappingPresetDropdownOpen = false;
+        updateMappingNameEditorLayout(hwnd, *state);
+        const ProfilePanelLayout panelLayout = profilePanelLayoutForClient(state, clientWidth, clientHeight);
+        InvalidateRect(hwnd, &panelLayout.panelRect, FALSE);
+        return true;
+    }
+    if (state->mappingPanelVisible && mappingControls.valid && PtInRect(&mappingControls.actorListRect, point)) {
+        state->mappingActorScrollOffset -= wheelSteps * 3;
+        state->mappingActorScrollOffset = clampMappingActorScrollOffset(
+            state->mappingActorScrollOffset,
+            state->mappingActors.size(),
+            visibleMappingActorRowCount(mappingControls)
+        );
+        InvalidateRect(hwnd, &mappingControls.actorListRect, FALSE);
+        return true;
     }
 
     const DeviceListLayout deviceListLayout = deviceListLayoutForClient(state, clientWidth, clientHeight);

@@ -66,6 +66,18 @@ ViewportSettings parseViewportSettingsConfig(std::istream& input, ViewportSettin
             settings.markerColor.g = intValue;
         } else if (key == "marker_b" && parseIntConfigValue(value, intValue)) {
             settings.markerColor.b = intValue;
+        } else if (key == "body_r" && parseIntConfigValue(value, intValue)) {
+            settings.bodyColor.r = intValue;
+        } else if (key == "body_g" && parseIntConfigValue(value, intValue)) {
+            settings.bodyColor.g = intValue;
+        } else if (key == "body_b" && parseIntConfigValue(value, intValue)) {
+            settings.bodyColor.b = intValue;
+        } else if (key == "skeleton_type") {
+            if (value == "box") {
+                settings.skeletonDisplayType = SkeletonDisplayType::Box;
+            } else if (value == "line") {
+                settings.skeletonDisplayType = SkeletonDisplayType::Line;
+            }
         } else if (key == "outline_multiplier" && parseFloatConfigValue(value, floatValue) && std::isfinite(floatValue)) {
             settings.outlineMultiplier = floatValue;
         } else if (key == "grid_size" && parseFloatConfigValue(value, floatValue) && std::isfinite(floatValue)) {

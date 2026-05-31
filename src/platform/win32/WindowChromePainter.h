@@ -8,6 +8,7 @@
 namespace ovtr::win32 {
 
 struct AppDebugUiState;
+struct AppProfileState;
 struct AppTopBarState;
 struct AppWindowState;
 
@@ -20,7 +21,23 @@ void paintDeviceRailAndSplitter(
     int clientHeight,
     int contentBottom
 );
+void paintProfileRailAndPanel(
+    HDC drawDc,
+    HFONT font,
+    const AppProfileState& state,
+    int clientWidth,
+    int clientHeight,
+    int contentBottom
+);
 void paintDeviceRailAndSplitter(
+    HDC drawDc,
+    HFONT font,
+    AppWindowState& state,
+    int clientWidth,
+    int clientHeight,
+    int contentBottom
+);
+void paintProfileRailAndPanel(
     HDC drawDc,
     HFONT font,
     AppWindowState& state,

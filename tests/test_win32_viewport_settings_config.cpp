@@ -24,6 +24,11 @@ void testWin32ViewportSettingsConfig()
     require(defaults.renderModelMaterialColor.b == 255, "default render model material b");
     require(defaults.fingerBoxColor.g == 230, "default finger box g");
     require(defaults.markerColor.r == 255, "default marker color r");
+    require(defaults.bodyColor.r == 255, "default body color r");
+    require(
+        defaults.skeletonDisplayType == ovtr::win32::SkeletonDisplayType::Box,
+        "default skeleton display box"
+    );
     require(win32ConfigNearlyEqual(defaults.gridSize, 5.0f), "default grid size");
     require(win32ConfigNearlyEqual(defaults.gridCellDensity, 2.0f), "default grid density");
     require(win32ConfigNearlyEqual(defaults.markerSize, 0.10f), "default marker size");
@@ -37,6 +42,8 @@ void testWin32ViewportSettingsConfig()
     settings.renderModelMaterialColor = {300, 24, -1};
     settings.fingerBoxColor = {-2, 512, 33};
     settings.markerColor = {300, -1, 44};
+    settings.bodyColor = {-20, 140, 333};
+    settings.skeletonDisplayType = ovtr::win32::SkeletonDisplayType::Box;
     settings.outlineMultiplier = 12.0f;
     settings.gridSize = 100.0f;
     settings.gridCellDensity = 0.1f;
@@ -80,6 +87,16 @@ void testWin32ViewportSettingsConfig()
             clampedSettings.markerColor.b == 44,
         "clamp marker color"
     );
+    require(
+        clampedSettings.bodyColor.r == 0 &&
+            clampedSettings.bodyColor.g == 140 &&
+            clampedSettings.bodyColor.b == 255,
+        "clamp body color"
+    );
+    require(
+        clampedSettings.skeletonDisplayType == ovtr::win32::SkeletonDisplayType::Box,
+        "clamp preserves skeleton display type"
+    );
 
     std::istringstream viewportInput(
         "label_r=-5\n"
@@ -89,6 +106,8 @@ void testWin32ViewportSettingsConfig()
         "render_model_material_b=77\n"
         "finger_g=88\n"
         "marker_b=99\n"
+        "body_g=144\n"
+        "skeleton_type=box\n"
         "outline_multiplier=12\n"
         "grid_size=12\n"
         "grid_cell_density=4\n"
@@ -103,6 +122,11 @@ void testWin32ViewportSettingsConfig()
     require(parsedViewport.renderModelMaterialColor.b == 77, "parse render model material b");
     require(parsedViewport.fingerBoxColor.g == 88, "parse finger box g");
     require(parsedViewport.markerColor.b == 99, "parse marker b");
+    require(parsedViewport.bodyColor.g == 144, "parse body color");
+    require(
+        parsedViewport.skeletonDisplayType == ovtr::win32::SkeletonDisplayType::Box,
+        "parse skeleton display type"
+    );
     require(win32ConfigNearlyEqual(parsedViewport.outlineMultiplier, 10.0f), "parse viewport clamps outline");
     require(win32ConfigNearlyEqual(parsedViewport.gridSize, 12.0f), "parse viewport grid size");
     require(win32ConfigNearlyEqual(parsedViewport.gridCellDensity, 4.0f), "parse viewport grid density");
@@ -130,6 +154,14 @@ void testWin32ViewportSettingsConfig()
         "serialize marker color"
     );
     require(
+        serializedViewport.find("body_g=144") != std::string::npos,
+        "serialize body color"
+    );
+    require(
+        serializedViewport.find("skeleton_type=box") != std::string::npos,
+        "serialize skeleton display type"
+    );
+    require(
         serializedViewport.find("grid_size=12.000000") != std::string::npos,
         "serialize grid size"
     );
@@ -151,6 +183,7 @@ void testWin32ViewportSettingsConfig()
     ovtr::win32::setViewportColorSlot(slotSettings, 5, {13, 14, 15});
     ovtr::win32::setViewportColorSlot(slotSettings, 6, {16, 17, 18});
     ovtr::win32::setViewportColorSlot(slotSettings, 7, {19, 20, 21});
+    ovtr::win32::setViewportColorSlot(slotSettings, 8, {22, 23, 24});
     require(
         slotSettings.labelTextColor.r == 0 &&
             slotSettings.labelTextColor.g == 12 &&
@@ -181,6 +214,10 @@ void testWin32ViewportSettingsConfig()
         ovtr::win32::viewportColorSlot(slotSettings, 7).b == 21,
         "viewport color slot reads marker color"
     );
+    require(
+        ovtr::win32::viewportColorSlot(slotSettings, 8).g == 23,
+        "viewport color slot reads body color"
+    );
     slotSettings.outlineMultiplier = 3.5f;
     slotSettings.gridSize = 22.0f;
     slotSettings.gridCellDensity = 3.0f;
@@ -202,6 +239,10 @@ void testWin32ViewportSettingsConfig()
     require(
         defaultColors.markerColor.r == ovtr::win32::ViewportSettings{}.markerColor.r,
         "viewport default color reset restores marker color"
+    );
+    require(
+        defaultColors.bodyColor.b == ovtr::win32::ViewportSettings{}.bodyColor.b,
+        "viewport default color reset restores body color"
     );
     require(
         win32ConfigNearlyEqual(defaultColors.outlineMultiplier, 3.5f),

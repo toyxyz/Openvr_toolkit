@@ -53,6 +53,14 @@ std::string inputErrorMessage(const char* operation, const vr::EVRInputError err
     return std::string(operation) + " failed: EVRInputError " + std::to_string(static_cast<int>(error));
 }
 
+void appendError(std::string& target, const std::string& message)
+{
+    if (!target.empty()) {
+        target += "; ";
+    }
+    target += message;
+}
+
 bool validPoseActionData(const vr::InputPoseActionData_t& poseData) noexcept
 {
     return poseData.bActive && poseData.pose.bDeviceIsConnected && poseData.pose.bPoseIsValid;
@@ -96,7 +104,7 @@ PoseSample makeSkeletalBonePose(
 bool OpenVRProvider::initializeSkeletalInput()
 {
 #ifdef OVTR_HAS_OPENVR_SDK
-    if (skeletalInput_.setupAttempted) {
+    if (skeletalInput_.handlesResolved) {
         return skeletalInput_.available;
     }
     skeletalInput_.setupAttempted = true;
@@ -136,20 +144,9 @@ bool OpenVRProvider::initializeSkeletalInput()
         return false;
     }
 
-    error = input->GetBoneCount(skeletalInput_.leftAction, &skeletalInput_.leftBoneCount);
-    if (error != vr::VRInputError_None) {
-        skeletalInput_.error = inputErrorMessage("GetBoneCount left skeleton", error);
-        return false;
-    }
-    error = input->GetBoneCount(skeletalInput_.rightAction, &skeletalInput_.rightBoneCount);
-    if (error != vr::VRInputError_None) {
-        skeletalInput_.error = inputErrorMessage("GetBoneCount right skeleton", error);
-        return false;
-    }
-    skeletalInput_.available = skeletalInput_.leftBoneCount > 0 || skeletalInput_.rightBoneCount > 0;
-    if (!skeletalInput_.available) {
-        skeletalInput_.error = "SteamVR skeletal actions returned zero bones";
-    }
+    skeletalInput_.handlesResolved = true;
+    skeletalInput_.available = true;
+    skeletalInput_.error.clear();
     return skeletalInput_.available;
 #else
     skeletalInput_.setupAttempted = true;
@@ -161,7 +158,7 @@ bool OpenVRProvider::initializeSkeletalInput()
 void OpenVRProvider::appendSkeletalPoses(PosePollResult& outResult)
 {
 #ifdef OVTR_HAS_OPENVR_SDK
-    if (!skeletalInput_.available) {
+    if (!initializeSkeletalInput()) {
         return;
     }
 
@@ -179,23 +176,43 @@ void OpenVRProvider::appendSkeletalPoses(PosePollResult& outResult)
         skeletalInput_.error = inputErrorMessage("UpdateActionState", updateError);
         return;
     }
-    skeletalInput_.error.clear();
+    std::string pollError;
 
-    const auto appendHand = [&](const SkeletalHandSide side, const std::uint64_t action, const std::uint32_t count) {
+    const auto ensureBoneCount = [&](const char* label, const std::uint64_t action, std::uint32_t& count) {
+        if (action == 0) {
+            return false;
+        }
+        if (count > 0) {
+            return true;
+        }
+        const vr::EVRInputError countError = input->GetBoneCount(action, &count);
+        if (countError != vr::VRInputError_None) {
+            appendError(pollError, inputErrorMessage((std::string("GetBoneCount ") + label).c_str(), countError));
+            return false;
+        }
+        return count > 0;
+    };
+
+    const auto appendHand = [&](const SkeletalHandSide side, const char* label, const std::uint64_t action, std::uint32_t& count) {
+        if (!ensureBoneCount(label, action, count)) {
+            return false;
+        }
         const std::uint32_t boneCount = count < kSkeletalHandBoneCount ? count : kSkeletalHandBoneCount;
-        if (action == 0 || boneCount == 0) {
-            return;
+        if (boneCount == 0) {
+            appendError(pollError, std::string(label) + " skeleton returned zero bones");
+            return false;
         }
 
+        const std::size_t poseCountBefore = outResult.poses.size();
         vr::InputSkeletalActionData_t actionData{};
         const vr::EVRInputError actionError =
             input->GetSkeletalActionData(action, &actionData, sizeof(actionData));
         if (actionError != vr::VRInputError_None) {
-            skeletalInput_.error = inputErrorMessage("GetSkeletalActionData", actionError);
-            return;
+            appendError(pollError, inputErrorMessage((std::string("GetSkeletalActionData ") + label).c_str(), actionError));
+            return false;
         }
         if (!actionData.bActive) {
-            return;
+            return false;
         }
 
         vr::InputPoseActionData_t poseData{};
@@ -208,11 +225,11 @@ void OpenVRProvider::appendSkeletalPoses(PosePollResult& outResult)
                 vr::k_ulInvalidInputValueHandle
             );
         if (poseError != vr::VRInputError_None) {
-            skeletalInput_.error = inputErrorMessage("GetPoseActionDataRelativeToNow", poseError);
-            return;
+            appendError(pollError, inputErrorMessage((std::string("GetPoseActionDataRelativeToNow ") + label).c_str(), poseError));
+            return false;
         }
         if (!validPoseActionData(poseData)) {
-            return;
+            return false;
         }
 
         std::vector<vr::VRBoneTransform_t> bones(boneCount);
@@ -224,8 +241,8 @@ void OpenVRProvider::appendSkeletalPoses(PosePollResult& outResult)
                 boneCount
             );
         if (boneError != vr::VRInputError_None) {
-            skeletalInput_.error = inputErrorMessage("GetSkeletalBoneData", boneError);
-            return;
+            appendError(pollError, inputErrorMessage((std::string("GetSkeletalBoneData ") + label).c_str(), boneError));
+            return false;
         }
 
         const PoseSample rootPose = openvr_provider_detail::makePoseSample(0, poseData.pose);
@@ -235,10 +252,15 @@ void OpenVRProvider::appendSkeletalPoses(PosePollResult& outResult)
             }
             outResult.poses.push_back(makeSkeletalBonePose(rootPose, side, i, bones[i]));
         }
+        return outResult.poses.size() > poseCountBefore;
     };
 
-    appendHand(SkeletalHandSide::Left, skeletalInput_.leftAction, skeletalInput_.leftBoneCount);
-    appendHand(SkeletalHandSide::Right, skeletalInput_.rightAction, skeletalInput_.rightBoneCount);
+    const bool leftOk = appendHand(SkeletalHandSide::Left, "left skeleton", skeletalInput_.leftAction, skeletalInput_.leftBoneCount);
+    const bool rightOk = appendHand(SkeletalHandSide::Right, "right skeleton", skeletalInput_.rightAction, skeletalInput_.rightBoneCount);
+    skeletalInput_.leftAvailable = skeletalInput_.leftBoneCount > 0;
+    skeletalInput_.rightAvailable = skeletalInput_.rightBoneCount > 0;
+    skeletalInput_.available = skeletalInput_.leftAvailable || skeletalInput_.rightAvailable;
+    skeletalInput_.error = (leftOk || rightOk || skeletalInput_.available) ? std::string{} : pollError;
 #else
     (void)outResult;
 #endif

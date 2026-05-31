@@ -75,6 +75,10 @@ bool readViewportColorDialogControls(HWND hwnd, ViewportColorDialogState& dialog
         return false;
     }
     dialog.workingSettings.markerSize = markerSize;
+
+    const LRESULT skeletonType = SendMessageW(dialog.controls.skeletonTypeCombo, CB_GETCURSEL, 0, 0);
+    dialog.workingSettings.skeletonDisplayType =
+        skeletonType == 1 ? SkeletonDisplayType::Box : SkeletonDisplayType::Line;
     return true;
 }
 
@@ -91,6 +95,12 @@ void updateViewportColorDialogControls(ViewportColorDialogState& dialog)
     setEditText(dialog.controls.gridSizeEdit, formatFloatText(dialog.workingSettings.gridSize));
     setEditText(dialog.controls.gridDensityEdit, formatFloatText(dialog.workingSettings.gridCellDensity));
     setEditText(dialog.controls.markerSizeEdit, formatFloatText(dialog.workingSettings.markerSize));
+    SendMessageW(
+        dialog.controls.skeletonTypeCombo,
+        CB_SETCURSEL,
+        dialog.workingSettings.skeletonDisplayType == SkeletonDisplayType::Box ? 1 : 0,
+        0
+    );
     invalidateColorSwatches(dialog.controls);
 }
 

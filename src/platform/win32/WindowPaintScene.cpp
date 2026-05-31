@@ -65,6 +65,14 @@ void paintWindowScene(
             clientHeight,
             contentBottom
         );
+        paintProfileRailAndPanel(
+            drawDc,
+            fonts.statusFont(),
+            *state,
+            clientWidth,
+            clientHeight,
+            contentBottom
+        );
         drawViewportControlBar(
             drawDc,
             fonts.statusFont(),

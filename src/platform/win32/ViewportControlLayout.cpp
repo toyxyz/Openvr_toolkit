@@ -18,13 +18,32 @@ ViewportControlLayout viewportControlLayoutForClient(
     const int clientHeight
 ) noexcept
 {
+    return viewportControlLayoutForClient(
+        leftPanelWidth,
+        contentBottom,
+        showAnimationControls,
+        clientWidth,
+        clientHeight,
+        0
+    );
+}
+
+ViewportControlLayout viewportControlLayoutForClient(
+    const int leftPanelWidth,
+    const int contentBottom,
+    const bool showAnimationControls,
+    const int clientWidth,
+    const int clientHeight,
+    const int rightReservedWidth
+) noexcept
+{
     ViewportControlLayout layout;
     if (clientWidth <= 0 || clientHeight <= 0) {
         return layout;
     }
 
     const int left = leftPanelWidth + kViewportLayoutSplitterWidth;
-    const int right = clientWidth;
+    const int right = clientWidth - rightReservedWidth;
     const int availableWidth = right - left;
     const int availableHeight = contentBottom - kViewportLayoutTopBarHeight;
     const int controlHeight = kViewportControlBarHeight +
@@ -96,11 +115,23 @@ RECT viewportRenderRectForClient(
     const int clientWidth
 ) noexcept
 {
+    return viewportRenderRectForClient(leftPanelWidth, contentBottom, controls, clientWidth, 0);
+}
+
+RECT viewportRenderRectForClient(
+    const int leftPanelWidth,
+    const int contentBottom,
+    const ViewportControlLayout& controls,
+    const int clientWidth,
+    const int rightReservedWidth
+) noexcept
+{
     const int left = leftPanelWidth + kViewportLayoutSplitterWidth;
+    const int right = clientWidth - rightReservedWidth;
     const int bottom = controls.animationValid
         ? controls.animationBarRect.top
         : (controls.valid ? controls.barRect.top : contentBottom);
-    return RECT{left, kViewportLayoutTopBarHeight, clientWidth, bottom};
+    return RECT{left, kViewportLayoutTopBarHeight, right, bottom};
 }
 
 } // namespace ovtr::win32

@@ -22,6 +22,69 @@ RECT deviceToggleButtonRectForClient(
     return deviceToggleButtonRectForClient(contentBottom, clientWidth, clientHeight);
 }
 
+RECT profileToggleButtonRectForClient(
+    const AppWindowState* state,
+    const int clientWidth,
+    const int clientHeight
+)
+{
+    if (!state || clientWidth <= 0 || clientHeight <= 0) {
+        return RECT{0, 0, 0, 0};
+    }
+
+    return profileToggleButtonRectForClient(
+        leftPanelContentBottomForClient(state, clientHeight),
+        clientWidth,
+        clientHeight
+    );
+}
+
+RECT mappingToggleButtonRectForClient(
+    const AppWindowState* state,
+    const int clientWidth,
+    const int clientHeight
+)
+{
+    if (!state || clientWidth <= 0 || clientHeight <= 0) {
+        return RECT{0, 0, 0, 0};
+    }
+
+    return mappingToggleButtonRectForClient(
+        leftPanelContentBottomForClient(state, clientHeight),
+        clientWidth,
+        clientHeight
+    );
+}
+
+ProfilePanelLayout profilePanelLayoutForClient(
+    const AppWindowState* state,
+    const int clientWidth,
+    const int clientHeight
+)
+{
+    if (!state) {
+        return {};
+    }
+
+    return profilePanelLayoutForClient(
+        state->profilePanelVisible || state->mappingPanelVisible,
+        state->profilePanelWidth > 0 ? state->profilePanelWidth : defaultProfilePanelWidthForClient(clientWidth),
+        leftPanelContentBottomForClient(state, clientHeight),
+        clientWidth,
+        clientHeight
+    );
+}
+
+RECT profileSplitterRectForClient(
+    const AppWindowState* state,
+    const int clientWidth,
+    const int clientHeight
+)
+{
+    const ProfilePanelLayout layout = profilePanelLayoutForClient(state, clientWidth, clientHeight);
+    return layout.valid ? layout.splitterRect : RECT{0, 0, 0, 0};
+}
+
 RECT splitterRectForClient(
     const AppWindowState* state,
     const int clientWidth,
@@ -153,6 +216,15 @@ int leftPanelWidthForClient(const AppWindowState* state, const int clientWidth)
     return leftPanelWidthForClient(
         !state || state->devicePanelVisible,
         requestedWidth,
+        clientWidth
+    );
+}
+
+int rightProfileAreaWidthForClient(const AppWindowState* state, const int clientWidth)
+{
+    return rightProfileAreaWidthForClient(
+        state && (state->profilePanelVisible || state->mappingPanelVisible),
+        state && state->profilePanelWidth > 0 ? state->profilePanelWidth : defaultProfilePanelWidthForClient(clientWidth),
         clientWidth
     );
 }

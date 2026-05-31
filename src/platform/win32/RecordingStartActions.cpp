@@ -4,6 +4,7 @@
 #include "platform/win32/AppLog.h"
 #include "platform/win32/ImportedSceneActions.h"
 #include "platform/win32/RecordingStartPlan.h"
+#include "platform/win32/SkeletonRecording.h"
 #include "platform/win32/WindowLayout.h"
 #include "recording/SamplingScheduler.h"
 
@@ -41,6 +42,21 @@ std::string utcTimestampIso()
     return stream.str();
 }
 
+const MappingActor* skeletonRecordingActor(const AppWindowState& state) noexcept
+{
+    for (const MappingActor& actor : state.mappingActors) {
+        if (actor.calibrated && actor.id == state.selectedMappingActorId) {
+            return &actor;
+        }
+    }
+    for (const MappingActor& actor : state.mappingActors) {
+        if (actor.calibrated) {
+            return &actor;
+        }
+    }
+    return nullptr;
+}
+
 } // namespace
 
 void startRecordingNow(HWND hwnd, AppWindowState& state)
@@ -65,17 +81,25 @@ void startRecordingNow(HWND hwnd, AppWindowState& state)
         state.recordingDroppedFrames = 0;
         state.recordingScheduler = ovtr::SamplingScheduler(kTargetViewportFps);
         state.recordingScheduler.reset(state.recordingStart);
+        state.skeletonRecording = SkeletonRecordingClip{};
 
         recordingStarted = state.recorder.start(plan.options);
         if (!recordingStarted) {
             state.recordingError = state.recorder.lastError();
             recordingError = state.recordingError;
+        } else if (const MappingActor* actor = skeletonRecordingActor(state)) {
+            beginSkeletonRecording(state.skeletonRecording, *actor);
         }
     }
 
     appendDebugLog(state, "Starting recording: " + plan.sessionFolder.string());
     if (recordingStarted) {
         appendDebugLog(state, L"Recording started");
+        if (state.skeletonRecording.active) {
+            appendDebugLog(state, L"Skeleton BVH capture started");
+        } else {
+            appendDebugLog(state, L"Skeleton BVH capture skipped: no calibrated Mapping actor");
+        }
         startImportedGlbPlaybackForRecording(hwnd, state);
     } else {
         appendDebugLog(state, "Recording start failed: " + recordingError);

@@ -34,6 +34,10 @@ std::string serializeViewportSettingsConfig(ViewportSettings settings)
            << "marker_r=" << settings.markerColor.r << "\n"
            << "marker_g=" << settings.markerColor.g << "\n"
            << "marker_b=" << settings.markerColor.b << "\n"
+           << "body_r=" << settings.bodyColor.r << "\n"
+           << "body_g=" << settings.bodyColor.g << "\n"
+           << "body_b=" << settings.bodyColor.b << "\n"
+           << "skeleton_type=" << (settings.skeletonDisplayType == SkeletonDisplayType::Box ? "box" : "line") << "\n"
            << std::fixed << std::setprecision(6)
            << "outline_multiplier=" << settings.outlineMultiplier << "\n"
            << "grid_size=" << settings.gridSize << "\n"

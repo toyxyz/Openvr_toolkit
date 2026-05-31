@@ -1,0 +1,110 @@
+#include "platform/win32/MappingCalibrationCapture.h"
+
+#include "math/PoseTransform.h"
+#include "platform/win32/AppStateConstants.h"
+#include "platform/win32/MappingCalibrationTargets.h"
+#include "platform/win32/MappingTransformMath.h"
+
+#include <array>
+#include <cstddef>
+#include <set>
+
+namespace ovtr::win32 {
+namespace {
+
+const ovtr::PoseSample* poseForRuntimeIndex(
+    const ovtr::PosePollResult& poses,
+    const std::uint32_t runtimeIndex
+) noexcept {
+    for (const ovtr::PoseSample& pose : poses.poses) {
+        if (pose.runtimeIndex == runtimeIndex) {
+            return &pose;
+        }
+    }
+    return nullptr;
+}
+
+std::wstring slotFailureMessage(const wchar_t* prefix, const int slotIndex)
+{
+    const auto& slots = mappingSlotDefinitions();
+    return std::wstring(prefix) + slots[static_cast<std::size_t>(slotIndex)].label + L".";
+}
+
+MappingCalibrationStatus fail(const std::wstring& message)
+{
+    return MappingCalibrationStatus{false, message};
+}
+
+} // namespace
+
+MappingCalibrationStatus captureMappingActorCalibration(
+    MappingActor& actor,
+    const std::array<std::uint32_t, kMappingSlotCount>& mappingRuntimeIndices,
+    const ovtr::PosePollResult& poses,
+    const bool originEnabled,
+    const std::array<float, 3>& originOffset,
+    const std::array<float, 3>& originRotationDegrees,
+    const float armSoftIkStrength,
+    const float legSoftIkStrength
+) {
+    std::set<std::uint32_t> usedRuntimeIndices;
+    for (int slot = 0; slot < kMappingSlotCount; ++slot) {
+        const std::uint32_t runtimeIndex = mappingRuntimeIndices[static_cast<std::size_t>(slot)];
+        if (runtimeIndex == kNoSelectedRuntimeIndex) {
+            return fail(slotFailureMessage(L"Mapping slot is None: ", slot));
+        }
+        if (!usedRuntimeIndices.insert(runtimeIndex).second) {
+            return fail(slotFailureMessage(L"Mapping slot duplicates a device: ", slot));
+        }
+        const ovtr::PoseSample* pose = poseForRuntimeIndex(poses, runtimeIndex);
+        if (!pose || (pose->flags & ovtr::PoseFlagPoseValid) == 0) {
+            return fail(slotFailureMessage(L"Mapping slot has no valid pose: ", slot));
+        }
+    }
+
+    const auto restTargets = mappingCalibrationRestTargets(actor.profile);
+    std::array<MappingTransform, kMappingSlotCount> offsets{};
+    std::array<MappingVirtualTarget, kMappingSlotCount> liveTargets{};
+    for (int slot = 0; slot < kMappingSlotCount; ++slot) {
+        const std::size_t index = static_cast<std::size_t>(slot);
+        const ovtr::PoseSample* pose = poseForRuntimeIndex(
+            poses,
+            mappingRuntimeIndices[index]
+        );
+        const ovtr::PoseSample displayPose = ovtr::applyOriginToPose(
+            *pose,
+            originEnabled,
+            originOffset,
+            originRotationDegrees
+        );
+        const MappingTransform tracker = mappingTransformFromPose(displayPose);
+        offsets[index] = composeMappingTransforms(
+            inverseMappingTransform(tracker),
+            restTargets[index]
+        );
+        liveTargets[index] = MappingVirtualTarget{
+            mappingRoleForSlot(slot),
+            restTargets[index],
+            tracker,
+            true
+        };
+    }
+
+    actor.calibrated = true;
+    actor.calibration.runtimeIndices = mappingRuntimeIndices;
+    actor.calibration.trackerToTarget = offsets;
+    actor.calibration.armSoftIkStrength = armSoftIkStrength;
+    actor.calibration.legSoftIkStrength = legSoftIkStrength;
+    actor.liveJoints = buildProfileSkeletonJoints(actor.profile);
+    actor.liveJointsValid = true;
+    actor.liveTrackingLost = false;
+    actor.liveLimited = false;
+    actor.liveVirtualTargets = liveTargets;
+    actor.liveDebugPoles = {};
+    actor.livePoleDirections = {};
+    actor.livePoleDirectionValid = {};
+    actor.liveFingerJointsValid = {};
+    return MappingCalibrationStatus{true, L"Calibration complete."};
+}
+
+} // namespace ovtr::win32

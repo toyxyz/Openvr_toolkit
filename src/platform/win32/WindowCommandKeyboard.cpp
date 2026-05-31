@@ -29,6 +29,31 @@ bool handleDeviceLabelKeyDown(HWND hwnd, AppWindowState* state, const WPARAM wpa
     return true;
 }
 
+bool handleTrackedDeviceVisibilityKeyDown(HWND hwnd, AppWindowState* state, const WPARAM wparam)
+{
+    if (wparam != VK_F1) {
+        return false;
+    }
+    if (state) {
+        state->trackedDevicesVisible = !state->trackedDevicesVisible;
+        refreshPoseAndViewport(hwnd);
+    }
+    return true;
+}
+
+bool handleQuadViewKeyDown(HWND hwnd, AppWindowState* state, const WPARAM wparam)
+{
+    if (wparam != 'Q') {
+        return false;
+    }
+    if (state) {
+        toggleQuadView(*state);
+        refreshPoseAndViewport(hwnd);
+        InvalidateRect(hwnd, nullptr, FALSE);
+    }
+    return true;
+}
+
 bool handleRecordingKeyDown(HWND hwnd, const WPARAM wparam)
 {
     if (wparam != VK_SPACE) {

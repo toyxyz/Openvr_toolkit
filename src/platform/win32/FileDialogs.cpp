@@ -79,4 +79,32 @@ bool chooseImportGlbFile(
     return !outPath.empty();
 }
 
+bool chooseProfileFile(
+    HWND owner,
+    const std::filesystem::path& initialDirectory,
+    std::filesystem::path& outPath
+)
+{
+    std::array<wchar_t, MAX_PATH> fileName{};
+    const std::wstring initialDirectoryText = initialDirectory.wstring();
+
+    OPENFILENAMEW openFile{};
+    openFile.lStructSize = sizeof(openFile);
+    openFile.hwndOwner = owner;
+    openFile.lpstrFilter = L"Profile (*.profile)\0*.profile\0All Files (*.*)\0*.*\0";
+    openFile.lpstrFile = fileName.data();
+    openFile.nMaxFile = static_cast<DWORD>(fileName.size());
+    openFile.lpstrInitialDir = initialDirectoryText.empty() ? nullptr : initialDirectoryText.c_str();
+    openFile.lpstrTitle = L"Load Profile";
+    openFile.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+    openFile.lpstrDefExt = L"profile";
+
+    if (!GetOpenFileNameW(&openFile)) {
+        return false;
+    }
+
+    outPath = std::filesystem::path(fileName.data());
+    return !outPath.empty();
+}
+
 } // namespace ovtr::win32

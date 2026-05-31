@@ -31,7 +31,10 @@ public:
 private:
     struct SkeletalInputState {
         bool setupAttempted = false;
+        bool handlesResolved = false;
         bool available = false;
+        bool leftAvailable = false;
+        bool rightAvailable = false;
         std::uint64_t actionSet = 0;
         std::uint64_t leftAction = 0;
         std::uint64_t rightAction = 0;

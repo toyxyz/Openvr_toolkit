@@ -70,4 +70,12 @@ struct AppViewportState {
     ViewportMatcapShaderState matcapShader;
 };
 
+inline void toggleQuadView(AppViewportState& state) noexcept
+{
+    state.quadViewEnabled = !state.quadViewEnabled;
+    state.orbitDragging = false;
+    state.panDragging = false;
+    state.activeDragPane = ViewportPaneKind::None;
+}
+
 } // namespace ovtr::win32

@@ -89,6 +89,20 @@ void testWin32ViewportMath()
     );
 
     ovtr::win32::AppViewportState viewportState;
+    viewportState.orbitDragging = true;
+    viewportState.panDragging = true;
+    viewportState.activeDragPane = ovtr::win32::ViewportPaneKind::Front;
+    ovtr::win32::toggleQuadView(viewportState);
+    require(viewportState.quadViewEnabled, "quad view toggles on");
+    require(!viewportState.orbitDragging, "quad toggle clears orbit drag");
+    require(!viewportState.panDragging, "quad toggle clears pan drag");
+    require(
+        viewportState.activeDragPane == ovtr::win32::ViewportPaneKind::None,
+        "quad toggle clears active drag pane"
+    );
+    ovtr::win32::toggleQuadView(viewportState);
+    require(!viewportState.quadViewEnabled, "quad view toggles off");
+
     viewportState.cameraYawDegrees = 0.0f;
     viewportState.cameraPitchDegrees = 0.0f;
     viewportState.cameraDistance = 10.0f;

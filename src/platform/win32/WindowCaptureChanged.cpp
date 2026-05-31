@@ -23,6 +23,10 @@ void handleMainWindowCaptureChanged(HWND hwnd, LPARAM lparam)
         state->splitterDragging = false;
         InvalidateRect(hwnd, nullptr, FALSE);
     }
+    if (state && state->profileSplitterDragging && reinterpret_cast<HWND>(lparam) != hwnd) {
+        state->profileSplitterDragging = false;
+        InvalidateRect(hwnd, nullptr, FALSE);
+    }
 }
 
 } // namespace ovtr::win32

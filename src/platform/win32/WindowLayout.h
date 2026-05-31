@@ -18,6 +18,10 @@ struct AppWindowState;
 
 int activeDebugMonitorHeight(const AppWindowState* state, int clientHeight);
 RECT deviceToggleButtonRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
+RECT profileToggleButtonRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
+RECT mappingToggleButtonRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
+ProfilePanelLayout profilePanelLayoutForClient(const AppWindowState* state, int clientWidth, int clientHeight);
+RECT profileSplitterRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 RECT splitterRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 int leftPanelContentBottomForClient(const AppWindowState* state, int clientHeight);
 ViewportControlLayout viewportControlLayoutForClient(
@@ -71,6 +75,7 @@ std::uint32_t markerIdFromListPoint(
 );
 
 int leftPanelWidthForClient(const AppWindowState* state, int clientWidth);
+int rightProfileAreaWidthForClient(const AppWindowState* state, int clientWidth);
 void updateOriginEditorLayout(HWND hwnd, AppWindowState& state);
 void layoutChildWindows(HWND hwnd);
 void invalidateWindowLayout(HWND hwnd);

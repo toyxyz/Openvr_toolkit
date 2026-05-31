@@ -12,5 +12,7 @@ inline constexpr UINT kDeviceContextMenuSetNameId = 1002;
 inline constexpr UINT kDeviceContextMenuAddMarkerId = 1003;
 inline constexpr UINT kMarkerContextMenuRenameId = 1101;
 inline constexpr UINT kMarkerContextMenuDeleteId = 1102;
+inline constexpr UINT kMappingActorContextMenuResetId = 1201;
+inline constexpr UINT kMappingActorContextMenuDeleteId = 1202;
 
 } // namespace ovtr::win32

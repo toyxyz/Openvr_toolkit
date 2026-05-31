@@ -5,7 +5,38 @@ namespace ovtr::win32 {
 
 void createViewportColorFooterControls(HWND hwnd, HFONT font, ViewportColorDialogControls& controls)
 {
-    constexpr int yOffset = 76;
+    constexpr int yOffset = 152;
+    HWND skeletonTypeLabel = CreateWindowExW(
+        0,
+        L"STATIC",
+        L"Skeleton type",
+        WS_CHILD | WS_VISIBLE,
+        18,
+        234 + yOffset,
+        180,
+        20,
+        hwnd,
+        nullptr,
+        nullptr,
+        nullptr
+    );
+    controls.skeletonTypeCombo = CreateWindowExW(
+        0,
+        L"COMBOBOX",
+        L"",
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST,
+        210,
+        230 + yOffset,
+        120,
+        120,
+        hwnd,
+        reinterpret_cast<HMENU>(kViewportSkeletonTypeComboControlId),
+        nullptr,
+        nullptr
+    );
+    SendMessageW(controls.skeletonTypeCombo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(L"line"));
+    SendMessageW(controls.skeletonTypeCombo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(L"box"));
+
     HWND outlineLabel = CreateWindowExW(
         0,
         L"STATIC",
@@ -218,6 +249,7 @@ void createViewportColorFooterControls(HWND hwnd, HFONT font, ViewportColorDialo
     );
 
     HWND footerControls[] = {
+        skeletonTypeLabel, controls.skeletonTypeCombo,
         outlineLabel, controls.outlineEdit, outlineHint,
         gridSizeLabel, controls.gridSizeEdit, gridSizeHint,
         gridDensityLabel, controls.gridDensityEdit, gridDensityHint,

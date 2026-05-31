@@ -7,6 +7,8 @@
 #include "platform/win32/RecordingExportMessages.h"
 #include "platform/win32/RecordingExportPlan.h"
 #include "platform/win32/RecordingStateQueries.h"
+#include "platform/win32/SkeletonBvhExporter.h"
+#include "platform/win32/SkeletonRecording.h"
 #include "platform/win32/WindowLayout.h"
 #include "platform/win32/WindowStateAccess.h"
 
@@ -39,6 +41,7 @@ void exportCurrentSession(HWND hwnd, const ExportFormat format)
         state->sessionName
     );
     appendDebugLog(*state, recordingExportStartLogMessage(format));
+    const bool shouldExportSkeletonBvh = hasSkeletonRecordingFrames(state->skeletonRecording);
     const ovtr::ExportResult result = exportRecordingSession(
         plan.session,
         format,
@@ -48,6 +51,12 @@ void exportCurrentSession(HWND hwnd, const ExportFormat format)
     );
 
     if (result.success) {
+        std::string bvhError;
+        const std::filesystem::path bvhPath =
+            plan.exportDirectory / (plan.session.sessionId + "_skeleton.bvh");
+        const bool bvhSucceeded = shouldExportSkeletonBvh &&
+            exportSkeletonRecordingToBvh(state->skeletonRecording, bvhPath, bvhError);
+
         std::string cleanupMessage;
         const bool cleanupSucceeded = deleteTemporarySessionFolder(
             state->currentSessionFolder,
@@ -63,6 +72,14 @@ void exportCurrentSession(HWND hwnd, const ExportFormat format)
         state->exportStatusMessage = messages.statusMessage;
         for (const std::string& message : messages.logMessages) {
             appendDebugLog(*state, message);
+        }
+        if (bvhSucceeded) {
+            appendDebugLog(*state, "Skeleton BVH export saved: " + bvhPath.string());
+        } else if (shouldExportSkeletonBvh) {
+            appendDebugLog(*state, "Skeleton BVH export failed: " + bvhError);
+            state->exportStatusMessage += " Skeleton BVH export failed.";
+        } else {
+            appendDebugLog(*state, "Skeleton BVH export skipped: no skeleton frames");
         }
     } else {
         const RecordingExportUiMessages messages = recordingExportFailureUiMessages(format, result.error);

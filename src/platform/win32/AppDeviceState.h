@@ -12,6 +12,7 @@ struct AppDeviceState {
     std::unordered_map<std::string, std::string> deviceCustomNames;
     int deviceListScrollOffset = 0;
     std::uint32_t selectedDeviceRuntimeIndex = kNoSelectedRuntimeIndex;
+    bool trackedDevicesVisible = true;
 };
 
 } // namespace ovtr::win32

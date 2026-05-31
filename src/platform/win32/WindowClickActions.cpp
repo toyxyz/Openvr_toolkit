@@ -2,7 +2,9 @@
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/Layout.h"
+#include "platform/win32/MappingActions.h"
 #include "platform/win32/OriginEditor.h"
+#include "platform/win32/ProfileActions.h"
 #include "platform/win32/SessionEditor.h"
 #include "platform/win32/WindowClickActionSections.h"
 #include "platform/win32/WindowLayout.h"
@@ -17,6 +19,13 @@ bool handleMainWindowDoubleClickAtPoint(
     const POINT point
 )
 {
+    if (handleMappingPanelDoubleClick(hwnd, state, clientWidth, clientHeight, point)) {
+        return true;
+    }
+    if (handleProfilePanelDoubleClick(hwnd, state, clientWidth, clientHeight, point)) {
+        return true;
+    }
+
     const ViewportControlLayout viewportControlLayout =
         viewportControlLayoutForClient(&state, clientWidth, clientHeight);
     if (viewportControlLayout.valid && PtInRect(&viewportControlLayout.sessionBoxRect, point)) {
@@ -54,6 +63,11 @@ bool handleMainWindowLeftClickAtPoint(
     return handleTopBarClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleViewportControlClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleDeviceToggleClick(hwnd, state, clientWidth, clientHeight, point) ||
+        handleProfileToggleClick(hwnd, state, clientWidth, clientHeight, point) ||
+        handleMappingToggleClick(hwnd, state, clientWidth, clientHeight, point) ||
+        handleProfileSplitterClick(hwnd, state, clientWidth, clientHeight, point) ||
+        handleProfilePanelClick(hwnd, state, clientWidth, clientHeight, point) ||
+        handleMappingPanelClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleOriginStepperClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleDebugResizeClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleDeviceSplitterClick(hwnd, state, clientWidth, clientHeight, point) ||

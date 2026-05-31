@@ -8,6 +8,7 @@
 #include "platform/win32/ViewportMarkerRenderer.h"
 #include "platform/win32/ViewportMath.h"
 #include "platform/win32/ViewportOverlayRenderer.h"
+#include "platform/win32/ViewportProfileSkeletonRenderer.h"
 #include "platform/win32/ViewportQuadView.h"
 #include "platform/win32/ViewportSceneRenderer.h"
 #include "platform/win32/WindowStateAccess.h"
@@ -124,6 +125,19 @@ void drawScene3D(AppWindowState& state, const int paneHeight, const CameraView& 
         state.viewportSettings.gridCellDensity
     );
     drawAxes3D();
+    drawProfileSkeletonPreview3D(
+        static_cast<const AppProfileState&>(state),
+        static_cast<const AppDebugUiState&>(state),
+        static_cast<AppViewportState&>(state)
+    );
+    drawMappingActors3D(
+        static_cast<AppProfileState&>(state),
+        static_cast<const AppRuntimeState&>(state),
+        static_cast<const AppOriginState&>(state),
+        static_cast<AppRecordingState&>(state),
+        static_cast<const AppDebugUiState&>(state),
+        static_cast<AppViewportState&>(state)
+    );
     drawTrackedDevices3D(
         static_cast<AppRuntimeState&>(state),
         static_cast<const AppDeviceState&>(state),
@@ -150,6 +164,7 @@ void drawLabels3D(AppWindowState& state)
         return;
     }
     setGlColor(state.viewportSettings.labelTextColor);
+    drawMappingActorLabels3D(static_cast<const AppProfileState&>(state), state.glLabelFontBase.get());
     drawTrackedDeviceLabels3D(state);
     drawSceneMarkerLabels3D(
         static_cast<const AppMarkerState&>(state),

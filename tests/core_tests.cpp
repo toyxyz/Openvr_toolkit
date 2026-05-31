@@ -45,6 +45,11 @@ int main()
         ovtr::test::testWin32ImportedSceneLifecycle();
         ovtr::test::testWin32ImportedScenePlayback();
         ovtr::test::testWin32Layout();
+        ovtr::test::testWin32MappingModel();
+        ovtr::test::testWin32MappingCalibration();
+        ovtr::test::testWin32MappingFingerSolve();
+        ovtr::test::testWin32MappingPanelLayout();
+        ovtr::test::testWin32MappingPanelStateLayout();
         ovtr::test::testWin32MarkerState();
         ovtr::test::testWin32MarkerPoseCaptureAppliesOrigin();
         ovtr::test::testWin32MarkerListLayout();
@@ -53,10 +58,16 @@ int main()
         ovtr::test::testWin32OriginDialogState();
         ovtr::test::testWin32OriginState();
         ovtr::test::testWin32PoseSamplingWorker();
+        ovtr::test::testWin32ProfileLiveEdit();
+        ovtr::test::testWin32ProfileModel();
+        ovtr::test::testWin32ProfilePanelLayout();
+        ovtr::test::testWin32ProfileSerialization();
+        ovtr::test::testWin32ProfileSkeleton();
         ovtr::test::testWin32RecordSettingsConfig();
         ovtr::test::testWin32RecordingActions();
         ovtr::test::testWin32RecordingCleanup();
         ovtr::test::testWin32RuntimeStatus();
+        ovtr::test::testWin32SkeletonBvhExport();
         ovtr::test::testWin32StatusPanel();
         ovtr::test::testWin32String();
         ovtr::test::testWin32ViewportControlLayout();

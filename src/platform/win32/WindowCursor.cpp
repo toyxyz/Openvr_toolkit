@@ -2,6 +2,8 @@
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/Layout.h"
+#include "platform/win32/MappingPanelLayout.h"
+#include "platform/win32/ProfilePanelLayout.h"
 #include "platform/win32/WindowLayout.h"
 #include "platform/win32/WindowStateAccess.h"
 
@@ -76,6 +78,41 @@ bool handleMainWindowSetCursor(HWND hwnd, LPARAM lparam)
     const RECT deviceButtonRect = deviceToggleButtonRectForClient(state, clientWidth, clientHeight);
     if (PtInRect(&deviceButtonRect, point)) {
         return setHandCursor();
+    }
+    const RECT profileButtonRect = profileToggleButtonRectForClient(state, clientWidth, clientHeight);
+    if (PtInRect(&profileButtonRect, point)) {
+        return setHandCursor();
+    }
+    const RECT mappingButtonRect = mappingToggleButtonRectForClient(state, clientWidth, clientHeight);
+    if (PtInRect(&mappingButtonRect, point)) {
+        return setHandCursor();
+    }
+    const ProfilePanelControlsLayout profileControls =
+        profileControlsLayoutForPanel(profilePanelLayoutForClient(state, clientWidth, clientHeight));
+    if (state->profilePanelVisible && profileControls.valid &&
+        (PtInRect(&profileControls.previewButtonRect, point) ||
+         PtInRect(&profileControls.saveButtonRect, point) ||
+         PtInRect(&profileControls.loadButtonRect, point))) {
+        return setHandCursor();
+    }
+    const MappingPanelRowLayout mappingRow = mappingRowLayoutAtPoint(
+        profilePanelLayoutForClient(state, clientWidth, clientHeight),
+        point,
+        state->mappingScrollOffset
+    );
+    if (state->mappingPanelVisible && mappingRow.valid) {
+        return setHandCursor();
+    }
+    const MappingPanelControlsLayout mappingControls =
+        mappingControlsLayoutForPanel(profilePanelLayoutForClient(state, clientWidth, clientHeight));
+    if (state->mappingPanelVisible && mappingControls.valid && PtInRect(&mappingControls.profileValueRect, point)) {
+        return setHandCursor();
+    }
+    const RECT profileSplitterRect = profileSplitterRectForClient(state, clientWidth, clientHeight);
+    if ((state->profilePanelVisible || state->mappingPanelVisible) &&
+        (state->profileSplitterDragging || PtInRect(&profileSplitterRect, point))) {
+        SetCursor(LoadCursor(nullptr, IDC_SIZEWE));
+        return true;
     }
 
     const RECT debugResizeRect = debugResizeRectForClient(state, clientWidth, clientHeight);

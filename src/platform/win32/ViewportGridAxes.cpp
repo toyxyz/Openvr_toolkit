@@ -37,18 +37,20 @@ void drawGroundGrid3D(
 void drawAxes3D()
 {
     constexpr float axisLength = 0.35f;
+    constexpr float axisLift = 0.003f;
 
-    ScopedGlLineWidth lineWidth(1.25f);
+    // Lift the origin axes just above the grid plane to avoid line depth fighting.
+    ScopedGlLineWidth lineWidth(2.5f);
     glBegin(GL_LINES);
-    glColor3f(0.55f, 0.16f, 0.16f);
-    glVertex3f(0.0f, 0.0f, 0.0f);
-    glVertex3f(axisLength, 0.0f, 0.0f);
-    glColor3f(0.18f, 0.55f, 0.22f);
-    glVertex3f(0.0f, 0.0f, 0.0f);
-    glVertex3f(0.0f, axisLength, 0.0f);
-    glColor3f(0.20f, 0.30f, 0.65f);
-    glVertex3f(0.0f, 0.0f, 0.0f);
-    glVertex3f(0.0f, 0.0f, axisLength);
+    glColor3f(0.95f, 0.12f, 0.10f);
+    glVertex3f(0.0f, axisLift, 0.0f);
+    glVertex3f(axisLength, axisLift, 0.0f);
+    glColor3f(0.20f, 0.85f, 0.28f);
+    glVertex3f(0.0f, axisLift, 0.0f);
+    glVertex3f(0.0f, axisLength + axisLift, 0.0f);
+    glColor3f(0.28f, 0.44f, 1.0f);
+    glVertex3f(0.0f, axisLift, 0.0f);
+    glVertex3f(0.0f, axisLift, axisLength);
     glEnd();
 }
 

@@ -1,11 +1,11 @@
 # CONTINUITY.md
 
 ## Snapshot
-- 2026-05-29 [USER] Goal: exclude OpenVR skeletal Aux bones such as `Skeletal_Right_Aux_Index` from finger input and exports.
-- 2026-05-29 [USER] Success criteria: live skeletal polling does not record Aux bones, and export ignores Aux bones even if older recordings contain them.
-- 2026-05-29 [TOOL] Current phase: Aux skeletal exclusion implemented and automated build/test verified.
+- 2026-05-31 [USER] Goal: record calibrated Mapping actor skeleton poses during recording and export them as BVH.
+- 2026-05-31 [USER] Success criteria: recording captures Mixamo-style body/finger joint animation and writes a BVH file after session export.
+- 2026-05-31 [TOOL] Current phase: BVH export implemented for the selected calibrated Mapping actor, with first calibrated actor fallback.
 - 2026-05-28 [CODE] Current architecture: C++20 native Win32/OpenVR tracker recorder with modular `src` areas for app, data, export, import, math, platform, recording, render, ui, util, and vr.
-- 2026-05-29 [TOOL] Last verified state: default/VS2022 app builds and `core_tests` passed after Aux skeletal exclusion.
+- 2026-05-31 [TOOL] Last verified state: VS2022 Debug app/test build and `ctest --preset vs2022 --output-on-failure` passed after skeleton BVH export; Debug exe timestamp 2026-05-31 02:55:35 KST.
 
 ## Invariants / Constraints
 - 2026-05-28 [USER] Code files must stay under 300 physical lines unless explicitly exempted in this ledger.
@@ -57,6 +57,66 @@
   - Rationale: finger boxes should follow root-to-finger bone order instead of appearing as unrelated flat objects.
   - Consequences: GLB/text glTF write node `children`; FBX writes model parent connections; boxes and meshes remain exported.
   - Supersedes: none; refines D011.
+- D013 ACTIVE 2026-05-30 [USER] Mapping actor calibration is runtime-only immediate 11-slot capture.
+  - Rationale: v1 should validate the current Mapping slots and current display-space device poses without adding calibration files or an alignment workflow.
+  - Consequences: calibrated actors snapshot runtime indices at calibration time; Mapping dropdown edits do not retarget them until recalibration.
+  - Supersedes: none.
+- D014 ACTIVE 2026-05-30 [CODE] Profile/Mapping skeleton display convention is +Y up, +Z front, +X anatomical Left, and -X anatomical Right.
+  - Rationale: viewport Front looks from +Z toward origin, while the actor itself faces +Z; anatomical side labels must remain correct in display-space calibration.
+  - Consequences: front-view screen-left is the actor's Right side; calibration targets and profile skeleton tests follow anatomical labels, not screen-side labels.
+  - Supersedes: previous implicit `Left=-X`, `Right=+X` rest-skeleton convention.
+- D015 SUPERSEDED 2026-05-30 [USER] Mapping Arm tracking mode is saved in `.mapping` v2 presets and snapshotted at calibration time.
+  - Rationale: users need FK or IK arm behavior to be an explicit Mapping setup choice.
+  - Consequences: legacy `.mapping` files without `arm_mode` load as FK; changing the dropdown after calibration requires recalibration to affect an actor.
+  - Supersedes: none.
+- D016 ACTIVE 2026-05-30 [USER] Mapping arms use IK-only tracking and FK mode is removed from UI, presets, and calibration snapshots.
+  - Rationale: user requested FK mode deletion from Mapping/Profile-visible lists.
+  - Consequences: new `.mapping` saves omit `arm_mode`; legacy `arm_mode=fk` lines are ignored for load compatibility.
+  - Supersedes: D015.
+- D017 ACTIVE 2026-05-30 [USER] Calibrated Mapping actors use last-valid virtual targets for partially lost trackers.
+  - Rationale: losing one tracker should not freeze the full-body skeleton.
+  - Consequences: actor status can show `tracking lost`, while valid tracker slots continue updating and lost slots hold their last valid target.
+  - Supersedes: previous all-or-nothing live virtual-target build.
+- D018 SUPERSEDED 2026-05-30 [CODE] Mapping limb two-bone IK used fixed Soft IK reach compression near full extension.
+  - Rationale: reduce elbow/knee snapping when hand/foot targets approach or exceed the chain's maximum reach.
+  - Consequences: end joints asymptotically approach max reach with a fixed 6% softness; no UI/config tuning exists yet.
+  - Supersedes: hard max-distance clamping inside `solveTwoBoneIk`.
+- D019 SUPERSEDED 2026-05-30 [USER] Mapping presets exposed separate Arm/Leg Soft IK strengths and snapshotted them at calibration.
+  - Rationale: users need to tune arm and leg IK popping independently, including disabling Soft IK with 0.
+  - Consequences: `.mapping` v2 stores `soft_ik_arm` and `soft_ik_leg`; legacy presets load with the 6% default.
+  - Supersedes: D018.
+- D020 SUPERSEDED 2026-05-30 [USER] Mapping Soft IK strengths are live-tunable runtime controls in the Mapping list.
+  - Rationale: users need immediate visual feedback when changing Soft IK values in the Mapping list.
+  - Consequences: changing Arm/Leg Soft IK rows or loading a preset updates calibrated actors' Soft IK strengths without changing tracker mapping snapshots.
+  - Supersedes: D019.
+- D021 ACTIVE 2026-05-30 [USER] Profile/Mapping body skeleton rendering is controlled by Appearance `Skeleton type` and `Body color`.
+  - Rationale: users need a line/sphere or matcap box skeleton visual style without changing skeleton data.
+  - Consequences: `line` keeps the existing line+sphere topology; `box` renders body joints/bones with the shared render-model matcap texture and Body color tint.
+  - Supersedes: none.
+- D022 ACTIVE 2026-05-30 [USER] Mapping Arm/Leg Soft IK strengths live in a global runtime Filter under Calibrate.
+  - Rationale: user wants Soft IK tuning separated from mapping slot presets and applied immediately to every actor.
+  - Consequences: `.mapping` save/load ignores Soft IK strengths; legacy `soft_ik_*` lines are ignored; live Filter changes sync to all calibrated actors.
+  - Supersedes: D020.
+- D023 ACTIVE 2026-05-30 [USER] Actor fingers are viewport-only Mixamo 4-segment chains driven by existing SteamVR synthetic skeletal poses.
+  - Rationale: user requested Mixamo-style fingers on the actor skeleton while keeping recording/export out of scope.
+  - Consequences: `LeftHand`/`RightHand` are hand roots at the wrist; `Wrist to Middle Finger Tip` drives middle fingertip distance; existing SteamVR skeletal box export path remains unchanged.
+  - Supersedes: none.
+- D024 SUPERSEDED 2026-05-30 [USER] Add Record Settings `Finger type` with `steam vr` and `vmc`, plus VMC UDP port default `39540`.
+  - Rationale: users need to choose whether actor/recording finger motion comes from SteamVR skeletal input or VMC protocol streaming.
+  - Consequences: Record config stores `finger_type` and `vmc_port`; VMC mode starts a UDP receiver and replaces synthetic skeletal finger poses with parsed VMC bone poses.
+  - Supersedes: none.
+- D025 ACTIVE 2026-05-31 [USER] Remove VMC finger streaming and Record Settings `Finger type`; SteamVR skeletal input is the only finger source.
+  - Rationale: VMC finger behavior remained unreliable and user requested its removal.
+  - Consequences: legacy `finger_type`/`vmc_port` config keys are ignored and omitted on next save; VMC OSC/UDP code and tests are no longer built.
+  - Supersedes: D024.
+- D026 ACTIVE 2026-05-31 [USER] Mapping preset v3 embeds the selected Profile.
+  - Rationale: users need Mapping Save/Load to preserve both tracker slot assignments and body Profile measurements.
+  - Consequences: new `.mapping` files include `profile_*` fields; legacy presets without embedded profiles keep loading without changing the current Profile.
+  - Supersedes: none.
+- D027 ACTIVE 2026-05-31 [USER] Export calibrated Mapping actor skeleton recordings as Mixamo-style BVH.
+  - Rationale: users need the solved body skeleton animation alongside GLB/FBX pose exports.
+  - Consequences: BVH rotations are derived from the current position-only live skeleton basis and may need downstream axis tuning per target DCC.
+  - Supersedes: none.
 
 ## State
 
@@ -136,12 +196,88 @@
 - 2026-05-29 [CODE] Added Appearance `Marker color`, persisted it as `marker_r/g/b`, and used it for viewport marker cube fill.
 - 2026-05-29 [CODE] Added marker name labels above viewport markers using the existing device label pass, label color, and F2 visibility toggle.
 - 2026-05-29 [CODE] Excluded OpenVR skeletal Aux bones from live skeletal pose append and export track creation.
+- 2026-05-29 [TOOL] Built VS2022 Release and assembled `toyxyz_openvr_toolkit/` as a deployable root package.
+- 2026-05-29 [CODE] Added a right-side viewport `Profile` rail button and empty toggle panel; default panel state is hidden.
+- 2026-05-29 [CODE] Added editable Profile name/height/body-measurement list, save/load `.profile` files under `profile/`, overwrite prompt, and right-panel width resizing.
+- 2026-05-29 [CODE] Updated Profile defaults to the user-specified `actor_01`/170cm body measurement table and covered all default measurements in tests.
+- 2026-05-29 [CODE] Moved Profile default initialization into `BodyProfile::BodyProfile()` and added `AppProfileState` default-profile coverage.
+- 2026-05-29 [CODE] Moved Profile Save/Load buttons directly below the field list and drew the field list in a boxed area.
+- 2026-05-29 [CODE] Added Profile panel layout coverage for the compact list box and adjacent buttons.
+- 2026-05-29 [CODE] Lifted viewport origin axes slightly above the grid plane and brightened/thickened the axis lines.
+- 2026-05-29 [CODE] Removed duplicate Profile `Total Height` measurement, leaving `Height` as the only total-height field.
+- 2026-05-29 [CODE] Added Profile `Preview` toggle above Save/Load with active button styling and runtime-only state.
+- 2026-05-29 [CODE] Added live Profile numeric edit updates plus edit-start snapshot restore on Escape.
+- 2026-05-29 [CODE] Added Mixamo-style Profile skeleton coordinate generation and depth-tested OpenGL line/sphere viewport rendering.
+- 2026-05-29 [CODE] Added Profile v2 `Ankle Height` and `Toe Tip Height` measurements with legacy v1 file load compatibility defaults.
+- 2026-05-29 [CODE] Updated default lower-body profile to Hip-to-Knee 42cm, Knee-to-Ankle 40cm, Ankle Height 8cm, and Toe Tip Height 2cm.
+- 2026-05-29 [CODE] Updated Profile Preview skeleton foot coordinates so default ankles are at Y=0.08m and toe tips at Y=0.02m.
+- 2026-05-29 [CODE] Changed Profile `Height` to a computed display-only value from Floor-to-Pelvis, Pelvis-to-Neck, and Neck-to-Head-Top measurements; `.profile` v3 omits `height_cm`.
+- 2026-05-29 [CODE] Added Profile field-list scrolling for short windows, including visible-row layout, scroll offset state, scrollbar painting, mouse-wheel handling, and scrolled editor hit-testing.
+- 2026-05-30 [CODE] Added right-rail `Mapping` toggle below `Profile`, with mutually exclusive Profile/Mapping panels sharing the right splitter width.
+- 2026-05-30 [CODE] Added Mapping row definitions, scrollable two-column panel layout, custom device dropdown painting/hit-testing, and runtime mapping selections from device-list rows.
+- 2026-05-30 [CODE] Added a top `Profile` selector box to the Mapping panel, enumerating saved `.profile` files and loading the selected profile into the current Profile state.
+- 2026-05-30 [CODE] Updated Mapping device dropdown text to prefer the device custom name alone and otherwise show the serial number.
+- 2026-05-30 [CODE] Added `None` as the first Mapping device dropdown option; default slots display `None` and selecting it clears the mapping.
+- 2026-05-30 [CODE] Added Mapping preset save/load controls below the Mapping list, saving `.mapping` files under `mapping/` and loading by matching saved device serials to currently connected devices.
+- 2026-05-30 [CODE] Added editable Mapping `Name`, saved presets using that name with duplicate overwrite/cancel prompt, restored Name on preset load, and kept compact preset dropdowns hittable by opening upward when needed.
+- 2026-05-30 [CODE] Added Mapping `Add actor`, a runtime actor list, right-click actor Delete, and viewport rendering for profile-shaped actor skeletons with profile-name labels.
+- 2026-05-30 [CODE] Reduced Mapping actor list height, added actor-list scroll state/scrollbar/wheel handling, and highlighted the actor row selected by right-click.
+- 2026-05-30 [CODE] Changed Mapping actors to render at the same origin, added left-click actor row selection, and added a placeholder `Calibrate` button below the actor list.
+- 2026-05-30 [CODE] Enlarged the normal Mapping actor list box to show three rows, with compact panels falling back to the previous smaller list height.
+- 2026-05-30 [CODE] Added Mapping actor 11-point calibration capture, transform math, rest targets, two-bone IK, live solve, and Calibrate button action.
+- 2026-05-30 [CODE] Calibrated actors now render solved live skeleton joints and show `calibrated` beside their list name while preserving the profile-name 3D label.
+- 2026-05-30 [CODE] Added Win32 calibration coverage for validation failures, runtime-index snapshots, transform math, IK, live solve, and tracker offset behavior.
+- 2026-05-30 [CODE] Corrected Profile skeleton limb signs so anatomical Left uses +X and anatomical Right uses -X while preserving +Z toe/front direction.
+- 2026-05-30 [CODE] Updated Profile and Mapping calibration tests to assert anatomical left/right target positions under the +Z-front display convention.
+- 2026-05-30 [CODE] Added Profile `Neck Length` measurement, defaulting to 7cm and serializing as profile v4 while loading older profiles with a default value.
+- 2026-05-30 [CODE] Profile skeleton Neck joint now uses user-entered neck length; Head/HeadTop still respect `Neck Base Center to Head Top`.
+- 2026-05-30 [CODE] SUPERSEDED: Changed Mapping Head calibration target from the Head joint point to the midpoint of `Head` and `HeadTop_End`.
+- 2026-05-30 [CODE] ACTIVE: Mapping Head calibration target is the `Head` joint point; `HeadTop_End` is derived from the Head transform.
+- 2026-05-30 [CODE] Changed calibrated live solve so head tracker translation moves `Head` directly and head tracker rotation moves `HeadTop_End` around that Head joint.
+- 2026-05-30 [CODE] Changed calibrated live solve so `Neck` also uses the Head transform's rest local offset, keeping the head-local chain coherent.
+- 2026-05-30 [CODE] Added Mapping tracker roles, explicit virtual targets, split core/pole solve modules, pole/reach runtime warnings, and selected-actor debug target/pole drawing.
+- 2026-05-30 [CODE] Mapping actor list now reports calibrated runtime states as `tracking lost` or `limited` when live solve detects missing poses or pole/reach constraints.
+- 2026-05-30 [CODE] Restored Mapping core solve so `Neck` again uses the Head transform's rest local offset while `HeadTop_End` remains derived from the same Head transform.
+- 2026-05-30 [CODE] Changed Mapping core torso solve so `Spine`/`Spine1` use a pelvis-yaw-to-chest-rotation Hermite curve while `Spine2` remains anchored to the Chest target.
+- 2026-05-30 [CODE] Changed Mapping IK debug rendering so virtual-target spheres and pole lines require the bottom Debug monitor to be visible.
+- 2026-05-30 [CODE] Added display tracker transforms to Mapping virtual targets and draw Debug-mode blue spheres at tracker + 2x tracker-to-target visual offset without changing solve transforms.
+- 2026-05-30 [CODE] Profile Preview now auto-disables when closing the Profile panel or opening the Mapping panel.
+- 2026-05-30 [CODE] Added `Q` as a Quad View toggle shortcut, sharing the viewport button's drag-state cleanup.
+- 2026-05-30 [CODE] Added Mapping `Arm` FK/IK dropdown, `.mapping` v2 `arm_mode`, calibration mode snapshots, and FK arm solve using elbow/wrist virtual targets.
+- 2026-05-30 [CODE] Fixed FK arm debug target rendering so elbow/wrist virtual targets draw at actual target positions; IK/other debug targets keep 2x tracker-offset visualization.
+- 2026-05-30 [CODE] Added calibration test coverage proving FK elbow/wrist virtual targets restore joint positions even when tracker poses are offset at calibration.
+- 2026-05-30 [CODE] Removed Mapping `Arm` FK/IK dropdown, FK calibration branch, FK solver module, and `.mapping` `arm_mode` writes.
+- 2026-05-30 [CODE] Mapping calibration now snapshots IK-only arm behavior; legacy `.mapping` files with `arm_mode=fk` parse successfully but ignore the field.
+- 2026-05-30 [CODE] Updated Mapping layout/tests back to slot-only rows and removed FK-specific calibration tests.
+- 2026-05-30 [CODE] Added Mapping live virtual-target fallback so missing/invalid tracker slots reuse the actor's last valid target instead of aborting the whole solve.
+- 2026-05-30 [CODE] Calibration capture now seeds actor live virtual targets from the calibration pose so fallback works immediately after calibration.
+- 2026-05-30 [CODE] Added coverage for one lost hand tracker: pelvis continues updating, the lost wrist holds its previous position, and actor status reports tracking lost.
+- 2026-05-30 [CODE] Added Mapping actor context-menu `Reset` above `Delete`.
+- 2026-05-30 [CODE] Reset clears actor calibration, live joints, live targets, pole/debug state, and status flags while leaving the actor/profile in the list.
+- 2026-05-30 [CODE] Added coverage that reset actors no longer track until recalibrated.
+- 2026-05-30 [CODE] Added Soft IK reach easing to calibrated Mapping limb `solveTwoBoneIk`.
+- 2026-05-30 [CODE] Added coverage that max-reach two-bone IK keeps a slight bend instead of snapping fully straight.
+- 2026-05-30 [CODE] Added Mapping-list `Arm Soft IK` and `Leg Soft IK` dropdown rows with 0%, 3%, 6%, 10%, 15%, and 25% values.
+- 2026-05-30 [CODE] Mapping preset v2 now stores Arm/Leg Soft IK strengths and calibration snapshots those values per actor.
+- 2026-05-30 [CODE] Added coverage for zero-strength hard IK, default/custom calibration snapshots, and Mapping preset/layout Soft IK rows.
+- 2026-05-30 [CODE] Mapping Soft IK dropdown changes and preset loads now propagate Arm/Leg strengths to calibrated actors immediately.
+- 2026-05-30 [CODE] Added coverage that live Soft IK sync updates calibrated actor calibration strengths.
+- 2026-05-30 [CODE] Moved Arm/Leg Soft IK into a global Mapping Filter box below Calibrate and removed Soft IK from mapping list/preset serialization.
+- 2026-05-30 [CODE] Added coverage that global Soft IK Filter values sync immediately to calibrated actors and mapping presets ignore Soft IK.
+- 2026-05-30 [CODE] Fixed Mapping Filter box drawing so its interior is not refilled by the default white GDI brush.
+- 2026-05-30 [CODE] Changed Mapping Filter Soft IK dropdown to open upward so bottom options are not clipped.
+- 2026-05-30 [CODE] Added Mixamo-style actor finger chains and live SteamVR skeletal-pose fitting for viewport skeletons.
+- 2026-05-30 [CODE] Refined actor finger rest placement so four fingers start at spaced knuckles and stay parallel, with thumb angled below the hand.
+- 2026-05-30 [CODE] Corrected actor thumb rest placement from the pinky side to the front/index side (`+Z`) for both hands.
+- 2026-05-30 [CODE] Changed live actor finger side hints to use mapped hand-tracker rotation plus rest hints instead of SteamVR skeletal bone quaternions.
+- 2026-05-30 [CODE] Changed OpenVR skeletal input setup so a startup `GetBoneCount` failure for one hand is not cached as a permanent global failure; each hand retries independently during polling.
+- 2026-05-30 [CODE] Corrected right-hand actor skeletal basis preferred palm side so palm-down right-hand skeletal input no longer flips upward.
 
 ### Now
-- 2026-05-29 [TOOL] Aux skeletal exclusion is implemented; default and VS2022 Debug builds/tests passed.
+- 2026-05-31 [CODE] Mapping preset save/load includes optional embedded Profile data and applies it to the Mapping menu's active Profile on load.
 
 ### Next
-- 2026-05-29 [ASSUMPTION] User can manually confirm with a skeletal-capable controller that Aux bones no longer appear in live recording/export output.
+- 2026-05-31 [ASSUMPTION] Validate Mapping preset Profile restore in the live UI with saved `.mapping` files.
 
 ## Open Questions
 - 2026-05-28 [ASSUMPTION] Whether to remove the explicit procedural fallback after runtime PNG loading is visually confirmed is not yet decided.
@@ -149,23 +285,96 @@
 - 2026-05-29 [ASSUMPTION] SteamVR binding JSONs parsed and copied, but still need manual validation in SteamVR's binding UI with a skeletal-capable controller.
 - 2026-05-29 [CODE] `VRBoneTransform_t` contains position/orientation, not scale; skeletal boxes currently use fixed 0.009m cube edges.
 - 2026-05-29 [CODE] Current GLB importer reads flat animated nodes and does not compose node hierarchy transforms; external GLB tools should honor exported `children`.
+- 2026-05-30 [USER] SUPERSEDED: Mapping preset Save used the current Profile name as the file stem; Mapping now has its own editable Name and Save uses that value.
+- 2026-05-30 [USER] SUPERSEDED: Mapping actors were runtime-only and auto-spaced along +X; actors now render at the same origin until placement UI is defined.
 
 ## Working Set
-- 2026-05-29 [CODE] src/data/SkeletalSyntheticPose.h
-- 2026-05-29 [CODE] src/data/SkeletalSyntheticPose.cpp
-- 2026-05-29 [CODE] src/vr/OpenVRProviderSkeletal.cpp
-- 2026-05-29 [CODE] src/export/ExportPoseTrack.cpp
-- 2026-05-29 [CODE] tests/test_skeletal_synthetic_pose.cpp
+- 2026-05-29 [CODE] src/platform/win32/AppProfileState.h
+- 2026-05-29 [CODE] src/platform/win32/ProfileModel.*, ProfileStore.*, ProfileEditModel.*, ProfileEditor.*, ProfilePanelLayout.*, ProfilePanelPainter.*, ProfileActions.*
+- 2026-05-29 [CODE] src/platform/win32/ProfileSkeleton.*, ViewportProfileSkeletonRenderer.*, ViewportRenderer.cpp, WindowCursor.cpp
+- 2026-05-30 [CODE] src/platform/win32/MappingModel.*, MappingPanelLayout.*, MappingPanelPainter.*, MappingActions.*
+- 2026-05-30 [CODE] src/platform/win32/MappingDropdownActions.*
+- 2026-05-30 [CODE] src/platform/win32/MappingActorLayout.*
+- 2026-05-30 [CODE] src/platform/win32/MappingCalibration*.*, MappingTransformMath.*
+- 2026-05-30 [CODE] src/platform/win32/MappingPresetStore.*, MappingPresetActions.*, MappingPanelDropdownPainter.*
+- 2026-05-30 [CODE] src/platform/win32/MappingNameEditor.*
+- 2026-05-30 [CODE] src/platform/win32/PanelLayout.cpp, PaintWidgets.*, WindowDevice*Layout*, WindowDeviceRailPainter.cpp, WindowDevicePanelClickActions.cpp
+- 2026-05-30 [CODE] src/platform/win32/ProfileStore.*
+- 2026-05-30 [CODE] src/platform/win32/MappingFingerSolve.*, MappingHandBasis.h, ProfileSkeleton.*, ViewportBodySkeletonBoxRenderer.*, ViewportSkeletonJointAxes.*
+- 2026-05-30 [CODE] src/vr/OpenVRProvider.h, src/vr/OpenVRProviderSkeletal.cpp
+- 2026-05-31 [CODE] VMC finger files and RecordSettingsFingerControls.cpp removed from source/build.
+- 2026-05-29 [CODE] tests/test_win32_profile.cpp
+- 2026-05-30 [CODE] tests/test_win32_mapping.cpp, tests/test_win32_mapping_calibration.cpp, tests/test_win32_layout.cpp
+- 2026-05-30 [CODE] tests/test_win32_mapping_fingers.cpp
+- 2026-05-29 [CODE] tests/TestCases.h, tests/core_tests.cpp
 - 2026-05-29 [CODE] CONTINUITY.md
 
 ## Packages
 - 2026-05-28 [TOOL] `toyxyz_vr_toolkit_v1/` contains `OpenVRTrackerRecorderDesktop.exe` built from `build/vs2022/Release`, `openvr_api.dll`, VC143 CRT DLLs, portable `config/`, empty `recordings/` and `exports/`, and `licenses/OpenVR_LICENSE.txt`.
 - 2026-05-28 [TOOL] `toyxyz_openvr_toolkit/` contains `toyxyz_openvr_toolkit.exe` built from `build/vs2022/Release`, `openvr_api.dll`, VC143 CRT DLLs, `config/render_model_matcap.png` only, empty `recordings/` and `exports/`, `licenses/OpenVR_LICENSE.txt`, and README.
+- 2026-05-29 [TOOL] `toyxyz_openvr_toolkit/` contains latest Release `toyxyz_openvr_toolkit.exe`, `openvr_api.dll`, VC143 CRT DLLs, SteamVR action/binding JSONs, `config/render_model_matcap.png`, empty output folders, `licenses/OpenVR_LICENSE.txt`, and README; no `config/*.cfg`.
+- 2026-05-30 [TOOL] `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe` refreshed from VS2022 Release after live Soft IK strength sync.
+- 2026-05-30 [TOOL] `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe` refreshed from VS2022 Release after Mixamo finger skeleton update; timestamp 2026-05-30 20:56:13 KST, size 874496 bytes.
+- 2026-05-30 [TOOL] `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe` refreshed from VS2022 Release after VMC finger source update; size 898560 bytes.
 
 ## Incidents
 - None.
 
 ## Receipts
+- 2026-05-31 [CODE] Increased Mapping arm/leg IK pole virtual target rest offsets from 0.25m to 0.75m; arms remain toward -Z from elbows, legs toward +Z from knees.
+- 2026-05-31 [TOOL] Ran VS2022 Debug `OpenVRTrackerRecorderDesktop` build and `ctest --preset vs2022 --output-on-failure`; passed after IK pole virtual target offset update.
+- 2026-05-31 [TOOL] VS2022 Debug `toyxyz_openvr_toolkit.exe` timestamp 2026-05-31 02:31:05 KST, size 3487232 bytes; `MappingCalibrationTargets.cpp` is 43 lines.
+- 2026-05-31 [CODE] Changed Mapping Debug selected-actor target spheres to draw at actual `MappingVirtualTarget::transform.position` instead of the previous 2x tracker-to-target visual offset.
+- 2026-05-31 [TOOL] Ran VS2022 Debug `OpenVRTrackerRecorderDesktop` build and `ctest --preset vs2022 --output-on-failure`; passed after virtual target debug display update.
+- 2026-05-31 [TOOL] VS2022 Debug `toyxyz_openvr_toolkit.exe` timestamp 2026-05-31 02:26:19 KST, size 3487232 bytes; `ViewportProfileSkeletonRenderer.cpp` is 231 lines.
+- 2026-05-31 [TOOL] Rebuilt VS2022 Debug `toyxyz_openvr_toolkit.exe` after user reported the feature missing in that executable; timestamp 2026-05-31 02:14:47 KST, size 3487232 bytes.
+- 2026-05-31 [TOOL] Ran `ctest --preset vs2022 --output-on-failure`; passed after VS2022 Debug package refresh.
+- 2026-05-31 [CODE] Added Mapping preset v3 embedded Profile serialization/loading and coverage for Profile round-trip plus legacy no-profile preset compatibility.
+- 2026-05-31 [TOOL] Ran VS DevCmd default `openvr_tracker_recorder_tests` build and `ctest --preset default --output-on-failure`; passed after Mapping preset Profile update.
+- 2026-05-31 [TOOL] Ran VS DevCmd default `OpenVRTrackerRecorderDesktop` build; passed after Mapping preset Profile update.
+- 2026-05-31 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched files are 207/45/173/196 lines.
+- 2026-05-31 [TOOL] Removed all `Vmc`/`VMC`/`FingerTrackingType`/`finger_type`/`vmc_port`/`RecordSettingsFinger` source, test, and CMake references; `rg` found no remaining matches.
+- 2026-05-31 [TOOL] Ran clean default test target build + `ctest --preset default --output-on-failure`; passed after VMC removal.
+- 2026-05-31 [TOOL] Ran default `OpenVRTrackerRecorderDesktop` app build; passed after VMC removal.
+- 2026-05-31 [TOOL] Ran VS2022 Debug app/test build + `ctest --preset vs2022 --output-on-failure`; passed after VMC removal; Debug exe timestamp 2026-05-31 01:57:35 KST, size 3487232 bytes.
+- 2026-05-31 [TOOL] Ran VS2022 Release `OpenVRTrackerRecorderDesktop` app build; passed after VMC removal; Release exe timestamp 2026-05-31 02:02:16 KST, size 881152 bytes.
+- 2026-05-31 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched manual code/test files are under 300 lines.
+- 2026-05-30 [TOOL] Ran default test target build + `ctest --preset default --output-on-failure`; passed after skeletal hand basis alignment.
+- 2026-05-30 [TOOL] Ran default app build; passed after skeletal hand basis alignment.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds + `ctest --preset vs2022 --output-on-failure`; passed after skeletal hand basis alignment.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched manual code/test files are 146/280/147 lines.
+- 2026-05-30 [TOOL] Ran default test target build + `ctest --preset default --output-on-failure`; passed after actor finger sideHint stabilization.
+- 2026-05-30 [TOOL] Ran default app build; passed after actor finger sideHint stabilization.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test build + `ctest --preset vs2022 --output-on-failure`; passed after actor finger sideHint stabilization.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched manual code/test files are 277 and 127 lines.
+- 2026-05-30 [TOOL] Ran default test target build + `ctest --preset default --output-on-failure`; passed after actor thumb rest direction update.
+- 2026-05-30 [TOOL] Ran default app build; passed after actor thumb rest direction update.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test build + `ctest --preset vs2022 --output-on-failure`; passed after actor thumb rest direction update.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched manual code/test files are 227 and 261 lines.
+- 2026-05-30 [TOOL] Ran default test target build + `ctest --preset default --output-on-failure`; passed after natural actor finger rest placement update.
+- 2026-05-30 [TOOL] Ran default app build; passed after natural actor finger rest placement update.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test build + `ctest --preset vs2022 --output-on-failure`; passed after natural actor finger rest placement update.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched manual code/test files are 227 and 260 lines.
+- 2026-05-30 [TOOL] Ran clean default test target build + `ctest --preset default --output-on-failure`; passed after Mixamo finger skeleton update.
+- 2026-05-30 [TOOL] Ran default app build; passed after Mixamo finger skeleton update.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test build + `ctest --preset vs2022 --output-on-failure`; passed after Mixamo finger skeleton update.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed package exe; passed after Mixamo finger skeleton update.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched manual code/test files are at or under 300 lines.
+- 2026-05-30 [TOOL] Ran default test target build + `ctest --preset default --output-on-failure`; passed after Mapping Filter dropdown clipping fix.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app build target `OpenVRTrackerRecorderDesktop` + `ctest --preset vs2022 --output-on-failure`; passed after Mapping Filter dropdown clipping fix.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; `MappingSoftIkFilter.cpp` is 174 lines.
+- 2026-05-30 [TOOL] Ran default test target build + `ctest --preset default --output-on-failure`; passed after Mapping Filter color fix.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app build target `OpenVRTrackerRecorderDesktop` + `ctest --preset vs2022 --output-on-failure`; passed after Mapping Filter color fix.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; `MappingSoftIkFilter.cpp` is 173 lines.
+- 2026-05-30 [TOOL] Ran clean default test rebuild + `ctest --preset default --output-on-failure`; passed after Mapping Soft IK Filter update.
+- 2026-05-30 [TOOL] Ran default app build; passed after Mapping Soft IK Filter update.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test build + `ctest --preset vs2022 --output-on-failure`; passed after Mapping Soft IK Filter update.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Mapping Soft IK Filter files are under 300 lines.
+- 2026-05-30 [TOOL] Ran clean default test target build + `ctest --preset default --output-on-failure`; passed after skeletal input recovery/right-hand flip fix.
+- 2026-05-30 [TOOL] Ran default app build; passed after skeletal input recovery/right-hand flip fix.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test build + `ctest --preset vs2022 --output-on-failure`; passed after skeletal input recovery/right-hand flip fix.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched manual code/test files are 237/44/147/189 lines.
+- 2026-05-30 [TOOL] Researched VMC Protocol and OSC 1.0 references for planned VMC finger streaming support.
 - 2026-05-28 [TOOL] Ran `rg --files -g AGENTS.md -g CONTINUITY.md`; only `AGENTS.md` existed.
 - 2026-05-28 [TOOL] Read `AGENTS.md`.
 - 2026-05-28 [TOOL] README lists canonical commands: `cmake --preset default`, `cmake --build --preset default`, `ctest --preset default`; VS alternative uses `vs2022` preset.
@@ -365,3 +574,297 @@
 - 2026-05-29 [TOOL] Ran default test target build, `ctest --preset default --output-on-failure`, and default desktop app build; passed after Aux skeletal exclusion.
 - 2026-05-29 [TOOL] Ran VS2022 Debug app build, VS2022 test target, and `ctest --preset vs2022 --output-on-failure`; passed after Aux skeletal exclusion.
 - 2026-05-29 [TOOL] Ran `git diff --check` and checked touched Aux skeletal code/test line counts; no whitespace errors and touched manually written files were under 300 lines.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset vs2022 --config Release --target OpenVRTrackerRecorderDesktop`; succeeded for package exe.
+- 2026-05-29 [TOOL] Ran VS2022 Release test target build and `ctest --test-dir build/vs2022 -C Release --output-on-failure`; `core_tests` passed.
+- 2026-05-29 [TOOL] Verified `toyxyz_openvr_toolkit/`: 20 files, required missing count 0, `*.cfg` count 0, exe SHA256 `120A83FD41788975C5FC4CC10D9E3C46E8EF0D14311229CEB016C4E3B27EAFC3`.
+- 2026-05-29 [TOOL] Initial incremental default test build after Profile state/layout changes hit stale-object failures; compatibility overloads plus clean rebuild mitigated it.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + clean default test target and `ctest --preset default --output-on-failure`; `core_tests` passed after Profile panel changes.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + default desktop app build; succeeded after Profile panel changes.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; `core_tests` passed after Profile panel changes.
+- 2026-05-29 [TOOL] Ran `git diff --check` and checked touched Profile code/test line counts; no whitespace errors and touched manually written files were under 300 lines.
+- 2026-05-29 [TOOL] Initial incremental default `core_tests` after editable Profile state changes failed from stale object layout; clean rebuild mitigated it.
+- 2026-05-29 [TOOL] Ran clean default test target build and `ctest --preset default --output-on-failure`; `core_tests` passed after editable Profile/save-load/resize changes.
+- 2026-05-29 [TOOL] Ran default desktop app build; succeeded after editable Profile/save-load/resize changes.
+- 2026-05-29 [TOOL] Ran VS2022 Debug app build, VS2022 test build, and `ctest --preset vs2022 --output-on-failure`; `core_tests` passed after editable Profile changes.
+- 2026-05-29 [TOOL] Ran `git diff --check` and checked touched Profile code/test line counts; no whitespace errors and touched manually written files were under 300 lines.
+- 2026-05-29 [TOOL] Incremental `ctest --preset default --output-on-failure` after Profile default header changes first ran a stale test binary and failed at measurement index 1; clean rebuild mitigated it.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default --target openvr_tracker_recorder_tests --clean-first` and `ctest --preset default --output-on-failure`; `core_tests` passed after Profile default value changes.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + `cmake --build --preset default --target OpenVRTrackerRecorderDesktop`; succeeded after Profile default value changes.
+- 2026-05-29 [TOOL] Ran `git diff --check` and checked `ProfileModel.h`/`test_win32_profile.cpp` line counts; no whitespace errors, 28/70 lines respectively.
+- 2026-05-29 [TOOL] User screenshot showed Profile UI still had zero-valued body defaults, likely from an older executable or stale UI state.
+- 2026-05-29 [TOOL] Ran clean default test target plus `ctest --preset default --output-on-failure`; passed after moving Profile defaults into `BodyProfile::BodyProfile()`.
+- 2026-05-29 [TOOL] Rebuilt default app, VS2022 Debug app/tests, VS2022 Release app/tests, and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; all builds/tests passed.
+- 2026-05-29 [TOOL] Ran `git diff --check` and checked `ProfileModel.h`/`ProfileModel.cpp`/`test_win32_profile.cpp`; no whitespace errors, 27/83/81 lines respectively.
+- 2026-05-29 [TOOL] Ran default test target + `ctest --preset default --output-on-failure`; `core_tests` passed after Profile list-box layout change.
+- 2026-05-29 [TOOL] Ran default app build, VS2022 Debug app build, VS2022 Release app build, and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; all builds passed.
+- 2026-05-29 [TOOL] Ran VS2022 test target + `ctest --preset vs2022 --output-on-failure`; `core_tests` passed after Profile list-box layout change.
+- 2026-05-29 [TOOL] Ran `git diff --check` and checked touched Profile layout/painter/test line counts; no whitespace errors and all touched manually written files were under 300 lines.
+- 2026-05-29 [TOOL] Plain PowerShell default app build failed because `windows.h` was unavailable until the VS developer environment was initialized.
+- 2026-05-29 [TOOL] Ran default `ctest --preset default --output-on-failure`; `core_tests` passed after origin axis visibility change.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + default app build, VS2022 Debug app build, VS2022 Release app build, and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; all builds passed.
+- 2026-05-29 [TOOL] Ran VS2022 test target + `ctest --preset vs2022 --output-on-failure`; `core_tests` passed after origin axis visibility change.
+- 2026-05-29 [TOOL] Ran `git diff --check` and checked `ViewportGridAxes.cpp`; no whitespace errors, file is 50 lines.
+- 2026-05-29 [TOOL] Initial incremental default test link after changing `kProfileMeasurementCount` failed from stale 12-field objects; clean rebuild mitigated it.
+- 2026-05-29 [TOOL] Ran clean default test target build + `ctest --preset default --output-on-failure`; `core_tests` passed after removing Profile `Total Height`.
+- 2026-05-29 [TOOL] Ran default app build, VS2022 Debug app build, VS2022 Release app build, and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; all builds passed.
+- 2026-05-29 [TOOL] Ran VS2022 test target + `ctest --preset vs2022 --output-on-failure`; `core_tests` passed after removing Profile `Total Height`.
+- 2026-05-29 [TOOL] Ran `git diff --check` and checked Profile model/layout/test line counts; no whitespace errors and touched files were under 300 lines.
+- 2026-05-29 [TOOL] Ran clean default test target build + `ctest --preset default --output-on-failure`; `core_tests` passed after Profile Preview skeleton changes.
+- 2026-05-29 [TOOL] Ran VS Developer Command Prompt + default app build; succeeded after Profile Preview skeleton changes.
+- 2026-05-29 [TOOL] Ran VS2022 Debug app build, VS2022 test target, and `ctest --preset vs2022 --output-on-failure`; `core_tests` passed after Profile Preview skeleton changes.
+- 2026-05-29 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`.
+- 2026-05-29 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; checked touched manually written files and all are under 300 lines.
+- 2026-05-29 [TOOL] Ran clean default test target build + `ctest --preset default --output-on-failure`; `core_tests` passed after Profile foot-height schema changes.
+- 2026-05-29 [TOOL] Ran default app build, VS2022 Debug app/test builds, and `ctest --preset vs2022 --output-on-failure`; all passed after Profile foot-height update.
+- 2026-05-29 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`.
+- 2026-05-29 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; checked touched Profile files and all are under 300 lines.
+- 2026-05-29 [TOOL] Initial computed-Height test run failed because the `height_cm` absence assertion also matched `ankle_height_cm`; narrowed the assertion to `\nheight_cm=`.
+- 2026-05-29 [TOOL] Ran clean default test target build + `ctest --preset default --output-on-failure`; `core_tests` passed after computed Profile Height changes.
+- 2026-05-29 [TOOL] Ran default app build, VS2022 Debug app/test builds, and `ctest --preset vs2022 --output-on-failure`; all passed after computed Profile Height update.
+- 2026-05-29 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`.
+- 2026-05-29 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Profile files are under 300 lines and `rg` found no remaining `heightCm` references.
+- 2026-05-29 [TOOL] Ran incremental default test target + `ctest --preset default --output-on-failure`; `core_tests` passed after Profile list scrolling changes.
+- 2026-05-29 [TOOL] Ran clean default test target build + `ctest --preset default --output-on-failure`; `core_tests` passed after Profile list scrolling changes.
+- 2026-05-29 [TOOL] Initial default app build failed because `WindowScroll.cpp` missed `ProfileEditor.h`; included it and reran successfully.
+- 2026-05-29 [TOOL] Ran default app build, VS2022 Debug app/test builds, and `ctest --preset vs2022 --output-on-failure`; all passed after Profile list scrolling update.
+- 2026-05-29 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`.
+- 2026-05-29 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Profile scroll code/test files are under 300 lines.
+- 2026-05-30 [TOOL] Ran clean default test target build + `ctest --preset default --output-on-failure`; `core_tests` passed after Mapping panel update.
+- 2026-05-30 [TOOL] Ran default app build, VS2022 Debug app/test builds, and `ctest --preset vs2022 --output-on-failure`; all passed after Mapping panel update.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Mapping/right-panel code and tests are under 300 lines.
+- 2026-05-30 [TOOL] Initial incremental default test after adding `mappingProfileDropdownOpen` failed from stale object layout; clean rebuild mitigated it.
+- 2026-05-30 [TOOL] Ran clean default test target build + `ctest --preset default --output-on-failure`; `core_tests` passed after Mapping Profile selector update.
+- 2026-05-30 [TOOL] Ran default app build, VS2022 Debug app/test builds, and `ctest --preset vs2022 --output-on-failure`; all passed after Mapping Profile selector update.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Mapping/ProfileStore code and tests are under 300 lines.
+- 2026-05-30 [TOOL] Ran default test target, `ctest --preset default --output-on-failure`, and default app build; passed after Mapping dropdown label update.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds, `ctest --preset vs2022 --output-on-failure`, and VS2022 Release app build; passed after Mapping dropdown label update.
+- 2026-05-30 [TOOL] Refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 00:40:07 KST, size 773632 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; `MappingPanelPainter.cpp` is 263 lines.
+- 2026-05-30 [TOOL] Ran default test target, `ctest --preset default --output-on-failure`, and default app build; passed after Mapping `None` option update.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds, `ctest --preset vs2022 --output-on-failure`, and VS2022 Release app build; passed after Mapping `None` option update.
+- 2026-05-30 [TOOL] Refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 00:50:17 KST, size 773632 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Mapping files are under 300 lines.
+- 2026-05-30 [TOOL] Initial default test after adding `mappingPresetDropdownOpen` failed due default-initialization in a test; changed the test to value-initialize `AppProfileState`.
+- 2026-05-30 [TOOL] Clean default test target + `ctest --preset default --output-on-failure` and default app build passed after Mapping preset update.
+- 2026-05-30 [TOOL] VS2022 Debug app/test builds + `ctest --preset vs2022 --output-on-failure` and VS2022 Release app build passed after Mapping preset update.
+- 2026-05-30 [TOOL] Refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 01:08:17 KST, size 798208 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Mapping preset files are under 300 lines.
+- 2026-05-30 [TOOL] Plain PowerShell default test build after Mapping Name edits failed because `windows.h` was unavailable until the VS developer environment was initialized.
+- 2026-05-30 [TOOL] Initial default `ctest --preset default --output-on-failure` after Mapping Name edits failed at compact preset dropdown hit-testing; preset dropdown now opens upward when needed.
+- 2026-05-30 [TOOL] Ran VS Developer Command Prompt + default test target, `ctest --preset default --output-on-failure`, and default app build; passed after Mapping Name edits.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds, `ctest --preset vs2022 --output-on-failure`, and VS2022 Release app build; passed after Mapping Name edits.
+- 2026-05-30 [TOOL] Refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 01:22:52 KST, size 802816 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Mapping Name files are under 300 lines.
+- 2026-05-30 [TOOL] Incremental default `ctest --preset default --output-on-failure` after Mapping actor state edits hit a stale-object segfault; clean rebuild mitigated it.
+- 2026-05-30 [TOOL] Ran clean default test target build + `ctest --preset default --output-on-failure`; `core_tests` passed after Mapping actor update.
+- 2026-05-30 [TOOL] Ran default app build, VS2022 Debug app/test builds, `ctest --preset vs2022 --output-on-failure`, and VS2022 Release app build; passed after Mapping actor update.
+- 2026-05-30 [TOOL] Refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 02:01:05 KST, size 812032 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Mapping actor files are under 300 lines.
+- 2026-05-30 [TOOL] Incremental default `ctest --preset default --output-on-failure` after Mapping actor list state edits hit a stale-object segfault; clean rebuild mitigated it.
+- 2026-05-30 [TOOL] Ran clean default test target build + `ctest --preset default --output-on-failure`; `core_tests` passed after Mapping actor list update.
+- 2026-05-30 [TOOL] Ran default app build, VS2022 Debug app/test builds, `ctest --preset vs2022 --output-on-failure`, and VS2022 Release app build; passed after Mapping actor list update.
+- 2026-05-30 [TOOL] Refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 02:12:30 KST, size 813056 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Mapping actor list files are under 300 lines.
+- 2026-05-30 [TOOL] Ran default test target + `ctest --preset default --output-on-failure`; `core_tests` passed after Mapping origin/selection/Calibrate update.
+- 2026-05-30 [TOOL] Ran default app build, VS2022 Debug app/test builds, `ctest --preset vs2022 --output-on-failure`, and VS2022 Release app build; passed after Mapping origin/selection/Calibrate update.
+- 2026-05-30 [TOOL] Refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 02:20:42 KST, size 813056 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Mapping origin/selection files are under 300 lines.
+- 2026-05-30 [TOOL] Initial default test after enlarging the Mapping actor list failed because the actor-row-count assertion still expected two visible actor rows; updated it to three.
+- 2026-05-30 [TOOL] Ran default test target + `ctest --preset default --output-on-failure`; `core_tests` passed after Mapping actor list 3-row height update.
+- 2026-05-30 [TOOL] Ran default app build, VS2022 Debug app/test builds, `ctest --preset vs2022 --output-on-failure`, and VS2022 Release app build; passed after Mapping actor list 3-row height update.
+- 2026-05-30 [TOOL] Refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 02:25:02 KST, size 813056 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Mapping actor list height files are under 300 lines.
+- 2026-05-30 [TOOL] Initial default `ctest --preset default --output-on-failure` after Mapping calibration failed due a test expectation using the old head Y; corrected the expected default head target to 1.70m after +0.10m movement.
+- 2026-05-30 [TOOL] Ran default test target build, `ctest --preset default --output-on-failure`, and default app build; passed after Mapping actor calibration update.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; passed after Mapping actor calibration update.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched calibration code/test files are under 300 lines.
+- 2026-05-30 [TOOL] Ran default test target build, `ctest --preset default --output-on-failure`, and default app build; passed after skeleton left/right correction.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; passed after skeleton left/right correction.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 03:21:25 KST, size 829440 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched left/right files are under 300 lines and have no trailing whitespace.
+- 2026-05-30 [TOOL] Initial default `ctest --preset default --output-on-failure` after Profile neck-length update failed from stale `ProfilePanelLayout` object; clean test-target rebuild mitigated it.
+- 2026-05-30 [TOOL] Ran clean default test target build, `ctest --preset default --output-on-failure`, and default app build; passed after Profile neck-length update.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; passed after Profile neck-length update.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 03:52:19 KST, size 830464 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Profile neck-length files are under 300 lines.
+- 2026-05-30 [TOOL] Ran default test target build, `ctest --preset default --output-on-failure`, and default app build; passed after Mapping head-anchor solve update.
+- 2026-05-30 [TOOL] Initial VS2022 Debug app build after head-anchor solve hit transient LNK1168 on `toyxyz_openvr_toolkit.exe`; immediate retry after test build succeeded.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; passed after Mapping head-anchor solve update.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 04:02:23 KST, size 830464 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Mapping head-anchor files are under 300 lines.
+- 2026-05-30 [TOOL] Ran default test target build, `ctest --preset default --output-on-failure`, and default app build; passed after direct-Head Mapping target update.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; passed after direct-Head Mapping target update.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 04:12:31 KST, size 830464 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Mapping head-target files are 33, 157, and 140 lines.
+- 2026-05-30 [TOOL] Ran default test target build, `ctest --preset default --output-on-failure`, and default app build; passed after head-local Neck/HeadTop solve update.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; passed after head-local Neck/HeadTop solve update.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 04:19:58 KST, size 829952 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched head-local solve files are 157 and 142 lines.
+- 2026-05-30 [TOOL] Ran default test target build, `ctest --preset default --output-on-failure`, and default app build; passed after 11-point runtime tracking improvement.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; passed after 11-point runtime tracking improvement.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 04:42:50 KST, size 837632 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched runtime tracking code/test files are under 300 lines.
+- 2026-05-30 [TOOL] Ran default test target build, `ctest --preset default --output-on-failure`, and default app build; passed after head-local Mapping core solve regression fix.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; passed after head-local Mapping core solve regression fix.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 04:53:15 KST, size 837120 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; `MappingCoreSolve.cpp` and `test_win32_mapping_calibration.cpp` have no trailing whitespace and are 75/192 lines.
+- 2026-05-30 [TOOL] Ran default test target build, `ctest --preset default --output-on-failure`, and default app build; passed after torso curve solve update.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; passed after torso curve solve update.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 05:04:19 KST, size 837632 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; `MappingCoreSolve.cpp` and `test_win32_mapping_calibration.cpp` have no trailing whitespace and are 87/200 lines.
+- 2026-05-30 [TOOL] Ran default tests, `ctest --preset default --output-on-failure`, and default app build; passed after Debug-monitor-gated IK debug visibility update.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; passed after Debug-monitor-gated IK debug visibility update.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 05:10:56 KST, size 837632 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched viewport debug visibility files have no trailing whitespace and are 167/16/262 lines.
+- 2026-05-30 [TOOL] Initial incremental default test command after adding `MappingVirtualTarget::trackerTransform` timed out from stale object layout; clean rebuild mitigated it.
+- 2026-05-30 [TOOL] Ran clean default test target build + `ctest --preset default --output-on-failure` and default app build; passed after doubled-distance virtual-target debug display update.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; passed after doubled-distance virtual-target debug display update.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 05:26:17 KST, size 838656 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched virtual-target debug display files have no trailing whitespace and are 36/49/177 lines.
+- 2026-05-30 [TOOL] Ran default test target build, `ctest --preset default --output-on-failure`, and default app build; passed after Profile Preview auto-disable update.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; passed after Profile Preview auto-disable update.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 05:40:33 KST, size 838656 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Profile auto-disable files are 79/220/236 lines.
+- 2026-05-30 [TOOL] Ran default test target build, `ctest --preset default --output-on-failure`, and default app build; passed after Quad View `Q` shortcut update.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; passed after Quad View `Q` shortcut update.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 06:11:01 KST, size 839168 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Quad shortcut files are 81/54/18/24/42/190 lines.
+- 2026-05-30 [TOOL] Ran default test target build, `ctest --preset default --output-on-failure`, and default app build; passed after Mapping Arm FK/IK update.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; passed after Mapping Arm FK/IK update.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 06:46:09 KST, size 842240 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Mapping Arm FK/IK files are under 300 lines.
+- 2026-05-30 [TOOL] Initial default test-target build after FK target regression test failed because test code treated `PoseSample::position` as Vec3 instead of `std::array`; corrected the test.
+- 2026-05-30 [TOOL] Ran default test target build, `ctest --preset default --output-on-failure`, and default app build; passed after FK arm debug target display fix.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; passed after FK arm debug target display fix.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 07:00:25 KST, size 842752 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched FK target display files are 191 and 246 lines.
+- 2026-05-30 [TOOL] Ran `ctest --preset default --output-on-failure` and default app build; passed after FK mode removal.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test build and `ctest --preset vs2022 --output-on-failure`; passed after FK mode removal.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 07:20:44 KST, size 839168 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched FK-removal files are under 300 lines.
+- 2026-05-30 [TOOL] Ran default test target build, `ctest --preset default --output-on-failure`, and default app build; passed after partial tracker-loss fallback.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; passed after partial tracker-loss fallback.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 07:36:20 KST, size 839168 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched partial-loss fallback files are under 300 lines.
+- 2026-05-30 [TOOL] Cleaned default build after stale object link issue, then rebuilt default test target; passed after Mapping actor Reset.
+- 2026-05-30 [TOOL] Ran `ctest --preset default --output-on-failure` and default app build; passed after Mapping actor Reset.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; passed after Mapping actor Reset.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 07:46:04 KST, size 841728 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Mapping actor Reset files are under 300 lines.
+- 2026-05-30 [TOOL] Ran default test target build, `ctest --preset default --output-on-failure`, and default app build; passed after Soft IK.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; passed after Soft IK.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 07:55:46 KST, size 842240 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Soft IK files have no trailing whitespace and are 77/251 lines.
+- 2026-05-30 [TOOL] Initial incremental default `ctest --preset default --output-on-failure` after Soft IK control headers segfaulted; clean-first default test rebuild mitigated it.
+- 2026-05-30 [TOOL] Ran clean-first default test target build, `ctest --preset default --output-on-failure`, and default app build; passed after Arm/Leg Soft IK controls.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; passed after Arm/Leg Soft IK controls.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 08:20:24 KST, size 845824 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched Arm/Leg Soft IK files have no trailing whitespace and are under 300 lines.
+- 2026-05-30 [TOOL] Ran default test target build, `ctest --preset default --output-on-failure`, and default app build; passed after live Soft IK strength sync.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds and `ctest --preset vs2022 --output-on-failure`; passed after live Soft IK strength sync.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 08:28:43 KST, size 846336 bytes.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched live Soft IK sync files have no trailing whitespace and are under 300 lines.
+- 2026-05-30 [TOOL] Initial default app build without VS developer environment failed to find Windows/STL headers; reran through VS DevCmd successfully.
+- 2026-05-30 [TOOL] Ran default app build and `ctest --preset default --output-on-failure`; passed after body skeleton Appearance update.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched body skeleton Appearance files are under 300 lines.
+- 2026-05-30 [TOOL] User screenshot showed old Appearance dialog; root cause was package exe not refreshed after default-only build verification.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed `toyxyz_openvr_toolkit/toyxyz_openvr_toolkit.exe`; timestamp 2026-05-30 08:55:12 KST, size 853504 bytes.
+- 2026-05-30 [TOOL] Ran VS2022 Release test build + `ctest --test-dir build/vs2022 -C Release --output-on-failure`; passed after package refresh.
+- 2026-05-30 [USER] User runs `build/vs2022/Debug/toyxyz_openvr_toolkit.exe`; Debug exe needed refresh too.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test builds + `ctest --preset vs2022 --output-on-failure`; passed, Debug exe timestamp 2026-05-30 09:01:06 KST, size 3412992 bytes.
+- 2026-05-30 [CODE] Refined box skeleton rendering to draw body-part segments instead of large uniform joint cubes; neck/head/hand/foot use separate proportions.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app build; `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` now includes the box proportion update.
+- 2026-05-30 [TOOL] Ran default app/tests, VS2022 Debug tests, and `git diff --check`; passed, with only existing LF-to-CRLF warnings.
+- 2026-05-30 [CODE] Refined upper-body box skeleton proportions: wider/deeper Spine2 ribcage, matching thick Head/HeadTop_End, and clavicle/shoulder bones thinner than arm bones.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app build; `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` timestamp 2026-05-30 12:14:56 KST, size 3405824 bytes.
+- 2026-05-30 [TOOL] Ran default app/tests, VS2022 Debug tests, and `git diff --check`; passed, with only existing LF-to-CRLF warnings; touched renderer file is 209 lines.
+- 2026-05-30 [CODE] Added `ViewportBeveledBoxPrimitive` and switched body skeleton box mode from sharp cuboids to low-poly beveled segment boxes.
+- 2026-05-30 [TOOL] First VS2022 Debug app build failed until `windows.h`/`NOMINMAX` were added before using `gl/GL.h` and `std::min/max`; retry passed.
+- 2026-05-30 [TOOL] Ran default app/tests, VS2022 Debug app/tests, and `git diff --check`; passed, with only existing LF-to-CRLF warnings; touched renderer files are 150/126/14 lines.
+- 2026-05-30 [TOOL] VS2022 Debug exe timestamp 2026-05-30 12:20:41 KST, size 3412992 bytes.
+- 2026-05-30 [CODE] Changed box skeleton head rendering to skip the Head segment and draw one large Neck-to-HeadTop_End head box.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/tests, default app/tests, and `git diff --check`; passed, with only existing LF-to-CRLF warnings; `ViewportBodySkeletonBoxRenderer.cpp` is 134 lines.
+- 2026-05-30 [TOOL] VS2022 Debug exe timestamp 2026-05-30 12:23:04 KST, size 3412992 bytes.
+- 2026-05-30 [CODE] Added a flat foot box primitive so toe boxes render floor-parallel with lower surface at toe height and upper surface at ankle height while preserving the sloped foot bone.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/tests, default app/tests, and `git diff --check`; passed, with only existing LF-to-CRLF warnings; touched box renderer files are 172/136/21 lines.
+- 2026-05-30 [TOOL] VS2022 Debug exe timestamp 2026-05-30 12:32:27 KST, size 3412992 bytes.
+- 2026-05-30 [CODE] Passed calibrated actor virtual targets into box skeleton rendering and used chest/pelvis rotation as side hints for Spine2/Spine1/Spine box orientation.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/tests, default app/tests, and `git diff --check`; passed, with only existing LF-to-CRLF warnings; touched renderer files are 212/177/226/21/29 lines.
+- 2026-05-30 [TOOL] VS2022 Debug exe timestamp 2026-05-30 12:48:27 KST, size 3412992 bytes.
+- 2026-05-30 [USER] Reverted the flat floor-parallel foot box visual change; toe/foot boxes should again follow the ankle-to-toe bone direction.
+- 2026-05-30 [CODE] Removed `drawBeveledFootBox3D` and the toe-specific box rendering branch while preserving beveled boxes and spine side-hint rotation.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/tests, default app/tests, and `git diff --check`; passed, with only existing LF-to-CRLF warnings; touched bevel/body renderer files are 190/175/22 lines.
+- 2026-05-30 [TOOL] VS2022 Debug exe timestamp 2026-05-30 12:52:27 KST, size 3412992 bytes.
+- 2026-05-30 [CODE] Extended box skeleton side-hint rendering beyond the torso: head/neck use Head target rotation; shoulders use Chest; arms/hands/legs/feet/toes use their mapped limb virtual targets; hip roots use Pelvis.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app build, default app/tests, VS2022 Debug tests, and `git diff --check`; passed, with only existing LF-to-CRLF warnings; touched box renderer files are 230/190/226 lines.
+- 2026-05-30 [TOOL] VS2022 Debug exe timestamp 2026-05-30 12:58:48 KST, size 3412992 bytes.
+- 2026-05-30 [CODE] Changed upper/lower arm box side hints to use the current IK shoulder-elbow-wrist bend-plane normal instead of raw arm/hand tracker rotation, preventing visual twist during arm bend/torso rotation.
+- 2026-05-30 [TOOL] Ran VS2022 Debug/default builds, default/VS2022 Debug `ctest`, and `git diff --check`; passed, with only existing LF-to-CRLF warnings; `ViewportBodySkeletonBoxRenderer.cpp` is 262 lines.
+- 2026-05-30 [TOOL] VS2022 Debug exe timestamp 2026-05-30 13:09:04 KST, size 3412992 bytes.
+- 2026-05-30 [CODE] Changed hand box side hints to use the same IK arm bend-plane normal as upper/lower arm boxes, removing raw hand tracker twist from the hand segment visual.
+- 2026-05-30 [TOOL] VS2022 Debug app relink failed with LNK1168 because `build/vs2022/Debug/toyxyz_openvr_toolkit.exe` was running/locked; default app build passed and VS2022/default `ctest` passed.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; `ViewportBodySkeletonBoxRenderer.cpp` is 260 lines.
+- 2026-05-30 [TOOL] After user closed the running app, ran VS2022 Debug app build and `ctest --preset vs2022 --output-on-failure`; both passed.
+- 2026-05-30 [TOOL] VS2022 Debug exe timestamp 2026-05-30 13:15:30 KST, size 3412992 bytes; `git diff --check` still reports only existing LF-to-CRLF warnings.
+- 2026-05-30 [CODE] Changed hand box side hint from IK arm bend-plane-only to hand target local-up rotation, because the target local-X axis is parallel to the hand bone at rest and cannot express palm roll.
+- 2026-05-30 [TOOL] Ran VS2022 Debug/default builds, VS2022/default `ctest`, and `git diff --check`; passed, with only existing LF-to-CRLF warnings; `ViewportBodySkeletonBoxRenderer.cpp` is 277 lines.
+- 2026-05-30 [TOOL] VS2022 Debug exe timestamp 2026-05-30 13:19:50 KST, size 3412992 bytes.
+- 2026-05-30 [CODE] Corrected hand box roll hint from hand target local-up to local-forward after user reported a 90-degree roll offset.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app build, `ctest --preset vs2022 --output-on-failure`, and `git diff --check`; passed, with only existing LF-to-CRLF warnings; `ViewportBodySkeletonBoxRenderer.cpp` is 277 lines.
+- 2026-05-30 [TOOL] VS2022 Debug exe timestamp 2026-05-30 13:23:20 KST, size 3412992 bytes.
+- 2026-05-30 [CODE] Changed thigh/shin box side hints to use each leg's hip-knee-ankle IK bend-plane normal; foot target rotation now affects only toe/foot segment boxes.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app build, `ctest --preset vs2022 --output-on-failure`, and `git diff --check`; passed, with only existing LF-to-CRLF warnings; `ViewportBodySkeletonBoxRenderer.cpp` is 277 lines.
+- 2026-05-30 [TOOL] VS2022 Debug exe timestamp 2026-05-30 13:32:53 KST, size 3412992 bytes.
+- 2026-05-30 [CODE] Added `ViewportSkeletonJointAxes` and wired Debug Monitor-visible RGB joint axes into profile preview, uncalibrated actors, and calibrated actors for both line and box skeleton display modes.
+- 2026-05-30 [TOOL] Ran VS2022 Debug/default builds, VS2022/default `ctest`, and `git diff --check`; passed, with only existing LF-to-CRLF warnings; touched renderer files are 148/242/277 lines.
+- 2026-05-30 [TOOL] VS2022 Debug exe timestamp 2026-05-30 13:40:02 KST, size 3432960 bytes.
+- 2026-05-30 [CODE] Updated debug joint axes to use the same child-segment side-hint rules as box bones: torso tracker hints, IK limb planes, hand local-forward, and foot target only for toe segments.
+- 2026-05-30 [TOOL] Ran VS2022 Debug/default builds, VS2022/default `ctest`, and `git diff --check`; passed, with only existing LF-to-CRLF warnings; `ViewportSkeletonJointAxes.cpp` is 198 lines.
+- 2026-05-30 [TOOL] VS2022 Debug exe timestamp 2026-05-30 13:45:46 KST, size 3432960 bytes.
+- 2026-05-30 [CODE] Changed `ViewportSettings::skeletonDisplayType` default from Line to Box; existing saved config can still override it.
+- 2026-05-30 [TOOL] Ran VS2022 Debug/default builds, VS2022/default `ctest`, `git diff --check`, and line check; passed with only existing LF-to-CRLF warnings; `ConfigTypes.h` is 78 lines and Debug exe timestamp is 2026-05-30 13:51:56 KST.
+- 2026-05-30 [CODE] Added `F1` tracked-device visibility toggle; it gates tracked device models, fallback markers, skeletal finger boxes, and device labels while leaving actors/markers visible.
+- 2026-05-30 [TOOL] Ran default build, default/VS2022 `ctest`, VS2022 Debug app build, `git diff --check`, and line checks; passed with only existing LF-to-CRLF warnings; Debug exe timestamp is 2026-05-30 14:01:26 KST.
+- 2026-05-30 [CODE] Added Record Settings `Finger type`/`VMC port`, VMC OSC/UDP receiver, VMC finger pose source routing, config serialization, and OSC/source tests.
+- 2026-05-30 [TOOL] Ran default test target build + `ctest --preset default --output-on-failure`; passed after VMC finger source update.
+- 2026-05-30 [TOOL] Ran default app build; passed after VMC finger source update.
+- 2026-05-30 [TOOL] Ran VS2022 Debug app/test build + `ctest --preset vs2022 --output-on-failure`; passed after VMC finger source update.
+- 2026-05-30 [TOOL] Ran VS2022 Release app build and refreshed package exe; passed after VMC finger source update.
+- 2026-05-30 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; changed/added code files are at or under 300 lines except existing `CMakeLists.txt` exception.
+- 2026-05-31 [CODE] Changed VMC finger source to synthesize stable wrist-relative finger spacing and apply VMC phalange rotations instead of treating VMC bone positions as final finger joint points.
+- 2026-05-31 [TOOL] Ran default test target build + `ctest --preset default --output-on-failure`; passed after VMC finger bunching fix.
+- 2026-05-31 [TOOL] Ran default `OpenVRTrackerRecorderDesktop` app build; passed after VMC finger bunching fix.
+- 2026-05-31 [TOOL] Ran VS2022 Debug app/test build + `ctest --preset vs2022 --output-on-failure`; passed after VMC finger bunching fix.
+- 2026-05-31 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched files are 205 and 155 lines.
+- 2026-05-31 [CODE] Changed VMC finger source to compose local VMC phalange transforms and convert Unity left-handed quaternions with a narrow VMC-to-mapping rotation adapter.
+- 2026-05-31 [CODE] Added VMC finger test coverage for local-chain composition and a positive Unity X-axis curl direction.
+- 2026-05-31 [TOOL] Ran default test target build + `ctest --preset default --output-on-failure`; passed after VMC finger axis fix.
+- 2026-05-31 [TOOL] Ran default `OpenVRTrackerRecorderDesktop` app build; passed after VMC finger axis fix.
+- 2026-05-31 [TOOL] Ran VS2022 Debug app/test build + `ctest --preset vs2022 --output-on-failure`; passed after VMC finger axis fix.
+- 2026-05-31 [TOOL] Ran VS2022 Release `OpenVRTrackerRecorderDesktop` app build; passed after VMC finger axis fix.
+- 2026-05-31 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched files are 294 and 193 lines.
+- 2026-05-31 [CODE] Changed VMC finger source from local transform point-chain output to curl-only synthesis on canonical finger spread, so roll/yaw no longer pulls fingertips inward.
+- 2026-05-31 [CODE] Scaled thumb curl to 65% while keeping its rest diagonal spread, reducing unstable thumb motion.
+- 2026-05-31 [TOOL] Ran default test target build + `ctest --preset default --output-on-failure`; passed after VMC curl-only finger fix.
+- 2026-05-31 [TOOL] Ran default `OpenVRTrackerRecorderDesktop` app build; passed after VMC curl-only finger fix.
+- 2026-05-31 [TOOL] Ran VS2022 Debug app/test build + `ctest --preset vs2022 --output-on-failure`; passed after VMC curl-only finger fix.
+- 2026-05-31 [TOOL] Ran VS2022 Release `OpenVRTrackerRecorderDesktop` app build; passed after VMC curl-only finger fix.
+- 2026-05-31 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched files are 273 and 196 lines.
+- 2026-05-31 [CODE] Changed VMC finger curl extraction to use parent-relative phalange rotations and dominant-axis magnitude, while still outputting canonical curl-only spread-preserving chains.
+- 2026-05-31 [CODE] Updated VMC finger test to cover non-X source curl axis with global child rotations matching the parent phalange.
+- 2026-05-31 [TOOL] Ran default test target build, `ctest --preset default --output-on-failure`, and default app build; passed after VMC dominant-axis curl fix.
+- 2026-05-31 [TOOL] Ran VS2022 Debug app/test build + `ctest --preset vs2022 --output-on-failure`; passed after VMC dominant-axis curl fix; Debug exe timestamp 2026-05-31 01:23:07 KST, size 3551232 bytes.
+- 2026-05-31 [TOOL] Ran VS2022 Release `OpenVRTrackerRecorderDesktop` app build; passed after VMC dominant-axis curl fix.
+- 2026-05-31 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched files are 290 and 196 lines.
+- 2026-05-31 [CODE] Changed VMC finger curl extraction from parent-relative dominant-axis to local phalange swing with finger-forward twist removed, preventing child curl cancellation while suppressing roll contamination.
+- 2026-05-31 [CODE] Updated VMC finger test to require accumulated child phalange curl instead of exact single-joint curl coordinates.
+- 2026-05-31 [TOOL] Ran default test target build, `ctest --preset default --output-on-failure`, and default app build; passed after VMC local swing curl fix.
+- 2026-05-31 [TOOL] Ran VS2022 Debug app/test build + `ctest --preset vs2022 --output-on-failure`; passed after VMC local swing curl fix; Debug exe timestamp 2026-05-31 01:33:07 KST, size 3551232 bytes.
+- 2026-05-31 [TOOL] Ran VS2022 Release `OpenVRTrackerRecorderDesktop` app build; passed after VMC local swing curl fix.
+- 2026-05-31 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched files are 265 and 202 lines.
+- 2026-05-31 [CODE] Added skeleton recording state, Mixamo hierarchy BVH exporter, and automatic BVH export for calibrated Mapping actor captures.
+- 2026-05-31 [TOOL] Ran VS2022 Debug app/test build and `ctest --preset vs2022 --output-on-failure`; passed after skeleton BVH export, Debug exe timestamp 2026-05-31 02:55:35 KST.
+- 2026-05-31 [TOOL] Ran `git diff --check`; no whitespace errors, only existing LF-to-CRLF warnings; touched BVH files are under 300 lines.

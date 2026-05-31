@@ -39,6 +39,25 @@ int leftPanelWidthForClient(bool devicePanelVisible, int requestedWidth, int cli
 int contentBottomForClient(int activeDebugMonitorHeight, int clientHeight) noexcept;
 RECT splitterRectForClient(int leftPanelWidth, int activeDebugMonitorHeight, int clientHeight) noexcept;
 RECT deviceToggleButtonRectForClient(int contentBottom, int clientWidth, int clientHeight) noexcept;
+int defaultProfilePanelWidthForClient(int clientWidth) noexcept;
+int clampProfilePanelWidthForClient(int requestedWidth, int clientWidth) noexcept;
+int rightProfileAreaWidthForClient(bool profilePanelVisible, int clientWidth) noexcept;
+int rightProfileAreaWidthForClient(bool profilePanelVisible, int requestedWidth, int clientWidth) noexcept;
+RECT profileToggleButtonRectForClient(int contentBottom, int clientWidth, int clientHeight) noexcept;
+RECT mappingToggleButtonRectForClient(int contentBottom, int clientWidth, int clientHeight) noexcept;
+ProfilePanelLayout profilePanelLayoutForClient(
+    bool profilePanelVisible,
+    int requestedWidth,
+    int contentBottom,
+    int clientWidth,
+    int clientHeight
+) noexcept;
+ProfilePanelLayout profilePanelLayoutForClient(
+    bool profilePanelVisible,
+    int contentBottom,
+    int clientWidth,
+    int clientHeight
+) noexcept;
 DeviceListLayout deviceListLayoutForClient(
     bool devicePanelVisible,
     int leftPanelWidth,
@@ -78,11 +97,26 @@ ViewportControlLayout viewportControlLayoutForClient(
     int clientWidth,
     int clientHeight
 ) noexcept;
+ViewportControlLayout viewportControlLayoutForClient(
+    int leftPanelWidth,
+    int contentBottom,
+    bool showAnimationControls,
+    int clientWidth,
+    int clientHeight,
+    int rightReservedWidth
+) noexcept;
 RECT viewportRenderRectForClient(
     int leftPanelWidth,
     int contentBottom,
     const ViewportControlLayout& controls,
     int clientWidth
+) noexcept;
+RECT viewportRenderRectForClient(
+    int leftPanelWidth,
+    int contentBottom,
+    const ViewportControlLayout& controls,
+    int clientWidth,
+    int rightReservedWidth
 ) noexcept;
 
 } // namespace ovtr::win32

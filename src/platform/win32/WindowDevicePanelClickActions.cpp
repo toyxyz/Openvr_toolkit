@@ -4,8 +4,10 @@
 #include "platform/win32/AppLog.h"
 #include "platform/win32/DeviceList.h"
 #include "platform/win32/MarkerList.h"
+#include "platform/win32/MappingNameEditor.h"
 #include "platform/win32/OriginActions.h"
 #include "platform/win32/OriginEditor.h"
+#include "platform/win32/ProfileEditor.h"
 #include "platform/win32/SessionEditor.h"
 #include "platform/win32/ViewportRenderer.h"
 #include "platform/win32/WindowLayout.h"
@@ -41,6 +43,104 @@ bool handleDeviceToggleClick(
     );
     layoutChildWindows(hwnd);
     invalidateWindowLayout(hwnd);
+    return true;
+}
+
+bool handleProfileToggleClick(
+    HWND hwnd,
+    AppWindowState& state,
+    const int clientWidth,
+    const int clientHeight,
+    const POINT point
+)
+{
+    const RECT profileButtonRect = profileToggleButtonRectForClient(&state, clientWidth, clientHeight);
+    if (!PtInRect(&profileButtonRect, point)) {
+        return false;
+    }
+
+    state.profilePanelVisible = !state.profilePanelVisible;
+    if (state.profilePanelVisible) {
+        state.mappingPanelVisible = false;
+        state.mappingDropdownSlot = -1;
+        state.mappingProfileDropdownOpen = false;
+        state.mappingPresetDropdownOpen = false;
+        closeMappingNameEditor(hwnd, state);
+    }
+    state.profileSplitterDragging = false;
+    if (!state.profilePanelVisible) {
+        disableProfilePreview(state);
+    }
+    if (!state.profilePanelVisible && state.profileEditWindow) {
+        closeProfileEditor(hwnd, state);
+    }
+    appendDebugLog(
+        state,
+        state.profilePanelVisible ? L"Profile panel opened" : L"Profile panel closed"
+    );
+    layoutChildWindows(hwnd);
+    invalidateWindowLayout(hwnd);
+    return true;
+}
+
+bool handleMappingToggleClick(
+    HWND hwnd,
+    AppWindowState& state,
+    const int clientWidth,
+    const int clientHeight,
+    const POINT point
+)
+{
+    const RECT mappingButtonRect = mappingToggleButtonRectForClient(&state, clientWidth, clientHeight);
+    if (!PtInRect(&mappingButtonRect, point)) {
+        return false;
+    }
+
+    state.mappingPanelVisible = !state.mappingPanelVisible;
+    if (state.mappingPanelVisible) {
+        state.profilePanelVisible = false;
+        disableProfilePreview(state);
+        closeProfileEditor(hwnd, state);
+        if (state.mappingPresetName.empty()) {
+            state.mappingPresetName = state.profile.name;
+        }
+    }
+    state.mappingDropdownSlot = -1;
+    state.mappingProfileDropdownOpen = false;
+    state.mappingPresetDropdownOpen = false;
+    if (!state.mappingPanelVisible) {
+        closeMappingNameEditor(hwnd, state);
+    }
+    state.profileSplitterDragging = false;
+    appendDebugLog(
+        state,
+        state.mappingPanelVisible ? L"Mapping panel opened" : L"Mapping panel closed"
+    );
+    layoutChildWindows(hwnd);
+    invalidateWindowLayout(hwnd);
+    return true;
+}
+
+bool handleProfileSplitterClick(
+    HWND hwnd,
+    AppWindowState& state,
+    const int clientWidth,
+    const int clientHeight,
+    const POINT point
+)
+{
+    const RECT splitterRect = profileSplitterRectForClient(&state, clientWidth, clientHeight);
+    if (!(state.profilePanelVisible || state.mappingPanelVisible) || !PtInRect(&splitterRect, point)) {
+        return false;
+    }
+
+    state.profileSplitterDragging = true;
+    state.profilePanelWidth = state.profilePanelWidth > 0
+        ? clampProfilePanelWidthForClient(state.profilePanelWidth, clientWidth)
+        : defaultProfilePanelWidthForClient(clientWidth);
+    SetCapture(hwnd);
+    SetCursor(LoadCursor(nullptr, IDC_SIZEWE));
+    InvalidateRect(hwnd, nullptr, FALSE);
     return true;
 }
 

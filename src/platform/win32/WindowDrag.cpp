@@ -5,6 +5,7 @@
 #include "platform/win32/AppState.h"
 #include "platform/win32/ImportedSceneActions.h"
 #include "platform/win32/Layout.h"
+#include "platform/win32/PanelLayoutMetrics.h"
 #include "platform/win32/WindowLayout.h"
 #include "platform/win32/WindowStateAccess.h"
 
@@ -65,8 +66,25 @@ bool handleMainWindowMouseMove(HWND hwnd, LPARAM lparam)
         return true;
     }
 
+    if (state->profileSplitterDragging) {
+        const int railLeft = clientWidth - kPanelProfileToggleRailWidth;
+        const int newProfileWidth = clampProfilePanelWidthForClient(railLeft - point.x, clientWidth);
+        if (state->profilePanelWidth != newProfileWidth) {
+            state->profilePanelWidth = newProfileWidth;
+            layoutChildWindows(hwnd);
+            invalidateWindowLayout(hwnd);
+        }
+        SetCursor(LoadCursor(nullptr, IDC_SIZEWE));
+        return true;
+    }
+
     const RECT splitterRect = splitterRectForClient(state, clientWidth, clientHeight);
     if (state->devicePanelVisible && PtInRect(&splitterRect, point)) {
+        SetCursor(LoadCursor(nullptr, IDC_SIZEWE));
+        return true;
+    }
+    const RECT profileSplitterRect = profileSplitterRectForClient(state, clientWidth, clientHeight);
+    if ((state->profilePanelVisible || state->mappingPanelVisible) && PtInRect(&profileSplitterRect, point)) {
         SetCursor(LoadCursor(nullptr, IDC_SIZEWE));
         return true;
     }

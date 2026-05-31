@@ -60,5 +60,10 @@ bool chooseImportGlbFile(
     const std::filesystem::path& initialDirectory,
     std::filesystem::path& outPath
 );
+bool chooseProfileFile(
+    HWND owner,
+    const std::filesystem::path& initialDirectory,
+    std::filesystem::path& outPath
+);
 
 } // namespace ovtr::win32

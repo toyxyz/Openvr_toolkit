@@ -39,6 +39,15 @@ bool handleMainWindowLButtonUp(HWND hwnd)
         InvalidateRect(hwnd, nullptr, FALSE);
         return true;
     }
+    if (state && state->profileSplitterDragging) {
+        state->profileSplitterDragging = false;
+        if (GetCapture() == hwnd) {
+            ReleaseCapture();
+        }
+        appendDebugLog(*state, L"Right panel width: " + std::to_wstring(state->profilePanelWidth) + L" px");
+        InvalidateRect(hwnd, nullptr, FALSE);
+        return true;
+    }
 
     return false;
 }

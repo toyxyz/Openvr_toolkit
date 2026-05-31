@@ -8,6 +8,8 @@
 #include "platform/win32/ViewportRenderer.h"
 #include "platform/win32/WindowLayout.h"
 
+#include <mutex>
+
 namespace ovtr::win32 {
 
 bool showViewportColorSettings(HWND parent, AppWindowState& state)
@@ -43,10 +45,13 @@ bool showExportLocationSettings(HWND parent, AppWindowState& state)
         return false;
     }
 
-    state.exportDirectory = result.directory;
-    state.recordDelaySeconds = result.recordDelaySeconds;
-    state.recordExportSampleRate = result.exportSampleRate;
-    state.recordSaveFormat = result.saveFormat;
+    {
+        std::lock_guard<std::mutex> lock(state.recordingMutex);
+        state.exportDirectory = result.directory;
+        state.recordDelaySeconds = result.recordDelaySeconds;
+        state.recordExportSampleRate = result.exportSampleRate;
+        state.recordSaveFormat = result.saveFormat;
+    }
     state.exportStatusMessage = "Record settings updated";
     appendDebugLog(state, state.exportStatusMessage);
     saveRecordSettingsConfig(state);

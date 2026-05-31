@@ -1,6 +1,7 @@
 #pragma once
 
 #include "platform/win32/ConfigTypes.h"
+#include "platform/win32/SkeletonRecordingTypes.h"
 #include "recording/RecordingController.h"
 #include "recording/SamplingScheduler.h"
 
@@ -25,6 +26,7 @@ struct AppRecordingState {
     float recordDelaySeconds = 0.0f;
     float recordExportSampleRate = 60.0f;
     ExportFormat recordSaveFormat = ExportFormat::Glb;
+    SkeletonRecordingClip skeletonRecording;
     bool recordingDelayActive = false;
     std::chrono::steady_clock::time_point recordingDelayDeadline{};
 };

@@ -16,13 +16,15 @@ ViewportControlLayout viewportControlLayoutForClient(
     }
 
     const int leftPanelWidth = leftPanelWidthForClient(state, clientWidth);
+    const int rightReservedWidth = rightProfileAreaWidthForClient(state, clientWidth);
     const int contentBottom = leftPanelContentBottomForClient(state, clientHeight);
     return viewportControlLayoutForClient(
         leftPanelWidth,
         contentBottom,
         state->importedSceneLoaded,
         clientWidth,
-        clientHeight
+        clientHeight,
+        rightReservedWidth
     );
 }
 
@@ -37,13 +39,20 @@ RECT viewportRenderRectForClient(
     }
 
     const int leftPanelWidth = leftPanelWidthForClient(state, clientWidth);
+    const int rightReservedWidth = rightProfileAreaWidthForClient(state, clientWidth);
     const int contentBottom = leftPanelContentBottomForClient(state, clientHeight);
     const ViewportControlLayout controls = viewportControlLayoutForClient(
         state,
         clientWidth,
         clientHeight
     );
-    return viewportRenderRectForClient(leftPanelWidth, contentBottom, controls, clientWidth);
+    return viewportRenderRectForClient(
+        leftPanelWidth,
+        contentBottom,
+        controls,
+        clientWidth,
+        rightReservedWidth
+    );
 }
 
 } // namespace ovtr::win32

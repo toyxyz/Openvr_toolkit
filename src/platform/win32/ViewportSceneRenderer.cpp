@@ -56,6 +56,10 @@ void drawTrackedDevices3D(
     const float outlineWorldUnitsPerPixel
 )
 {
+    if (!deviceState.trackedDevicesVisible) {
+        return;
+    }
+
     for (const ovtr::PoseSample& pose : runtimeState.poses.poses) {
         if (ovtr::isSkeletalBoneRuntimeIndex(pose.runtimeIndex)) {
             continue;
@@ -85,6 +89,10 @@ void drawTrackedDeviceLabels3D(
     const AppViewportState& viewportState
 )
 {
+    if (!deviceState.trackedDevicesVisible) {
+        return;
+    }
+
     for (const ovtr::PoseSample& pose : runtimeState.poses.poses) {
         if (ovtr::isSkeletalBoneRuntimeIndex(pose.runtimeIndex)) {
             continue;

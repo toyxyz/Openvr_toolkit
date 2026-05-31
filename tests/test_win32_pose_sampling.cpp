@@ -8,6 +8,7 @@
 
 #include <chrono>
 #include <filesystem>
+#include <memory>
 #include <mutex>
 #include <system_error>
 
@@ -15,7 +16,8 @@ namespace ovtr::test {
 
 void testWin32PoseSamplingWorker()
 {
-    ovtr::win32::AppWindowState state;
+    auto ownedState = std::make_unique<ovtr::win32::AppWindowState>();
+    ovtr::win32::AppWindowState& state = *ownedState;
 
     ovtr::PosePollResult poses;
     poses.timestampNs = 123;

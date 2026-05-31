@@ -17,6 +17,11 @@ struct RgbColor {
     int b = 0;
 };
 
+enum class SkeletonDisplayType {
+    Line,
+    Box,
+};
+
 struct ViewportSettings {
     RgbColor labelTextColor{255, 255, 255};
     RgbColor gridColor{34, 36, 43};
@@ -26,6 +31,8 @@ struct ViewportSettings {
     RgbColor renderModelMaterialColor{255, 255, 255};
     RgbColor fingerBoxColor{255, 230, 128};
     RgbColor markerColor{255, 255, 255};
+    RgbColor bodyColor{255, 255, 255};
+    SkeletonDisplayType skeletonDisplayType = SkeletonDisplayType::Box;
     float outlineMultiplier = 1.0f;
     float gridSize = 5.0f;
     float gridCellDensity = 2.0f;
