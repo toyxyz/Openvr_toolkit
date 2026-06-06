@@ -59,6 +59,7 @@ void shutdownOpenGLForChild(AppWindowState& state) noexcept
         wglMakeCurrent(state.glDeviceContext.get(), state.glContext.get());
         deleteRenderModelTextures(state);
         state.glLabelFontBase.reset();
+        state.glActorLabelFontBase.reset();
         state.glRecordingElapsedFontBase.reset();
         state.glOverlayFontBase.reset();
         wglMakeCurrent(nullptr, nullptr);

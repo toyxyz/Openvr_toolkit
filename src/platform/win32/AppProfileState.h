@@ -31,9 +31,12 @@ struct ProfileEditTarget {
 
 struct MappingActor {
     std::uint32_t id = 0;
+    std::wstring name;
     BodyProfile profile;
     std::array<std::uint32_t, kMappingSlotCount> mappingDeviceRuntimeIndices =
         defaultMappingDeviceRuntimeIndices();
+    std::array<std::uint32_t, kMappingFingerSourceCount> mappingFingerRuntimeIndices =
+        defaultMappingFingerRuntimeIndices();
     RgbColor skeletonColor{255, 255, 255};
     bool calibrated = false;
     MappingCalibrationData calibration;
@@ -63,9 +66,13 @@ struct AppProfileState {
     int mappingDropdownSlot = -1;
     bool mappingProfileDropdownOpen = false;
     bool mappingPresetDropdownOpen = false;
+    std::wstring mappingActorName;
     std::wstring mappingPresetName;
     RgbColor mappingSkeletonColor{255, 255, 255};
     bool mappingSkeletonColorCustomized = false;
+    std::wstring mappingActorNameEditSnapshot;
+    HWND mappingActorNameEditWindow = nullptr;
+    WNDPROC mappingActorNameEditOriginalProc = nullptr;
     std::wstring mappingNameEditSnapshot;
     HWND mappingNameEditWindow = nullptr;
     WNDPROC mappingNameEditOriginalProc = nullptr;
@@ -86,6 +93,8 @@ struct AppProfileState {
     float mappingLegSoftIkStrength = kDefaultMappingLegSoftIkStrength;
     std::array<std::uint32_t, kMappingSlotCount> mappingDeviceRuntimeIndices =
         defaultMappingDeviceRuntimeIndices();
+    std::array<std::uint32_t, kMappingFingerSourceCount> mappingFingerRuntimeIndices =
+        defaultMappingFingerRuntimeIndices();
     BodyProfile profile;
     BodyProfile profileEditSnapshot;
     bool profileEditSnapshotValid = false;
@@ -97,6 +106,21 @@ struct AppProfileState {
 inline void disableProfilePreview(AppProfileState& state) noexcept
 {
     state.profilePreviewEnabled = false;
+}
+
+inline std::wstring effectiveMappingActorName(const MappingActor& actor)
+{
+    return actor.name.empty() ? actor.profile.name : actor.name;
+}
+
+inline std::wstring effectiveMappingActorNameText(const AppProfileState& state)
+{
+    for (const MappingActor& actor : state.mappingActors) {
+        if (actor.id == state.selectedMappingActorId) {
+            return effectiveMappingActorName(actor);
+        }
+    }
+    return state.mappingActorName.empty() ? state.profile.name : state.mappingActorName;
 }
 
 inline void syncMappingSoftIkStrengthsToActors(AppProfileState& state) noexcept

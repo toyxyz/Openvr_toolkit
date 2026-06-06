@@ -24,7 +24,7 @@ void paintDeviceListPanel(
         return;
     }
 
-    const std::vector<DeviceListRow> deviceRows = makeDeviceListRows(runtimeState, deviceState);
+    const std::vector<DeviceListRow> deviceRows = makeDevicePanelRows(runtimeState, deviceState);
     deviceState.deviceListScrollOffset = clampDeviceListScrollOffset(
         deviceState.deviceListScrollOffset,
         static_cast<int>(deviceRows.size()),

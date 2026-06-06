@@ -25,6 +25,7 @@ void drawDeviceMarker3D(
     bool drawBody,
     bool selected
 );
+void offsetRasterPositionPixels(float x, float y);
 void drawLabelText3D(const std::string& text, GLuint fontBase);
 
 } // namespace ovtr::win32

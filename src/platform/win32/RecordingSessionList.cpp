@@ -1,5 +1,6 @@
 #include "platform/win32/RecordingSessionList.h"
 
+#include "platform/win32/ConfigStore.h"
 #include "platform/win32/DeviceListLayoutMetrics.h"
 #include "platform/win32/Layout.h"
 #include "platform/win32/Win32String.h"
@@ -54,7 +55,7 @@ struct SessionFolderListCandidate {
 
 std::filesystem::path recordingSessionsRootPath()
 {
-    return std::filesystem::current_path() / "recordings";
+    return defaultSessionDirectoryPath();
 }
 
 std::vector<RecordingSessionListRow> listRecordingSessionFolders(

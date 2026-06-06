@@ -36,6 +36,7 @@ void testWin32RecordSettingsConfig()
 
     std::istringstream recordInput(
         "directory=C:/captures\n"
+        "session_directory=D:/sessions\n"
         "record_delay=2.250\n"
         "export_fps=90\n"
         "format=fbx\n"
@@ -49,6 +50,7 @@ void testWin32RecordSettingsConfig()
     const ovtr::win32::RecordSettingsConfig record =
         ovtr::win32::parseRecordSettingsConfig(recordInput, 60.0f);
     require(record.exportDirectoryText == "C:/captures", "parse record directory");
+    require(record.sessionDirectoryText == "D:/sessions", "parse session directory");
     require(win32ConfigNearlyEqual(record.recordDelaySeconds, 2.25f), "parse record delay");
     require(win32ConfigNearlyEqual(record.exportSampleRate, 90.0f), "parse record sample rate");
     require(record.startRecordingOnCalibration, "parse calibration-start recording option");
@@ -81,6 +83,7 @@ void testWin32RecordSettingsConfig()
     const ovtr::win32::RecordSettingsConfig legacyRecord =
         ovtr::win32::parseRecordSettingsConfig(legacyRecordInput, 60.0f);
     require(legacyRecord.exportDirectoryText == "D:/legacy exports", "parse legacy record directory");
+    require(legacyRecord.sessionDirectoryText.empty(), "legacy record has no session directory");
     require(!legacyRecord.applyNoiseFilterOnExport, "legacy record disables export noise filter");
     require(!legacyRecord.exportAfterRecording, "legacy record disables export-after-recording");
     require(win32ConfigNearlyEqual(legacyRecord.noiseFilterCutoffHz, 8.0f), "legacy record default noise cutoff");
@@ -95,6 +98,7 @@ void testWin32RecordSettingsConfig()
 
     const std::string serializedRecord = ovtr::win32::serializeRecordSettingsConfig(
         "E:/new exports",
+        "F:/new sessions",
         -1.0f,
         std::numeric_limits<float>::infinity(),
         true,
@@ -108,6 +112,10 @@ void testWin32RecordSettingsConfig()
     require(
         serializedRecord.find("record_delay_seconds=0.000") != std::string::npos,
         "serialize sanitized record delay"
+    );
+    require(
+        serializedRecord.find("session_directory=F:/new sessions") != std::string::npos,
+        "serialize session directory"
     );
     require(
         serializedRecord.find("resample_fps=72.000") != std::string::npos,
@@ -144,6 +152,7 @@ void testWin32RecordSettingsConfig()
 
     const std::string serializedLargeSampleRate = ovtr::win32::serializeRecordSettingsConfig(
         "E:/new exports",
+        "F:/new sessions",
         0.0f,
         50000.0f,
         false,
@@ -173,6 +182,7 @@ void testWin32RecordSettingsConfig()
 
     ovtr::win32::RecordSettingsDialogInput dialogInput;
     dialogInput.initialDirectory = "relative dialog exports";
+    dialogInput.initialSessionDirectory = "relative dialog sessions";
     dialogInput.initialRecordDelaySeconds = -3.0f;
     dialogInput.initialExportSampleRate = std::numeric_limits<float>::infinity();
     dialogInput.initialStartRecordingOnCalibration = true;
@@ -188,6 +198,11 @@ void testWin32RecordSettingsConfig()
         initialDialogResult.directory ==
             (std::filesystem::current_path() / "relative dialog exports").lexically_normal(),
         "record settings dialog normalizes initial directory"
+    );
+    require(
+        initialDialogResult.sessionDirectory ==
+            (std::filesystem::current_path() / "relative dialog sessions").lexically_normal(),
+        "record settings dialog normalizes initial session directory"
     );
     require(
         win32ConfigNearlyEqual(initialDialogResult.recordDelaySeconds, 0.0f),

@@ -14,10 +14,12 @@ namespace ovtr::win32 {
 
 struct MappingPreset {
     std::wstring name;
+    std::wstring actorName;
     bool hasProfile = false;
     BodyProfile profile;
     RgbColor skeletonColor{255, 255, 255};
     std::array<std::wstring, kMappingSlotCount> deviceSerials{};
+    std::array<std::wstring, kMappingFingerSourceCount> fingerSerials{};
 };
 
 struct MappingPresetFileEntry {

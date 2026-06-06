@@ -1,5 +1,6 @@
 #include "platform/win32/SessionMappingSnapshot.h"
 
+#include "data/SkeletalSyntheticPose.h"
 #include "platform/win32/ConfigStore.h"
 #include "platform/win32/ConfigTextInternal.h"
 #include "platform/win32/ProfileSkeleton.h"
@@ -38,6 +39,16 @@ bool parseValues(const std::filesystem::path& path, ValueMap& values, std::strin
         values[assignment.key] = assignment.value;
     }
     return true;
+}
+
+void assignLegacyFingerRuntimeIndex(std::array<std::uint32_t, kMappingFingerSourceCount>& runtimeIndices, const std::uint32_t runtimeIndex) noexcept
+{
+    ovtr::SkeletalHandSide side = ovtr::SkeletalHandSide::Left;
+    std::uint32_t boneIndex = 0;
+    if (!ovtr::decodeSkeletalBoneRuntimeIndex(runtimeIndex, side, boneIndex)) {
+        return;
+    }
+    runtimeIndices[side == ovtr::SkeletalHandSide::Left ? 0U : 1U] = runtimeIndex;
 }
 
 bool parseFloat(const ValueMap& values, const std::string& key, float& out, std::string& error)
@@ -202,7 +213,12 @@ bool readActor(
     if (!readProfile(values, prefix, actor.profile, error)) {
         return false;
     }
+    const auto actorName = values.find(prefix + "actor_name");
+    actor.name = actorName == values.end() ? actor.profile.name : widen(actorName->second);
     actor.skeletonColor = parseOptionalColor(values, prefix, actor.skeletonColor);
+    actor.mappingFingerRuntimeIndices[0] = parseUInt(values, prefix + "left_finger_runtime_index", kNoSelectedRuntimeIndex);
+    actor.mappingFingerRuntimeIndices[1] = parseUInt(values, prefix + "right_finger_runtime_index", kNoSelectedRuntimeIndex);
+    assignLegacyFingerRuntimeIndex(actor.mappingFingerRuntimeIndices, parseUInt(values, prefix + "finger_runtime_index", kNoSelectedRuntimeIndex));
     actor.liveJoints = buildProfileSkeletonJoints(actor.profile);
     actor.calibration.armSoftIkStrength = kDefaultMappingArmSoftIkStrength;
     actor.calibration.legSoftIkStrength = kDefaultMappingLegSoftIkStrength;
@@ -253,6 +269,9 @@ bool loadSessionMappingSnapshot(
         snapshot.mappingDeviceRuntimeIndices[static_cast<std::size_t>(slot)] =
             runtimeIndexForSerial(session, found == values.end() ? "" : found->second);
     }
+    snapshot.mappingFingerRuntimeIndices[0] = parseUInt(values, "mapping_left_finger_runtime_index", kNoSelectedRuntimeIndex);
+    snapshot.mappingFingerRuntimeIndices[1] = parseUInt(values, "mapping_right_finger_runtime_index", kNoSelectedRuntimeIndex);
+    assignLegacyFingerRuntimeIndex(snapshot.mappingFingerRuntimeIndices, parseUInt(values, "mapping_finger_runtime_index", kNoSelectedRuntimeIndex));
 
     const std::uint32_t count = parseUInt(values, "actor_count", 0);
     snapshot.selectedActorId = parseUInt(values, "selected_actor_id", 0);

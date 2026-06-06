@@ -180,6 +180,15 @@ void testWin32MappingFingerSolve()
     appendStraightSkeletalHand(skeletalPoses, ovtr::SkeletalHandSide::Left);
     appendStraightSkeletalHand(skeletalPoses, ovtr::SkeletalHandSide::Right);
     if (!updateCalibratedMappingActorJoints(actor, skeletalPoses, false, {}, {})) {
+        throw std::runtime_error("disabled skeletal finger solve should keep body tracking");
+    }
+    const Vec3 disabledWrist = actor.liveJoints[kProfileJointLeftForeArm].positionMeters;
+    requireVecNear(actor.liveJoints[kProfileJointLeftHandMiddle4].positionMeters,
+                   {disabledWrist.x + 0.19f, disabledWrist.y, disabledWrist.z},
+                   "disabled skeletal input keeps rest fingers");
+
+    actor.mappingFingerRuntimeIndices = {ovtr::skeletalBoneRuntimeIndex(ovtr::SkeletalHandSide::Left, 1), ovtr::skeletalBoneRuntimeIndex(ovtr::SkeletalHandSide::Right, 1)};
+    if (!updateCalibratedMappingActorJoints(actor, skeletalPoses, false, {}, {})) {
         throw std::runtime_error("skeletal finger live solve should update");
     }
 
@@ -202,13 +211,15 @@ void testWin32MappingFingerSolve()
         throw std::runtime_error("right finger pose roll should stay palm-oriented");
     }
 
+    targets[5].position.x += 0.05f;
     if (!updateCalibratedMappingActorJoints(actor, posesForTargets(targets, mapping), false, {}, {})) {
         throw std::runtime_error("missing skeletal input should keep body tracking");
     }
+    const Vec3 missingWrist = actor.liveJoints[kProfileJointLeftForeArm].positionMeters;
     requireNear(
         actor.liveJoints[kProfileJointLeftHandMiddle4].positionMeters.x,
-        wrist.x + 0.19f,
-        "missing hand keeps fingers"
+        missingWrist.x + 0.19f,
+        "missing hand falls back to current wrist rest fingers"
     );
 
     std::array<MappingTransform, ovtr::kSkeletalHandBoneCount> transforms{};
@@ -244,20 +255,14 @@ void testWin32MappingFingerSolve()
         throw std::runtime_error("right hand basis should be valid");
     }
     if (rightAlignment.restBasis.side.y <= 0.0f) {
-        throw std::runtime_error(
-            std::string("right rest basis should match profile upward axis: ") +
-            std::to_string(rightAlignment.restBasis.side.y)
-        );
+        throw std::runtime_error("right rest basis should match profile upward axis");
     }
     if (rightAlignment.sourceBasis.side.y >= 0.0f) {
         throw std::runtime_error("right source basis should use mirrored palm side");
     }
     const Vec3 rightPalmOffset = alignSkeletalHandPoint(rightAlignment, {0.0f, -0.02f, 0.10f});
     if (rightPalmOffset.y <= 0.0f) {
-        throw std::runtime_error(
-            std::string("right hand mirrored basis should flip curl across profile palm axis: ") +
-            std::to_string(rightPalmOffset.y)
-        );
+        throw std::runtime_error("right hand mirrored basis should flip curl across profile palm axis");
     }
     auto twistedTransforms = transforms;
     twistedTransforms[0].rotation = ovtr::quaternionFromEulerDegrees({0.0f, 0.0f, 135.0f});

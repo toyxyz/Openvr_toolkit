@@ -2,6 +2,11 @@
 
 namespace ovtr::win32 {
 
+void offsetRasterPositionPixels(const float x, const float y)
+{
+    glBitmap(0, 0, 0.0f, 0.0f, x, y, nullptr);
+}
+
 void drawLabelText3D(const std::string& text, const GLuint fontBase)
 {
     if (fontBase == 0 || text.empty()) {

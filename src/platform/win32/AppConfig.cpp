@@ -12,6 +12,11 @@ std::filesystem::path activeExportDirectoryPath(const AppRecordingState& state)
     return normalizedExportDirectoryPath(state.exportDirectory);
 }
 
+std::filesystem::path activeSessionDirectoryPath(const AppRecordingState& state)
+{
+    return normalizedSessionDirectoryPath(state.sessionDirectory);
+}
+
 float sanitizedRecordExportSampleRate(const float value) noexcept
 {
     return sanitizedExportSampleRate(value, kDefaultRecordExportSampleRate);

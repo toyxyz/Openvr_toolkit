@@ -46,6 +46,22 @@ bool isMappingDeviceRow(const int rowIndex) noexcept
     return rowIndex >= 0 && rowIndex < kMappingSlotCount;
 }
 
+bool isMappingFingerRow(const int rowIndex) noexcept
+{
+    return rowIndex == kMappingLeftFingerSlot || rowIndex == kMappingRightFingerSlot;
+}
+
+int mappingFingerSideIndexForRow(const int rowIndex) noexcept
+{
+    if (rowIndex == kMappingLeftFingerSlot) {
+        return 0;
+    }
+    if (rowIndex == kMappingRightFingerSlot) {
+        return 1;
+    }
+    return -1;
+}
+
 bool isMappingSoftIkRow(const int rowIndex) noexcept
 {
     return rowIndex == kMappingArmSoftIkSlot || rowIndex == kMappingLegSoftIkSlot;
@@ -63,6 +79,12 @@ const wchar_t* mappingPanelRowLabel(const int rowIndex) noexcept
     }
     if (isMappingArmSoftIkRow(rowIndex)) {
         return L"Arm Soft IK";
+    }
+    if (rowIndex == kMappingLeftFingerSlot) {
+        return L"Left Finger";
+    }
+    if (rowIndex == kMappingRightFingerSlot) {
+        return L"Right Finger";
     }
     if (isMappingSoftIkRow(rowIndex)) {
         return L"Leg Soft IK";

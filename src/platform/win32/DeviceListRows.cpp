@@ -1,5 +1,6 @@
 #include "platform/win32/DeviceList.h"
 
+#include "data/SkeletalSyntheticPose.h"
 #include "platform/win32/AppDeviceState.h"
 #include "platform/win32/AppRuntimeState.h"
 #include "platform/win32/ConfigStore.h"
@@ -33,6 +34,43 @@ int deviceListRank(const ovtr::DeviceDescriptor& device)
     return 4;
 }
 
+void appendSkeletalInputRow(
+    std::vector<DeviceListRow>& rows,
+    const ovtr::SkeletalHandSide side
+)
+{
+    const bool isLeft = side == ovtr::SkeletalHandSide::Left;
+    rows.push_back(DeviceListRow{
+        ovtr::skeletalBoneRuntimeIndex(side, 1),
+        isLeft ? L"Skeletal Input Left" : L"Skeletal Input Right",
+        L"SteamVR Skeletal Input",
+        isLeft ? L"Left hand" : L"Right hand",
+    });
+}
+
+std::vector<DeviceListRow> skeletalInputRowsForPoses(const ovtr::PosePollResult& poses)
+{
+    std::vector<DeviceListRow> rows;
+    bool hasLeft = false;
+    bool hasRight = false;
+    for (const ovtr::PoseSample& pose : poses.poses) {
+        ovtr::SkeletalHandSide side = ovtr::SkeletalHandSide::Left;
+        std::uint32_t boneIndex = 0;
+        if (!ovtr::decodeSkeletalBoneRuntimeIndex(pose.runtimeIndex, side, boneIndex)) {
+            continue;
+        }
+        hasLeft = hasLeft || side == ovtr::SkeletalHandSide::Left;
+        hasRight = hasRight || side == ovtr::SkeletalHandSide::Right;
+    }
+    if (hasLeft) {
+        appendSkeletalInputRow(rows, ovtr::SkeletalHandSide::Left);
+    }
+    if (hasRight) {
+        appendSkeletalInputRow(rows, ovtr::SkeletalHandSide::Right);
+    }
+    return rows;
+}
+
 } // namespace
 
 std::vector<DeviceListRow> makeDeviceListRows(
@@ -64,6 +102,46 @@ std::vector<DeviceListRow> makeDeviceListRows(
             widen(device->serial.empty() ? "(none)" : device->serial),
         });
     }
+    return rows;
+}
+
+std::vector<DeviceListRow> makeDevicePanelRows(
+    const AppRuntimeState& runtimeState,
+    const AppDeviceState& deviceState
+)
+{
+    std::vector<DeviceListRow> rows = makeDeviceListRows(runtimeState, deviceState);
+    const std::vector<DeviceListRow> skeletalRows = makeSkeletalInputRows(runtimeState);
+    rows.insert(rows.end(), skeletalRows.begin(), skeletalRows.end());
+    return rows;
+}
+
+std::vector<DeviceListRow> makeSkeletalInputRows(const AppRuntimeState& runtimeState)
+{
+    return skeletalInputRowsForPoses(runtimeState.poses);
+}
+
+std::vector<DeviceListRow> makeSkeletalInputRows(const AppRuntimeState& runtimeState, const int sideIndex)
+{
+    std::vector<DeviceListRow> rows = makeSkeletalInputRows(runtimeState);
+    if (sideIndex < 0 || sideIndex > 1) {
+        return rows;
+    }
+    const ovtr::SkeletalHandSide expectedSide =
+        sideIndex == 0 ? ovtr::SkeletalHandSide::Left : ovtr::SkeletalHandSide::Right;
+    rows.erase(
+        std::remove_if(
+            rows.begin(),
+            rows.end(),
+            [expectedSide](const DeviceListRow& row) {
+                ovtr::SkeletalHandSide side = ovtr::SkeletalHandSide::Left;
+                std::uint32_t boneIndex = 0;
+                return !ovtr::decodeSkeletalBoneRuntimeIndex(row.runtimeIndex, side, boneIndex) ||
+                    side != expectedSide;
+            }
+        ),
+        rows.end()
+    );
     return rows;
 }
 

@@ -16,6 +16,8 @@ struct SessionMappingSnapshot {
     RgbColor mappingSkeletonColor{255, 255, 255};
     std::array<std::uint32_t, kMappingSlotCount> mappingDeviceRuntimeIndices =
         defaultMappingDeviceRuntimeIndices();
+    std::array<std::uint32_t, kMappingFingerSourceCount> mappingFingerRuntimeIndices =
+        defaultMappingFingerRuntimeIndices();
     std::vector<MappingActor> actors;
     std::uint32_t selectedActorId = 0;
 };

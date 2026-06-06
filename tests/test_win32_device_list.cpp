@@ -1,6 +1,7 @@
 #include "TestCases.h"
 #include "TestSupport.h"
 
+#include "data/SkeletalSyntheticPose.h"
 #include "platform/win32/AppState.h"
 #include "platform/win32/DeviceList.h"
 
@@ -96,6 +97,23 @@ void testWin32DeviceList()
     require(
         ovtr::win32::labelForDevice(state, nullptr, pose) == "#42",
         "device label falls back to runtime index"
+    );
+
+    ovtr::PoseSample leftFingerPose;
+    leftFingerPose.runtimeIndex = ovtr::skeletalBoneRuntimeIndex(ovtr::SkeletalHandSide::Left, 7);
+    ovtr::PoseSample rightFingerPose;
+    rightFingerPose.runtimeIndex = ovtr::skeletalBoneRuntimeIndex(ovtr::SkeletalHandSide::Right, 12);
+    state.poses.poses.push_back(leftFingerPose);
+    state.poses.poses.push_back(rightFingerPose);
+
+    const std::vector<ovtr::win32::DeviceListRow> panelRows =
+        ovtr::win32::makeDevicePanelRows(state);
+    require(panelRows.size() == 5, "device panel includes skeletal input summary rows");
+    require(panelRows[3].customName == L"Skeletal Input Left", "left skeletal input row label");
+    require(panelRows[4].customName == L"Skeletal Input Right", "right skeletal input row label");
+    require(
+        ovtr::win32::makeDeviceListRows(state).size() == 3,
+        "mapping device rows keep skeletal input hidden"
     );
 }
 

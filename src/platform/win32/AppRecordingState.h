@@ -23,6 +23,7 @@ struct AppRecordingState {
     std::string recordingError;
     std::string exportStatusMessage;
     std::filesystem::path exportDirectory;
+    std::filesystem::path sessionDirectory;
     float recordDelaySeconds = 0.0f;
     float recordExportSampleRate = 60.0f;
     bool startRecordingOnCalibration = false;

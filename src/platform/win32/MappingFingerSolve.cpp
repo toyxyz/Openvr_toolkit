@@ -35,14 +35,18 @@ ovtr::SkeletalHandSide skeletalSide(const ProfileSkeletonHandSide side) noexcept
     return side == ProfileSkeletonHandSide::Left ? ovtr::SkeletalHandSide::Left : ovtr::SkeletalHandSide::Right;
 }
 
-bool isHandJointForSide(const int index, const ProfileSkeletonHandSide side) noexcept
+bool isSkeletalInputEnabledForSide(const MappingActor& actor, const ProfileSkeletonHandSide side) noexcept
 {
-    const bool left = index == kProfileJointLeftHand ||
-        (index >= kProfileJointLeftHandThumb1 && index <= kProfileJointLeftHandPinky4);
-    const bool right = index == kProfileJointRightHand ||
-        (index >= kProfileJointRightHandThumb1 && index <= kProfileJointRightHandPinky4);
-    return (side == ProfileSkeletonHandSide::Left && left) ||
-        (side == ProfileSkeletonHandSide::Right && right);
+    const int slot = sideSlot(side);
+    const std::uint32_t runtimeIndex =
+        actor.mappingFingerRuntimeIndices[static_cast<std::size_t>(slot)];
+    if (runtimeIndex == kNoSelectedRuntimeIndex) {
+        return false;
+    }
+    ovtr::SkeletalHandSide selectedSide = ovtr::SkeletalHandSide::Left;
+    std::uint32_t boneIndex = 0;
+    return ovtr::decodeSkeletalBoneRuntimeIndex(runtimeIndex, selectedSide, boneIndex) &&
+        selectedSide == skeletalSide(side);
 }
 
 MappingTransform wristTargetFor(
@@ -142,24 +146,6 @@ bool applySkeletalHand(
     return solveSkeletalHandCandidate(out, rest, cache, side, targetWrist, alignment, scale);
 }
 
-void copyPreviousHand(
-    const MappingActor& actor,
-    ProfileSkeletonJoints& out,
-    const ProfileSkeletonHandSide side
-) noexcept {
-    if (!actor.liveJointsValid || !actor.liveFingerJointsValid[static_cast<std::size_t>(sideSlot(side))]) {
-        return;
-    }
-    for (int index = 0; index < kProfileSkeletonJointCount; ++index) {
-        if (isHandJointForSide(index, side)) {
-            out[static_cast<std::size_t>(index)].positionMeters =
-                actor.liveJoints[static_cast<std::size_t>(index)].positionMeters;
-            out[static_cast<std::size_t>(index)].sideHint =
-                actor.liveJoints[static_cast<std::size_t>(index)].sideHint;
-        }
-    }
-}
-
 } // namespace
 
 void applyRestHandFingerJoints(
@@ -200,6 +186,10 @@ void updateMappingActorFingerJoints(
     for (const ProfileSkeletonHandSide side : {ProfileSkeletonHandSide::Left, ProfileSkeletonHandSide::Right}) {
         const MappingTransform wristTarget = wristTargetFor(out, targets, side);
         applyRestHandFingerJoints(out, rest, wristTarget, side);
+        if (!isSkeletalInputEnabledForSide(actor, side)) {
+            actor.liveFingerJointsValid[static_cast<std::size_t>(sideSlot(side))] = false;
+            continue;
+        }
         SkeletalPoseCache cache;
         const bool hasHand = collectHandPoseCache(
             poses,
@@ -210,11 +200,7 @@ void updateMappingActorFingerJoints(
             cache
         );
         const bool updated = hasHand && applySkeletalHand(out, rest, cache, side, wristTarget);
-        actor.liveFingerJointsValid[static_cast<std::size_t>(sideSlot(side))] = updated ||
-            actor.liveFingerJointsValid[static_cast<std::size_t>(sideSlot(side))];
-        if (!updated) {
-            copyPreviousHand(actor, out, side);
-        }
+        actor.liveFingerJointsValid[static_cast<std::size_t>(sideSlot(side))] = updated;
     }
 }
 

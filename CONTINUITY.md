@@ -5,7 +5,7 @@
 - 2026-05-31 [USER] Success criteria: recorded skeleton motion matches on-screen Mapping actor motion; session export writes `<sessionId>_skeleton.glb`; BVH export is removed.
 - 2026-06-03 [CODE] Current phase: Mapping actor IK/roll stabilization, viewport debug-axis validation, and GLB skeleton roll/export fixes.
 - 2026-05-28 [CODE] Architecture: C++20 native Win32/OpenVR tracker recorder with modular `src/app`, `data`, `export`, `import`, `math`, `platform/win32`, `recording`, `util`, and `vr` areas.
-- 2026-06-06T03:55:26+09:00 [TOOL] Last verified state: Neck restored to Head transform; Shoulders remain fixed to the Chest transform; Debug app/test targets built.
+- 2026-06-07T01:51:31+09:00 [TOOL] Last verified state: Mapping finger input loss falls back to current-wrist rest fingers; Debug test/app targets built.
 
 ## Invariants / Constraints
 - 2026-05-28 [USER] Code files must stay under 300 physical lines unless explicitly exempted here.
@@ -76,6 +76,38 @@
   - Rationale: user reported Chest tracker and Chest bone positions no longer matched after D077 and requested the previous stretch behavior back.
   - Consequences: `Spine2` is fixed to Chest target position and `Head` is fixed to Head target position; `Spine`/`Spine1` use the previous Pelvis-to-Chest curve, Neck/HeadTop use the Head transform, Shoulders use the Chest transform, and world-rotation overrides were removed from this path.
   - Supersedes: D077.
+- D079 ACTIVE 2026-06-06 [USER] Record Settings owns the session storage root separately from the export root.
+  - Rationale: user requested a `Session folder` path row below `Export folder`, with text input and Browse button.
+  - Consequences: `session_directory` is persisted in record settings; recording start, Save Session, session list display, load, delete, context menu, and scrolling use the configured session root. Legacy configs default to `recordings`.
+  - Supersedes: hardcoded current-working-directory `recordings` root in live session UI/actions.
+- D080 ACTIVE 2026-06-06 [USER] Mapping actors have an editable actor name separate from Profile and Mapping preset names.
+  - Rationale: user requested an `Actor name` row above `Preset name`, used for 3D skeleton labels and skeleton GLB actor file names.
+  - Consequences: `MappingActor::name` falls back to Profile name when empty; mapping presets persist `actor_name`; session mapping snapshots preserve actor names; skeleton exports use `<session>_skeleton_<actorName>.glb`.
+  - Supersedes: using `actor.profile.name` as the only actor display/export name.
+- D081 SUPERSEDED 2026-06-06 [USER] New Mapping actor creation auto-uniquifies duplicate actor names.
+  - Rationale: user requested numeric suffixes when an added actor name already exists.
+  - Consequences: exact duplicate names become `<name>_0`, `<name>_1`, etc.; repeated adds from an existing numeric suffix continue the suffix sequence.
+  - Superseded by: D082.
+- D082 ACTIVE 2026-06-06 [USER] New Mapping actor creation uses `actor_N` default names.
+  - Rationale: user requested new Mapping actors not use Profile names and instead use `actor_0`, `actor_1`, etc.
+  - Consequences: Add Actor ignores the current Profile/editor name for the new actor name, starts from `actor_0`, and uses existing suffix logic to pick the next free number.
+  - Supersedes: D081 defaulting from current actor/Profile name.
+- D083 ACTIVE 2026-06-07 [USER] Device panel lists SteamVR skeletal input as summary rows when finger poses exist.
+  - Rationale: user requested skeletal input appear in the device list.
+  - Consequences: the left Device panel appends `Skeletal Input Left/Right` rows from synthetic finger poses, while Mapping device dropdowns keep using real OpenVR devices only.
+  - Supersedes: none.
+- D084 SUPERSEDED 2026-06-07 [USER] Mapping `Finger` source gates SteamVR skeletal finger solve.
+  - Rationale: user requested a Mapping list Finger item and finger input to work only when that row is not `None`.
+  - Consequences: `Finger` is a UI/source row, not a 12th calibration offset; selecting a skeletal input summary row enables SteamVR skeletal finger solve for available hands, while `None` keeps rest fingers. Mapping presets and session snapshots persist the source.
+  - Supersedes: unconditional SteamVR skeletal finger solve whenever synthetic poses exist.
+- D085 ACTIVE 2026-06-07 [USER] Mapping finger sources are split into `Left Finger` and `Right Finger`.
+  - Rationale: user reported two SteamVR skeletal input rows and requested independent per-hand mapping.
+  - Consequences: Mapping UI has separate left/right finger source rows, each row only lists the matching skeletal input side, and actor finger solve is gated per hand. Mapping presets write `left_finger`/`right_finger`, session snapshots write left/right runtime-index keys, and legacy single `finger` keys are read into the decoded side.
+  - Supersedes: D084 single `Finger` source.
+- D086 ACTIVE 2026-06-07 [USER] Missing skeletal finger input falls back to current-wrist rest fingers.
+  - Rationale: user reported that keeping the last world-space finger pose makes fingers appear stuck in air and stretched when the hand moves after input loss.
+  - Consequences: each finger frame still starts from wrist-relative rest fingers; if selected skeletal input is missing or solve fails, previous world-space hand joints are no longer copied and `liveFingerJointsValid` becomes false for that side.
+  - Supersedes: previous valid finger pose hold on missing skeletal input.
 - D014 ACTIVE 2026-05-30 [CODE] Profile/Mapping skeleton convention is +Y up, +Z front, +X anatomical Left, -X anatomical Right.
 - D016 ACTIVE 2026-05-30 [USER] Mapping arms use IK-only tracking; FK mode is removed.
 - D022 ACTIVE 2026-05-30 [USER] Mapping Arm/Leg Soft IK strengths live in the global runtime Filter under Calibrate.
@@ -450,3 +482,17 @@
 - 2026-06-06T03:40:44+09:00 [TOOL] Restored direct Chest/Head anchoring in core Mapping solve, replaced stretch-zero regression with direct-target coverage, removed world-rotation override use, built Debug test/app targets, and `git diff --check` passed with CRLF warnings only; full Debug test executable still stops at existing `Test failure: state debug monitor height`.
 - 2026-06-06T03:47:43+09:00 [TOOL] Moved `Neck` placement from Head transform to Chest transform so `Spine2->Neck` follows the ribcage/chest target; Debug test/app targets built, `git diff --check` passed with CRLF warnings only, and full Debug test executable still stops at existing `Test failure: state debug monitor height`.
 - 2026-06-06T03:55:26+09:00 [TOOL] Reverted `Neck` placement back to Head transform after user identified the moving joint as Shoulder/clavicle rather than Neck; current Shoulder joints remain Chest-transform rest offsets with no active clavicle solver. Debug test/app targets built, `git diff --check` passed with CRLF warnings only, and full Debug test executable still stops at existing `Test failure: state debug monitor height`.
+- 2026-06-06T17:18:28+09:00 [TOOL] Added Record Settings `Session folder` path/config and routed session save/load/list/delete roots through it; Debug test/app targets built, `git diff --check` passed with CRLF warnings only, changed files stayed <=300 LOC, and full Debug test executable still stops at existing `Test failure: state debug monitor height`.
+- 2026-06-06T18:34:27+09:00 [TOOL] Added Mapping `Actor name` row/editor, actor-name preset/snapshot persistence, viewport labels, and skeleton GLB actor file-stem routing; Debug test/app targets built, `git diff --check` passed with CRLF warnings only, changed code files stayed <=300 LOC, and full Debug test executable still stops at existing `Test failure: state debug monitor height`.
+- 2026-06-06T19:17:50+09:00 [TOOL] Added duplicate Mapping actor-name suffixing and regression coverage; Debug test/app targets built, `git diff --check` passed with CRLF warnings only, changed code files stayed <=300 LOC, and full Debug test executable still stops at existing `Test failure: state debug monitor height`.
+- 2026-06-06T21:06:10+09:00 [TOOL] SUPERSEDED: Built Release `OpenVRTrackerRecorderDesktop` after an initial timeout completed in background, then created `redistributable/toyxyz_openvr_toolkit_release_2026_06_06` containing `toyxyz_openvr_toolkit.exe`, `openvr_api.dll`, runtime config/assets, mapping/profile/offset presets, and `redist/vc_redist.x64.exe`.
+- 2026-06-06T21:27:16+09:00 [TOOL] Cleaned `redistributable/toyxyz_openvr_toolkit_release_2026_06_06` per user request: removed `mapping`, `profile`, `offset`, and all config JSON/CFG files; verified `config` contains only `icon.png` and `render_model_matcap.png`.
+- 2026-06-06T22:21:13+09:00 [TOOL] Added OK/Cancel confirmation before Profile and Mapping preset saves; Debug test/app targets built, `git diff --check` passed with CRLF warnings only, changed files stayed <=300 LOC, and full Debug test executable still stops at existing `Test failure: state debug monitor height`.
+- 2026-06-06T23:24:59+09:00 [TOOL] Changed Add Actor default naming to `actor_0`, `actor_1`, etc. regardless of Profile/editor name and updated regression coverage; Debug test/app targets built, `git diff --check` passed with CRLF warnings only, changed files stayed <=300 LOC, and full Debug test executable still stops at existing `Test failure: state debug monitor height`.
+- 2026-06-06T23:45:51+09:00 [TOOL] Added a separate 2x OpenGL bitmap font display list for Mapping actor labels and left tracked-device labels on the original label font; Debug test/app targets built, `git diff --check` passed with CRLF warnings only, changed files stayed <=300 LOC, and full Debug test executable still stops at existing `Test failure: state debug monitor height`.
+- 2026-06-07T00:18:25+09:00 [TOOL] Changed Mapping actor label vertical lift from world-space `+0.08m` to screen-pixel raster offset after `glRasterPos3f`, so zoom no longer changes the label/head spacing while the 2x actor font remains screen-sized; Debug test/app targets built, `git diff --check` passed with CRLF warnings only, changed files stayed <=300 LOC, and full Debug test executable still stops at existing `Test failure: state debug monitor height`.
+- 2026-06-07T00:42:00+09:00 [TOOL] Added Device panel `Skeletal Input Left/Right` summary rows from synthetic finger poses while keeping Mapping rows real-device only; Debug test/app targets built, `git diff --check` passed with CRLF warnings only, changed files stayed <=300 LOC, and full Debug test executable still stops at existing `Test failure: state debug monitor height`.
+- 2026-06-07T01:14:00+09:00 [TOOL] Added Mapping `Finger` source row, gated SteamVR skeletal finger solve behind non-`None` selection, and persisted the source in mapping presets/session snapshots; Debug test/app targets built, `git diff --check` passed with CRLF warnings only, changed files stayed <=300 LOC, and full Debug test executable still stops at existing `Test failure: state debug monitor height`.
+- 2026-06-07T01:13:09+09:00 [TOOL] Split Mapping finger source into `Left Finger`/`Right Finger`, applied per-hand solve gating, persisted left/right preset/session keys, and split `MappingPanelScrollPainter` to keep touched files <=300 LOC; Debug test/app targets built and `git diff --check` passed with CRLF warnings only.
+- 2026-06-07T01:36:01+09:00 [TOOL] Diagnosed Debug app startup crash as stale object files after `AppWindowState` layout changed; `--clean-first` rebuild completed after initial timeout, final app build succeeded, `toyxyz_openvr_toolkit.exe` stayed running for 3s, and `git diff --check` passed with CRLF warnings only.
+- 2026-06-07T01:51:31+09:00 [TOOL] Changed missing skeletal finger input from previous world-pose hold to current-wrist rest fallback; Debug `openvr_tracker_recorder_tests` and app targets built, touched files stayed <=300 LOC, and `git diff --check` passed with CRLF warnings only.

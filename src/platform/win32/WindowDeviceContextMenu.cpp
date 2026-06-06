@@ -2,6 +2,7 @@
 
 #include <windowsx.h>
 
+#include "platform/win32/AppConfig.h"
 #include "platform/win32/AppState.h"
 #include "platform/win32/AppLog.h"
 #include "platform/win32/DeviceList.h"
@@ -129,7 +130,7 @@ bool showDeviceContextMenu(HWND hwnd, AppWindowState& state, const DeviceListLay
 bool showSessionContextMenu(HWND hwnd, AppWindowState& state, const POINT point, const int width, const int height)
 {
     const std::vector<RecordingSessionListRow> rows =
-        listRecordingSessionFolders(recordingSessionsRootPath());
+        listRecordingSessionFolders(activeSessionDirectoryPath(state));
     const SessionListLayout layout = sessionListLayoutForClient(
         &state,
         width,

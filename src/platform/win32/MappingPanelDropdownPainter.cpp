@@ -36,17 +36,22 @@ void drawPopupFrame(HDC drawDc, const RECT& popupRect)
 
 std::wstring currentMappingText(const AppWindowState& state, const int slotIndex)
 {
-    if (!isMappingDeviceRow(slotIndex)) {
+    if (!isMappingDeviceRow(slotIndex) && !isMappingFingerRow(slotIndex)) {
         return {};
     }
 
-    const std::uint32_t runtimeIndex =
-        state.mappingDeviceRuntimeIndices[static_cast<std::size_t>(slotIndex)];
+    const int fingerSide = mappingFingerSideIndexForRow(slotIndex);
+    const std::uint32_t runtimeIndex = fingerSide >= 0
+        ? state.mappingFingerRuntimeIndices[static_cast<std::size_t>(fingerSide)]
+        : state.mappingDeviceRuntimeIndices[static_cast<std::size_t>(slotIndex)];
     if (runtimeIndex == kNoSelectedRuntimeIndex) {
         return kMappingNoDeviceLabel;
     }
 
-    for (const DeviceListRow& row : makeDeviceListRows(state)) {
+    const std::vector<DeviceListRow> rows = fingerSide >= 0
+        ? makeSkeletalInputRows(state, fingerSide)
+        : makeDeviceListRows(state);
+    for (const DeviceListRow& row : rows) {
         if (row.runtimeIndex == runtimeIndex) {
             return deviceOptionText(row);
         }

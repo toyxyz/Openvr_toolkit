@@ -50,7 +50,8 @@ MappingPanelControlsLayout mappingControlsLayoutForPanel(const ProfilePanelLayou
 
     const RECT contentRect = insetRect(panelLayout.panelRect, kPanelPadding, kPanelPadding);
     const int fixedWithoutActorList = kProfileBoxHeight + kProfileBoxGap + kColorBoxHeight + kColorBoxGap +
-        kNameBoxHeight + kNameBoxGap + kPresetControlsGap + kPresetControlsHeight + kActorButtonGap +
+        kNameBoxHeight + kNameBoxGap + kNameBoxHeight + kNameBoxGap +
+        kPresetControlsGap + kPresetControlsHeight + kActorButtonGap +
         kActorButtonHeight + kActorListGap + kActorButtonGap + kActorButtonHeight + kFilterBoxGap + kFilterBoxHeight;
     int actorListHeight = kActorListHeight;
     int availableTableHeight = contentRect.bottom - contentRect.top - fixedWithoutActorList - actorListHeight;
@@ -86,8 +87,12 @@ MappingPanelControlsLayout mappingControlsLayoutForPanel(const ProfilePanelLayou
     layout.colorLabelRect = {layout.colorBoxRect.left + 8, layout.colorBoxRect.top, valueLeft - 8, layout.colorBoxRect.bottom};
     layout.colorPickButtonRect = {layout.colorBoxRect.right - 86, layout.colorBoxRect.top + 3, layout.colorBoxRect.right - 8, layout.colorBoxRect.bottom - 3};
     layout.colorSwatchRect = {valueLeft + 4, layout.colorBoxRect.top + 5, layout.colorPickButtonRect.left - 8, layout.colorBoxRect.bottom - 5};
-    layout.nameBoxRect = {contentRect.left, layout.colorBoxRect.bottom + kNameBoxGap, contentRect.right,
-                          layout.colorBoxRect.bottom + kNameBoxGap + kNameBoxHeight};
+    layout.actorNameBoxRect = {contentRect.left, layout.colorBoxRect.bottom + kNameBoxGap, contentRect.right,
+                               layout.colorBoxRect.bottom + kNameBoxGap + kNameBoxHeight};
+    layout.actorNameLabelRect = {layout.actorNameBoxRect.left + 8, layout.actorNameBoxRect.top, valueLeft - 8, layout.actorNameBoxRect.bottom};
+    layout.actorNameValueRect = {valueLeft + 4, layout.actorNameBoxRect.top + 3, layout.actorNameBoxRect.right - 8, layout.actorNameBoxRect.bottom - 3};
+    layout.nameBoxRect = {contentRect.left, layout.actorNameBoxRect.bottom + kNameBoxGap, contentRect.right,
+                          layout.actorNameBoxRect.bottom + kNameBoxGap + kNameBoxHeight};
     layout.nameLabelRect = {layout.nameBoxRect.left + 8, layout.nameBoxRect.top, valueLeft - 8, layout.nameBoxRect.bottom};
     layout.nameValueRect = {valueLeft + 4, layout.nameBoxRect.top + 3, layout.nameBoxRect.right - 8, layout.nameBoxRect.bottom - 3};
     const int presetTop = layout.nameBoxRect.bottom + kPresetControlsGap;

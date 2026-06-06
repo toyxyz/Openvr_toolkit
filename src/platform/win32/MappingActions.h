@@ -33,12 +33,14 @@ inline bool toggleMappingActorSelectionAtIndex(AppProfileState& state, const std
     }
     const MappingActor& actor = state.mappingActors[actorIndex];
     state.selectedMappingActorId = actorId;
+    state.mappingActorName = effectiveMappingActorName(actor);
     state.profile = actor.profile;
     state.mappingSkeletonColor = actor.skeletonColor;
     state.mappingSkeletonColorCustomized = true;
     state.mappingDeviceRuntimeIndices = actor.calibrated
         ? actor.calibration.runtimeIndices
         : actor.mappingDeviceRuntimeIndices;
+    state.mappingFingerRuntimeIndices = actor.mappingFingerRuntimeIndices;
     state.selectedMappingOffsetSlot = -1;
     state.mappingEditStepDropdownOpen = false;
     state.mappingEditOffsetPresetDropdownOpen = false;
@@ -90,8 +92,10 @@ inline void syncSelectedMappingActorFromControls(AppProfileState& state)
         return;
     }
     actor->profile = state.profile;
+    actor->name = state.mappingActorName.empty() ? state.profile.name : state.mappingActorName;
     actor->skeletonColor = state.mappingSkeletonColor;
     actor->mappingDeviceRuntimeIndices = state.mappingDeviceRuntimeIndices;
+    actor->mappingFingerRuntimeIndices = state.mappingFingerRuntimeIndices;
 }
 
 } // namespace ovtr::win32

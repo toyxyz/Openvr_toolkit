@@ -25,6 +25,12 @@ RecordSettingsConfig parseRecordSettingsConfig(std::istream& input, const float 
         const std::string& value = assignment.value;
         if (key == "directory" || key == "path" || key == "export_directory") {
             config.exportDirectoryText = value;
+        } else if (
+            key == "session_directory" ||
+            key == "session_folder" ||
+            key == "recordings_directory" ||
+            key == "recordings_folder") {
+            config.sessionDirectoryText = value;
         } else if (key == "record_delay_seconds" || key == "record_delay" || key == "delay_seconds") {
             float parsedDelay = 0.0f;
             if (parseFloatConfigValue(value, parsedDelay)) {
@@ -70,6 +76,7 @@ RecordSettingsConfig parseRecordSettingsConfig(std::istream& input, const float 
 
 std::string serializeRecordSettingsConfig(
     const std::string& exportDirectoryText,
+    const std::string& sessionDirectoryText,
     const float recordDelaySeconds,
     const float exportSampleRate,
     const bool startRecordingOnCalibration,
@@ -83,6 +90,7 @@ std::string serializeRecordSettingsConfig(
 {
     std::ostringstream output;
     output << "directory=" << exportDirectoryText << "\n";
+    output << "session_directory=" << sessionDirectoryText << "\n";
     output << "record_delay_seconds=" << std::fixed << std::setprecision(3)
            << sanitizedRecordDelaySeconds(recordDelaySeconds) << "\n";
     output << "resample_fps=" << sanitizedExportSampleRate(exportSampleRate, defaultSampleRate) << "\n";

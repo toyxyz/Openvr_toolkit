@@ -23,6 +23,9 @@ struct MappingPanelControlsLayout {
     RECT profileBoxRect{0, 0, 0, 0};
     RECT profileLabelRect{0, 0, 0, 0};
     RECT profileValueRect{0, 0, 0, 0};
+    RECT actorNameBoxRect{0, 0, 0, 0};
+    RECT actorNameLabelRect{0, 0, 0, 0};
+    RECT actorNameValueRect{0, 0, 0, 0};
     RECT nameBoxRect{0, 0, 0, 0};
     RECT nameLabelRect{0, 0, 0, 0};
     RECT nameValueRect{0, 0, 0, 0};

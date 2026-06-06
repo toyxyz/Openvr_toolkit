@@ -28,6 +28,17 @@ bool hasExistingFile(const std::filesystem::path& path)
     return std::filesystem::exists(path, error);
 }
 
+bool confirmProfileSave(HWND hwnd, const std::wstring& name)
+{
+    const std::wstring message = L"Save profile preset \"" + name + L"\"?";
+    return MessageBoxW(
+        hwnd,
+        message.c_str(),
+        L"Profile",
+        MB_OKCANCEL | MB_ICONQUESTION | MB_DEFBUTTON1
+    ) == IDOK;
+}
+
 ProfilePanelControlsLayout controlsForClient(
     const AppWindowState& state,
     const int clientWidth,
@@ -54,6 +65,10 @@ void saveCurrentProfile(HWND hwnd, AppWindowState& state)
     const std::wstring stem = sanitizedProfileFileStem(state.profile.name);
     if (stem.empty()) {
         MessageBoxW(hwnd, L"Profile name cannot be empty.", L"Profile", MB_OK | MB_ICONWARNING);
+        return;
+    }
+    if (!confirmProfileSave(hwnd, stem)) {
+        appendDebugLog(state, L"Profile save canceled");
         return;
     }
 

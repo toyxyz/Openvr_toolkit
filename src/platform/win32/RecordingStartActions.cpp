@@ -1,5 +1,6 @@
 #include "platform/win32/RecordingStartActions.h"
 
+#include "platform/win32/AppConfig.h"
 #include "platform/win32/AppState.h"
 #include "platform/win32/AppLog.h"
 #include "platform/win32/ImportedSceneActions.h"
@@ -65,7 +66,7 @@ void startRecordingNow(HWND hwnd, AppWindowState& state)
     const RecordingStartPlan plan = makeRecordingStartPlan(
         static_cast<const AppRuntimeState&>(state),
         static_cast<const AppDeviceState&>(state),
-        std::filesystem::current_path() / "recordings",
+        activeSessionDirectoryPath(state),
         recordingSessionIdForName(state.sessionName, localTimestampForPath()),
         utcTimestampIso(),
         kTargetViewportFps

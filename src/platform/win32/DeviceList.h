@@ -31,6 +31,15 @@ std::vector<DeviceListRow> makeDeviceListRows(
     const AppDeviceState& deviceState
 );
 std::vector<DeviceListRow> makeDeviceListRows(const AppWindowState& state);
+std::vector<DeviceListRow> makeDevicePanelRows(
+    const AppRuntimeState& runtimeState,
+    const AppDeviceState& deviceState
+);
+std::vector<DeviceListRow> makeDevicePanelRows(const AppWindowState& state);
+std::vector<DeviceListRow> makeSkeletalInputRows(const AppRuntimeState& runtimeState);
+std::vector<DeviceListRow> makeSkeletalInputRows(const AppRuntimeState& runtimeState, int sideIndex);
+std::vector<DeviceListRow> makeSkeletalInputRows(const AppWindowState& state);
+std::vector<DeviceListRow> makeSkeletalInputRows(const AppWindowState& state, int sideIndex);
 std::string deviceDisplayName(const ovtr::DeviceDescriptor& device);
 std::string labelForDevice(
     const AppDeviceState& state,

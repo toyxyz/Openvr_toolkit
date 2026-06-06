@@ -66,6 +66,7 @@ void layoutChildWindows(HWND hwnd)
     updateOriginEditorLayout(hwnd, *state);
     updateSessionEditorLayout(hwnd, *state);
     updateProfileEditorLayout(hwnd, *state);
+    updateMappingActorNameEditorLayout(hwnd, *state);
     updateMappingNameEditorLayout(hwnd, *state);
     updateMappingOffsetPresetNameEditorLayout(hwnd, *state);
 }

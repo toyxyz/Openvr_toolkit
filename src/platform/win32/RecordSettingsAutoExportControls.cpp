@@ -17,7 +17,7 @@ void createExportAfterRecordingControls(
         L"Export after recording",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX,
         300,
-        208,
+        266,
         230,
         24,
         hwnd,

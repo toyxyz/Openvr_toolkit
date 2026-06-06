@@ -2,6 +2,7 @@
 
 #include <windowsx.h>
 
+#include "platform/win32/AppConfig.h"
 #include "platform/win32/AppState.h"
 #include "platform/win32/MappingActorLayout.h"
 #include "platform/win32/MappingEditPanelLayout.h"
@@ -60,6 +61,7 @@ bool handleMainWindowMouseWheel(HWND hwnd, WPARAM wparam, LPARAM lparam)
         state->mappingDropdownSlot = -1;
         state->mappingProfileDropdownOpen = false;
         state->mappingPresetDropdownOpen = false;
+        updateMappingActorNameEditorLayout(hwnd, *state);
         updateMappingNameEditorLayout(hwnd, *state);
         const ProfilePanelLayout panelLayout = profilePanelLayoutForClient(state, clientWidth, clientHeight);
         InvalidateRect(hwnd, &panelLayout.panelRect, FALSE);
@@ -97,7 +99,7 @@ bool handleMainWindowMouseWheel(HWND hwnd, WPARAM wparam, LPARAM lparam)
     }
 
     const std::vector<RecordingSessionListRow> sessionRows =
-        listRecordingSessionFolders(recordingSessionsRootPath());
+        listRecordingSessionFolders(activeSessionDirectoryPath(*state));
     const SessionListLayout sessionListLayout = sessionListLayoutForClient(
         state,
         clientWidth,

@@ -42,14 +42,28 @@ float selectedLegSoftIk(const SessionMappingSnapshot& snapshot) noexcept
         : snapshot.actors.front().calibration.legSoftIkStrength;
 }
 
+std::wstring activeActorName(const AppProfileState& profileState)
+{
+    for (const MappingActor& actor : profileState.mappingActors) {
+        if (actor.id == profileState.selectedMappingActorId) {
+            return effectiveMappingActorName(actor);
+        }
+    }
+    return profileState.mappingActors.empty()
+        ? profileState.profile.name
+        : effectiveMappingActorName(profileState.mappingActors.front());
+}
+
 } // namespace
 
 void backupLiveMappingForLoadedSession(AppLoadedSessionState& loadedState, const AppProfileState& profileState)
 {
     loadedState.loadedSessionLiveProfile = profileState.profile;
+    loadedState.loadedSessionLiveMappingActorName = profileState.mappingActorName;
     loadedState.loadedSessionLiveMappingSkeletonColor = profileState.mappingSkeletonColor;
     loadedState.loadedSessionLiveMappingSkeletonColorCustomized = profileState.mappingSkeletonColorCustomized;
     loadedState.loadedSessionLiveMappingDeviceRuntimeIndices = profileState.mappingDeviceRuntimeIndices;
+    loadedState.loadedSessionLiveMappingFingerRuntimeIndices = profileState.mappingFingerRuntimeIndices;
     loadedState.loadedSessionLiveMappingActors = profileState.mappingActors;
     loadedState.loadedSessionLiveNextMappingActorId = profileState.nextMappingActorId;
     loadedState.loadedSessionLiveSelectedMappingActorId = profileState.selectedMappingActorId;
@@ -64,9 +78,11 @@ void restoreLiveMappingAfterLoadedSession(AppLoadedSessionState& loadedState, Ap
         return;
     }
     profileState.profile = std::move(loadedState.loadedSessionLiveProfile);
+    profileState.mappingActorName = std::move(loadedState.loadedSessionLiveMappingActorName);
     profileState.mappingSkeletonColor = loadedState.loadedSessionLiveMappingSkeletonColor;
     profileState.mappingSkeletonColorCustomized = loadedState.loadedSessionLiveMappingSkeletonColorCustomized;
     profileState.mappingDeviceRuntimeIndices = loadedState.loadedSessionLiveMappingDeviceRuntimeIndices;
+    profileState.mappingFingerRuntimeIndices = loadedState.loadedSessionLiveMappingFingerRuntimeIndices;
     profileState.mappingActors = std::move(loadedState.loadedSessionLiveMappingActors);
     profileState.nextMappingActorId = loadedState.loadedSessionLiveNextMappingActorId;
     profileState.selectedMappingActorId = loadedState.loadedSessionLiveSelectedMappingActorId;
@@ -83,8 +99,10 @@ void applySessionMappingSnapshotToLiveMapping(AppProfileState& profileState, Ses
     profileState.mappingSkeletonColor = snapshot.mappingSkeletonColor;
     profileState.mappingSkeletonColorCustomized = true;
     profileState.mappingDeviceRuntimeIndices = snapshot.mappingDeviceRuntimeIndices;
+    profileState.mappingFingerRuntimeIndices = snapshot.mappingFingerRuntimeIndices;
     profileState.mappingActors = std::move(snapshot.actors);
     profileState.selectedMappingActorId = snapshot.selectedActorId;
+    profileState.mappingActorName = activeActorName(profileState);
     profileState.nextMappingActorId = nextActorIdAfter(profileState.mappingActors);
     profileState.mappingArmSoftIkStrength = armSoftIk;
     profileState.mappingLegSoftIkStrength = legSoftIk;

@@ -19,6 +19,7 @@ struct RecordSettingsDialogState {
 };
 
 void browseRecordSettingsDirectory(HWND hwnd, RecordSettingsDialogState& dialog);
+void browseRecordSettingsSessionDirectory(HWND hwnd, RecordSettingsDialogState& dialog);
 void finishRecordSettingsDialog(HWND hwnd, RecordSettingsDialogState& dialog, bool accepted);
 
 } // namespace ovtr::win32

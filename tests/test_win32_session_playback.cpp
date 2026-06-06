@@ -179,6 +179,7 @@ void verifyLoadedSessionBuildsSkeletonExportClip(const std::filesystem::path& ro
     state.mappingDeviceRuntimeIndices = loadedMappingRuntimeIndices();
     ovtr::win32::MappingActor actor;
     actor.id = 7;
+    actor.name = L"Loaded Actor";
     actor.profile = state.profile;
     const ovtr::win32::MappingCalibrationStatus status = ovtr::win32::captureMappingActorCalibration(
         actor,
@@ -200,6 +201,7 @@ void verifyLoadedSessionBuildsSkeletonExportClip(const std::filesystem::path& ro
         "loaded export skeleton clip failed: " + error
     );
     require(clip.actorId == actor.id, "loaded export clip uses calibrated actor");
+    require(clip.actorName == L"Loaded Actor", "loaded export clip uses actor name");
     require(clip.frames.size() == 2, "loaded export clip frame count");
     require(clip.frames[1].timeSeconds > clip.frames[0].timeSeconds, "loaded export clip timeline");
     require(

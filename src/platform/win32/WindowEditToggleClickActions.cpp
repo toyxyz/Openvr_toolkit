@@ -35,6 +35,7 @@ bool handleEditToggleClick(
         state.mappingPresetDropdownOpen = false;
         disableProfilePreview(state);
         closeProfileEditor(hwnd, state);
+        closeMappingActorNameEditor(hwnd, state);
         closeMappingNameEditor(hwnd, state);
     } else {
         state.selectedMappingOffsetSlot = -1;

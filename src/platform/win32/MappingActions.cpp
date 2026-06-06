@@ -200,7 +200,7 @@ bool deleteMappingActorAtIndex(HWND hwnd, AppWindowState& state, const std::size
     if (actorIndex >= state.mappingActors.size()) {
         return false;
     }
-    const std::wstring name = state.mappingActors[actorIndex].profile.name;
+    const std::wstring name = effectiveMappingActorName(state.mappingActors[actorIndex]);
     const std::uint32_t deletedId = state.mappingActors[actorIndex].id;
     state.mappingActors.erase(state.mappingActors.begin() + static_cast<std::ptrdiff_t>(actorIndex));
     if (state.selectedMappingActorId == deletedId) {
@@ -223,7 +223,7 @@ bool resetMappingActorAtIndex(HWND hwnd, AppWindowState& state, const std::size_
         return false;
     }
     MappingActor& actor = state.mappingActors[actorIndex];
-    const std::wstring name = actor.profile.name;
+    const std::wstring name = effectiveMappingActorName(actor);
     resetMappingActorCalibration(actor);
     if (state.selectedMappingActorId == actor.id) {
         state.selectedMappingOffsetSlot = -1;
@@ -248,14 +248,21 @@ bool handleMappingPanelDoubleClick(
     }
     const ProfilePanelLayout panelLayout = profilePanelLayoutForClient(&state, clientWidth, clientHeight);
     const MappingPanelControlsLayout controls = mappingControlsLayoutForPanel(panelLayout);
-    if (!controls.valid || !PtInRect(&controls.nameValueRect, point)) {
+    if (!controls.valid) {
         return false;
     }
     state.mappingDropdownSlot = -1;
     state.mappingProfileDropdownOpen = false;
     state.mappingPresetDropdownOpen = false;
-    showMappingNameEditor(hwnd, state);
-    return true;
+    if (PtInRect(&controls.actorNameValueRect, point)) {
+        showMappingActorNameEditor(hwnd, state);
+        return true;
+    }
+    if (PtInRect(&controls.nameValueRect, point)) {
+        showMappingNameEditor(hwnd, state);
+        return true;
+    }
+    return false;
 }
 
 } // namespace ovtr::win32

@@ -11,6 +11,8 @@ namespace ovtr::win32 {
 
 inline constexpr UINT_PTR kExportLocationEditControlId = 4500;
 inline constexpr UINT_PTR kExportLocationBrowseControlId = 4501;
+inline constexpr UINT_PTR kSessionLocationEditControlId = 4511;
+inline constexpr UINT_PTR kSessionLocationBrowseControlId = 4512;
 inline constexpr UINT_PTR kRecordDelayEditControlId = 4502;
 inline constexpr UINT_PTR kRecordResampleFpsEditControlId = 4504;
 inline constexpr UINT_PTR kStartRecordingOnCalibrationControlId = 4505;
@@ -22,6 +24,7 @@ inline constexpr UINT_PTR kExportAfterRecordingControlId = 4510;
 
 struct RecordSettingsDialogControls {
     HWND directoryEdit = nullptr;
+    HWND sessionDirectoryEdit = nullptr;
     HWND delayEdit = nullptr;
     HWND resampleFpsEdit = nullptr;
     HWND startRecordingOnCalibrationCheck = nullptr;

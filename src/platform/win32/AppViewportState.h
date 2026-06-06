@@ -35,6 +35,7 @@ struct AppViewportState {
     UniqueWindowDc glDeviceContext;
     UniqueGlContext glContext;
     UniqueGlDisplayList glLabelFontBase;
+    UniqueGlDisplayList glActorLabelFontBase;
     UniqueGlDisplayList glRecordingElapsedFontBase;
     UniqueGlDisplayList glOverlayFontBase;
     double targetViewportFps = 90.0;

@@ -6,6 +6,7 @@ namespace ovtr::win32 {
 
 RecordSettingsDialogResult sanitizedRecordSettingsDialogResult(
     const std::filesystem::path& directory,
+    const std::filesystem::path& sessionDirectory,
     const float recordDelaySeconds,
     const float exportSampleRate,
     const bool startRecordingOnCalibration,
@@ -19,6 +20,7 @@ RecordSettingsDialogResult sanitizedRecordSettingsDialogResult(
 {
     RecordSettingsDialogResult result;
     result.directory = normalizedExportDirectoryPath(directory);
+    result.sessionDirectory = normalizedSessionDirectoryPath(sessionDirectory);
     result.recordDelaySeconds = sanitizedRecordDelaySeconds(recordDelaySeconds);
     result.exportSampleRate = sanitizedExportSampleRate(exportSampleRate, defaultExportSampleRate);
     result.startRecordingOnCalibration = startRecordingOnCalibration;
@@ -36,6 +38,7 @@ RecordSettingsDialogResult initialRecordSettingsDialogResult(
 {
     return sanitizedRecordSettingsDialogResult(
         input.initialDirectory,
+        input.initialSessionDirectory,
         input.initialRecordDelaySeconds,
         input.initialExportSampleRate,
         input.initialStartRecordingOnCalibration,

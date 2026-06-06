@@ -42,6 +42,17 @@ bool hasExistingFile(const std::filesystem::path& path)
     return std::filesystem::exists(path, error);
 }
 
+bool confirmMappingPresetSave(HWND hwnd, const std::wstring& name)
+{
+    const std::wstring message = L"Save mapping preset \"" + name + L"\"?";
+    return MessageBoxW(
+        hwnd,
+        message.c_str(),
+        L"Mapping",
+        MB_OKCANCEL | MB_ICONQUESTION | MB_DEFBUTTON1
+    ) == IDOK;
+}
+
 std::wstring serialForRuntimeIndex(const std::vector<DeviceListRow>& rows, const std::uint32_t runtimeIndex)
 {
     for (const DeviceListRow& row : rows) {
@@ -57,6 +68,7 @@ void applyMappingPreset(AppWindowState& state, const MappingPreset& preset)
     if (preset.hasProfile) {
         state.profile = preset.profile;
     }
+    state.mappingActorName = preset.actorName.empty() ? state.profile.name : preset.actorName;
     state.mappingSkeletonColor = preset.skeletonColor;
     state.mappingSkeletonColorCustomized = true;
 
@@ -67,6 +79,16 @@ void applyMappingPreset(AppWindowState& state, const MappingPreset& preset)
         for (const DeviceListRow& row : rows) {
             if (!serial.empty() && row.serial == serial) {
                 state.mappingDeviceRuntimeIndices[static_cast<std::size_t>(slot)] = row.runtimeIndex;
+                break;
+            }
+        }
+    }
+    state.mappingFingerRuntimeIndices = defaultMappingFingerRuntimeIndices();
+    for (int side = 0; side < kMappingFingerSourceCount; ++side) {
+        const std::wstring& serial = preset.fingerSerials[static_cast<std::size_t>(side)];
+        for (const DeviceListRow& row : makeSkeletalInputRows(state, side)) {
+            if (!serial.empty() && row.serial == serial) {
+                state.mappingFingerRuntimeIndices[static_cast<std::size_t>(side)] = row.runtimeIndex;
                 break;
             }
         }
@@ -83,6 +105,10 @@ void saveCurrentMappingPreset(HWND hwnd, AppWindowState& state)
         MessageBoxW(hwnd, L"Mapping name cannot be empty.", L"Mapping", MB_OK | MB_ICONWARNING);
         return;
     }
+    if (!confirmMappingPresetSave(hwnd, stem)) {
+        appendDebugLog(state, L"Mapping preset save canceled");
+        return;
+    }
 
     std::string error;
     if (!ensureMappingPresetDirectory(error)) {
@@ -92,6 +118,7 @@ void saveCurrentMappingPreset(HWND hwnd, AppWindowState& state)
 
     MappingPreset preset;
     preset.name = stem;
+    preset.actorName = effectiveMappingActorNameText(state);
     preset.hasProfile = true;
     preset.profile = state.profile;
     preset.skeletonColor = state.mappingSkeletonColor;
@@ -99,6 +126,12 @@ void saveCurrentMappingPreset(HWND hwnd, AppWindowState& state)
     for (int slot = 0; slot < kMappingSlotCount; ++slot) {
         const std::uint32_t runtimeIndex = state.mappingDeviceRuntimeIndices[static_cast<std::size_t>(slot)];
         preset.deviceSerials[static_cast<std::size_t>(slot)] = serialForRuntimeIndex(rows, runtimeIndex);
+    }
+    for (int side = 0; side < kMappingFingerSourceCount; ++side) {
+        preset.fingerSerials[static_cast<std::size_t>(side)] = serialForRuntimeIndex(
+            makeSkeletalInputRows(state, side),
+            state.mappingFingerRuntimeIndices[static_cast<std::size_t>(side)]
+        );
     }
 
     const std::filesystem::path path = mappingPresetPathForName(stem);

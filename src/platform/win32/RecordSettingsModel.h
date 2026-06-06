@@ -8,6 +8,7 @@ namespace ovtr::win32 {
 
 struct RecordSettingsDialogInput {
     std::filesystem::path initialDirectory;
+    std::filesystem::path initialSessionDirectory;
     float initialRecordDelaySeconds = 0.0f;
     float initialExportSampleRate = 60.0f;
     bool initialStartRecordingOnCalibration = false;
@@ -21,6 +22,7 @@ struct RecordSettingsDialogInput {
 
 struct RecordSettingsDialogResult {
     std::filesystem::path directory;
+    std::filesystem::path sessionDirectory;
     float recordDelaySeconds = 0.0f;
     float exportSampleRate = 60.0f;
     bool startRecordingOnCalibration = false;
@@ -37,6 +39,7 @@ RecordSettingsDialogResult initialRecordSettingsDialogResult(
 
 RecordSettingsDialogResult sanitizedRecordSettingsDialogResult(
     const std::filesystem::path& directory,
+    const std::filesystem::path& sessionDirectory,
     float recordDelaySeconds,
     float exportSampleRate,
     bool startRecordingOnCalibration,

@@ -14,7 +14,7 @@ void beginSkeletonRecording(SkeletonRecordingClip& clip, const MappingActor& act
     clip.active = true;
     clip.actorId = actor.id;
     clip.profile = actor.profile;
-    clip.actorName = actor.profile.name;
+    clip.actorName = effectiveMappingActorName(actor);
 }
 
 void finishSkeletonRecording(SkeletonRecordingClip& clip) noexcept

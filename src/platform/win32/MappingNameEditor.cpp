@@ -4,6 +4,7 @@
 #include "platform/win32/AppState.h"
 #include "platform/win32/DialogControlHelpers.h"
 #include "platform/win32/Dialogs.h"
+#include "platform/win32/MappingActions.h"
 #include "platform/win32/MappingPanelLayout.h"
 #include "platform/win32/Win32String.h"
 #include "platform/win32/WindowLayout.h"
@@ -13,6 +14,7 @@ namespace ovtr::win32 {
 namespace {
 
 constexpr UINT_PTR kMappingNameEditControlId = 2202;
+constexpr UINT_PTR kMappingActorNameEditControlId = 2203;
 
 std::wstring effectiveMappingName(const AppWindowState& state)
 {
@@ -29,6 +31,18 @@ RECT mappingNameEditorRect(HWND hwnd, AppWindowState& state)
         clientRect.bottom - clientRect.top
     );
     return mappingControlsLayoutForPanel(panelLayout).nameValueRect;
+}
+
+RECT mappingActorNameEditorRect(HWND hwnd, AppWindowState& state)
+{
+    RECT clientRect;
+    GetClientRect(hwnd, &clientRect);
+    const ProfilePanelLayout panelLayout = profilePanelLayoutForClient(
+        &state,
+        clientRect.right - clientRect.left,
+        clientRect.bottom - clientRect.top
+    );
+    return mappingControlsLayoutForPanel(panelLayout).actorNameValueRect;
 }
 
 bool applyMappingNameEditorText(HWND hwnd, AppWindowState& state)
@@ -81,7 +95,132 @@ LRESULT CALLBACK mappingNameEditProc(HWND hwnd, UINT message, WPARAM wparam, LPA
     return DefWindowProcW(hwnd, message, wparam, lparam);
 }
 
+bool applyMappingActorNameEditorText(HWND hwnd, AppWindowState& state)
+{
+    if (!state.mappingActorNameEditWindow || !IsWindow(state.mappingActorNameEditWindow)) {
+        return false;
+    }
+    const std::wstring text = trimWide(readWindowText(state.mappingActorNameEditWindow));
+    if (text.empty()) {
+        MessageBoxW(hwnd, L"Actor name cannot be empty.", L"Mapping", MB_OK | MB_ICONWARNING);
+        focusAndSelectAllText(state.mappingActorNameEditWindow);
+        return false;
+    }
+    state.mappingActorName = text;
+    syncSelectedMappingActorFromControls(state);
+    appendDebugLog(state, L"Mapping actor name updated");
+    closeMappingActorNameEditor(hwnd, state);
+    InvalidateRect(hwnd, nullptr, FALSE);
+    if (state.glWindow) {
+        InvalidateRect(state.glWindow, nullptr, FALSE);
+    }
+    return true;
+}
+
+void cancelMappingActorNameEditor(HWND hwnd, AppWindowState& state)
+{
+    state.mappingActorName = state.mappingActorNameEditSnapshot;
+    appendDebugLog(state, L"Mapping actor name edit canceled");
+    closeMappingActorNameEditor(hwnd, state);
+    InvalidateRect(hwnd, nullptr, FALSE);
+}
+
+LRESULT CALLBACK mappingActorNameEditProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
+{
+    HWND parent = GetParent(hwnd);
+    AppWindowState* state = parent ? appStateForWindow(parent) : nullptr;
+    if (message == WM_KEYDOWN && state) {
+        if (wparam == VK_RETURN) {
+            applyMappingActorNameEditorText(parent, *state);
+            return 0;
+        }
+        if (wparam == VK_ESCAPE) {
+            cancelMappingActorNameEditor(parent, *state);
+            return 0;
+        }
+    }
+    if (message == WM_KILLFOCUS && state) {
+        applyMappingActorNameEditorText(parent, *state);
+        return 0;
+    }
+    if (state && state->mappingActorNameEditOriginalProc) {
+        return CallWindowProcW(state->mappingActorNameEditOriginalProc, hwnd, message, wparam, lparam);
+    }
+    return DefWindowProcW(hwnd, message, wparam, lparam);
+}
+
 } // namespace
+
+void closeMappingActorNameEditor(HWND hwnd, AppWindowState& state)
+{
+    HWND editWindow = state.mappingActorNameEditWindow;
+    if (!editWindow) {
+        return;
+    }
+    if (state.mappingActorNameEditOriginalProc) {
+        SetWindowLongPtrW(editWindow, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(state.mappingActorNameEditOriginalProc));
+    }
+    state.mappingActorNameEditWindow = nullptr;
+    state.mappingActorNameEditOriginalProc = nullptr;
+    state.mappingActorNameEditSnapshot.clear();
+    DestroyWindow(editWindow);
+    InvalidateRect(hwnd, nullptr, FALSE);
+}
+
+void showMappingActorNameEditor(HWND hwnd, AppWindowState& state)
+{
+    const RECT editRect = mappingActorNameEditorRect(hwnd, state);
+    if (editRect.right <= editRect.left || editRect.bottom <= editRect.top) {
+        return;
+    }
+    closeMappingNameEditor(hwnd, state);
+    state.mappingActorNameEditSnapshot = state.mappingActorName;
+    const std::wstring text = effectiveMappingActorNameText(state);
+
+    HINSTANCE instance = reinterpret_cast<HINSTANCE>(GetWindowLongPtrW(hwnd, GWLP_HINSTANCE));
+    state.mappingActorNameEditWindow = CreateWindowExW(
+        WS_EX_CLIENTEDGE,
+        L"EDIT",
+        text.c_str(),
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL,
+        editRect.left,
+        editRect.top,
+        editRect.right - editRect.left,
+        editRect.bottom - editRect.top,
+        hwnd,
+        reinterpret_cast<HMENU>(kMappingActorNameEditControlId),
+        instance,
+        nullptr
+    );
+    if (!state.mappingActorNameEditWindow) {
+        state.mappingActorNameEditSnapshot.clear();
+        return;
+    }
+    SendMessageW(state.mappingActorNameEditWindow, WM_SETFONT, reinterpret_cast<WPARAM>(GetStockObject(DEFAULT_GUI_FONT)), TRUE);
+    state.mappingActorNameEditOriginalProc = reinterpret_cast<WNDPROC>(
+        SetWindowLongPtrW(state.mappingActorNameEditWindow, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(mappingActorNameEditProc))
+    );
+    focusAndSelectAllText(state.mappingActorNameEditWindow);
+    appendDebugLog(state, L"Mapping actor name editor opened");
+    InvalidateRect(hwnd, &editRect, FALSE);
+}
+
+void updateMappingActorNameEditorLayout(HWND hwnd, AppWindowState& state)
+{
+    if (!state.mappingActorNameEditWindow || !IsWindow(state.mappingActorNameEditWindow)) {
+        state.mappingActorNameEditWindow = nullptr;
+        state.mappingActorNameEditOriginalProc = nullptr;
+        return;
+    }
+    const RECT editRect = mappingActorNameEditorRect(hwnd, state);
+    if (editRect.right <= editRect.left || editRect.bottom <= editRect.top) {
+        ShowWindow(state.mappingActorNameEditWindow, SW_HIDE);
+        return;
+    }
+    MoveWindow(state.mappingActorNameEditWindow, editRect.left, editRect.top,
+               editRect.right - editRect.left, editRect.bottom - editRect.top, TRUE);
+    ShowWindow(state.mappingActorNameEditWindow, SW_SHOW);
+}
 
 void closeMappingNameEditor(HWND hwnd, AppWindowState& state)
 {
@@ -105,6 +244,7 @@ void showMappingNameEditor(HWND hwnd, AppWindowState& state)
     if (editRect.right <= editRect.left || editRect.bottom <= editRect.top) {
         return;
     }
+    closeMappingActorNameEditor(hwnd, state);
     state.mappingNameEditSnapshot = state.mappingPresetName;
     const std::wstring text = effectiveMappingName(state);
 

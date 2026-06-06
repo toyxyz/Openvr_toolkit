@@ -1,5 +1,6 @@
 #include "platform/win32/WindowPaintScene.h"
 
+#include "platform/win32/AppConfig.h"
 #include "platform/win32/AppState.h"
 #include "platform/win32/DebugPanelPainter.h"
 #include "platform/win32/DevicePanelPainter.h"
@@ -43,7 +44,7 @@ void paintWindowScene(
         ? deviceListLayoutForClient(state, clientWidth, clientHeight)
         : DeviceListLayout{};
     const std::vector<RecordingSessionListRow> sessionRows = state
-        ? listRecordingSessionFolders(recordingSessionsRootPath())
+        ? listRecordingSessionFolders(activeSessionDirectoryPath(*state))
         : std::vector<RecordingSessionListRow>{};
     const SessionListLayout sessionListLayout = state
         ? sessionListLayoutForClient(state, clientWidth, clientHeight, static_cast<int>(sessionRows.size()))

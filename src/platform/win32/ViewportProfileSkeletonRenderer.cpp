@@ -21,6 +21,7 @@ namespace {
 constexpr float kPi = 3.14159265358979323846f;
 constexpr int kSphereStacks = 8;
 constexpr int kSphereSlices = 12;
+constexpr float kActorLabelPixelLift = 18.0f;
 constexpr RgbColor kTargetColor{80, 190, 255};
 constexpr RgbColor kPoleColor{255, 210, 90};
 
@@ -278,8 +279,9 @@ void drawMappingActorLabels3D(const AppProfileState& profileState, const GLuint 
         const Vec3 labelPosition = actor.calibrated && actor.liveJointsValid
             ? actor.liveJoints[kProfileJointHeadTopEnd].positionMeters
             : Vec3{0.0f, computedProfileHeightCm(profile) * 0.01f, 0.0f};
-        glRasterPos3f(offset.x + labelPosition.x, labelPosition.y + 0.08f, offset.z + labelPosition.z);
-        drawLabelText3D(narrow(profile.name), fontBase);
+        glRasterPos3f(offset.x + labelPosition.x, offset.y + labelPosition.y, offset.z + labelPosition.z);
+        offsetRasterPositionPixels(0.0f, kActorLabelPixelLift);
+        drawLabelText3D(narrow(effectiveMappingActorName(actor)), fontBase);
     }
 }
 

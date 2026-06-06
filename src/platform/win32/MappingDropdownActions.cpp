@@ -92,7 +92,7 @@ bool selectMappingDeviceDropdownOption(
     const POINT point
 ) {
     (void)hwnd;
-    if (state.mappingDropdownSlot < 0 || state.mappingDropdownSlot >= kMappingSlotCount) {
+    if (!isMappingDeviceRow(state.mappingDropdownSlot) && !isMappingFingerRow(state.mappingDropdownSlot)) {
         return false;
     }
     const MappingPanelRowLayout row =
@@ -101,13 +101,21 @@ bool selectMappingDeviceDropdownOption(
         state.mappingDropdownSlot = -1;
         return false;
     }
-    const std::vector<DeviceListRow> rows = makeDeviceListRows(state);
+    const int fingerSide = mappingFingerSideIndexForRow(state.mappingDropdownSlot);
+    const std::vector<DeviceListRow> rows = fingerSide >= 0
+        ? makeSkeletalInputRows(state, fingerSide)
+        : makeDeviceListRows(state);
     const int option = mappingDropdownOptionFromPoint(row, panelLayout, static_cast<int>(rows.size()) + 1, point);
     if (option < 0 || option > static_cast<int>(rows.size())) {
         return false;
     }
-    state.mappingDeviceRuntimeIndices[static_cast<std::size_t>(state.mappingDropdownSlot)] =
+    const std::uint32_t runtimeIndex =
         option == 0 ? kNoSelectedRuntimeIndex : rows[static_cast<std::size_t>(option - 1)].runtimeIndex;
+    if (fingerSide >= 0) {
+        state.mappingFingerRuntimeIndices[static_cast<std::size_t>(fingerSide)] = runtimeIndex;
+    } else {
+        state.mappingDeviceRuntimeIndices[static_cast<std::size_t>(state.mappingDropdownSlot)] = runtimeIndex;
+    }
     syncSelectedMappingActorFromControls(state);
     state.mappingDropdownSlot = -1;
     state.mappingProfileDropdownOpen = false;

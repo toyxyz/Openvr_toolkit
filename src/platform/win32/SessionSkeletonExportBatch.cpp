@@ -12,7 +12,7 @@ namespace {
 
 std::string actorFileStem(const SessionSkeletonClipRequest& request)
 {
-    std::wstring stem = sanitizedSessionFolderName(request.actor.profile.name);
+    std::wstring stem = sanitizedSessionFolderName(effectiveMappingActorName(request.actor));
     if (stem.empty()) {
         stem = L"actor_" + std::to_wstring(request.actor.id);
     }

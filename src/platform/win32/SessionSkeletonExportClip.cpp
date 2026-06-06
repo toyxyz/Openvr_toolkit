@@ -94,7 +94,7 @@ bool buildSessionSkeletonClipFromRequest(
     clip = SkeletonRecordingClip{};
     clip.actorId = actor.id;
     clip.profile = actor.profile;
-    clip.actorName = actor.profile.name;
+    clip.actorName = effectiveMappingActorName(actor);
 
     double previousTime = -1.0;
     for (std::size_t index = 0; index < frames.size(); ++index) {

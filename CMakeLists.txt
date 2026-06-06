@@ -296,6 +296,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/MappingPanelColorPainter.cpp
         src/platform/win32/MappingPanelDropdownPainter.cpp
         src/platform/win32/MappingPanelPainter.cpp
+        src/platform/win32/MappingPanelScrollPainter.cpp
         src/platform/win32/MappingPresetActions.cpp
         src/platform/win32/MappingPresetStore.cpp
         src/platform/win32/MappingSoftIkFilter.cpp

@@ -52,10 +52,55 @@ void createRecordSettingsExportFolderControls(
         nullptr,
         nullptr
     );
+    HWND sessionLabel = CreateWindowExW(
+        0,
+        L"STATIC",
+        L"Session folder",
+        WS_CHILD | WS_VISIBLE,
+        18,
+        76,
+        140,
+        20,
+        hwnd,
+        nullptr,
+        nullptr,
+        nullptr
+    );
+    controls.sessionDirectoryEdit = CreateWindowExW(
+        WS_EX_CLIENTEDGE,
+        L"EDIT",
+        result.sessionDirectory.wstring().c_str(),
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL,
+        18,
+        102,
+        410,
+        24,
+        hwnd,
+        reinterpret_cast<HMENU>(kSessionLocationEditControlId),
+        nullptr,
+        nullptr
+    );
+    HWND sessionBrowseButton = CreateWindowExW(
+        0,
+        L"BUTTON",
+        L"Browse...",
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
+        440,
+        101,
+        100,
+        26,
+        hwnd,
+        reinterpret_cast<HMENU>(kSessionLocationBrowseControlId),
+        nullptr,
+        nullptr
+    );
 
     applyControlFont(label, font);
     applyControlFont(controls.directoryEdit, font);
     applyControlFont(browseButton, font);
+    applyControlFont(sessionLabel, font);
+    applyControlFont(controls.sessionDirectoryEdit, font);
+    applyControlFont(sessionBrowseButton, font);
 }
 
 } // namespace ovtr::win32

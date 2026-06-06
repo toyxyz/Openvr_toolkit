@@ -85,6 +85,7 @@ void calibrateSelectedMappingActor(HWND hwnd, AppWindowState& state)
         return;
     }
 
+    actor->mappingFingerRuntimeIndices = state.mappingFingerRuntimeIndices;
     appendDebugLog(state, L"Mapping actor calibrated: " + actor->profile.name);
     // Temporary CSV diagnostics remain in MappingCalibrationPoseDebugLog.* for future reuse.
     startRecordingForCalibration(hwnd, state);

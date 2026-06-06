@@ -170,6 +170,8 @@ bool closeLoadedSession(AppWindowState& state)
     state.loadedSessionPreviousSessionName.clear();
     state.loadedSessionLiveProfile = BodyProfile{};
     state.loadedSessionLiveMappingDeviceRuntimeIndices = defaultMappingDeviceRuntimeIndices();
+    state.loadedSessionLiveMappingActorName.clear();
+    state.loadedSessionLiveMappingFingerRuntimeIndices = defaultMappingFingerRuntimeIndices();
     state.loadedSessionLiveMappingActors.clear();
     state.loadedSessionLiveNextMappingActorId = 1;
     state.loadedSessionLiveSelectedMappingActorId = 0;

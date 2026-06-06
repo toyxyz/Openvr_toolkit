@@ -34,6 +34,8 @@ std::filesystem::path recordSettingsConfigPath();
 std::filesystem::path streamingSettingsConfigPath();
 std::filesystem::path defaultExportDirectoryPath();
 std::filesystem::path normalizedExportDirectoryPath(const std::filesystem::path& path);
+std::filesystem::path defaultSessionDirectoryPath();
+std::filesystem::path normalizedSessionDirectoryPath(const std::filesystem::path& path);
 
 bool parseExportFormatConfigValue(const std::string& value, ExportFormat& out);
 bool parseBoolConfigValue(const std::string& value, bool& out);
@@ -62,6 +64,7 @@ std::string serializeDeviceNameConfig(const std::vector<DeviceNameConfigEntry>& 
 RecordSettingsConfig parseRecordSettingsConfig(std::istream& input, float defaultSampleRate);
 std::string serializeRecordSettingsConfig(
     const std::string& exportDirectoryText,
+    const std::string& sessionDirectoryText,
     float recordDelaySeconds,
     float exportSampleRate,
     bool startRecordingOnCalibration,

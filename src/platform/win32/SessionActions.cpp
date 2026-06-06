@@ -1,5 +1,6 @@
 #include "platform/win32/SessionActions.h"
 
+#include "platform/win32/AppConfig.h"
 #include "platform/win32/AppLog.h"
 #include "platform/win32/AppState.h"
 #include "platform/win32/RecordingCleanupActions.h"
@@ -65,8 +66,9 @@ void showDeleteSessionBlockedMessage(HWND hwnd, const std::wstring& message)
 
 bool loadSelectedSessionFolder(HWND hwnd, AppWindowState& state)
 {
+    const std::filesystem::path root = activeSessionDirectoryPath(state);
     const std::vector<RecordingSessionListRow> rows =
-        listRecordingSessionFolders(recordingSessionsRootPath());
+        listRecordingSessionFolders(root);
     const RecordingSessionListRow* row = selectedSessionRow(rows, state.selectedSessionName);
     if (!row) {
         appendDebugLog(state, L"Load session ignored: no session selected");
@@ -128,8 +130,9 @@ bool closeLoadedSessionFolder(HWND hwnd, AppWindowState& state)
 
 bool deleteSelectedSessionFolder(HWND hwnd, AppWindowState& state)
 {
+    const std::filesystem::path root = activeSessionDirectoryPath(state);
     const std::vector<RecordingSessionListRow> rows =
-        listRecordingSessionFolders(recordingSessionsRootPath());
+        listRecordingSessionFolders(root);
     const RecordingSessionListRow* row = selectedSessionRow(rows, state.selectedSessionName);
     if (!row) {
         appendDebugLog(state, L"Delete session ignored: no session selected");
@@ -170,7 +173,7 @@ bool deleteSelectedSessionFolder(HWND hwnd, AppWindowState& state)
 
     std::filesystem::path folder = row->folder;
     std::string message;
-    const bool deleted = deleteTemporarySessionFolder(folder, recordingSessionsRootPath(), message);
+    const bool deleted = deleteTemporarySessionFolder(folder, root, message);
     if (!deleted) {
         appendDebugLog(state, "Delete session failed: " + message);
         MessageBoxW(hwnd, widen(message).c_str(), L"Delete Session", MB_OK | MB_ICONERROR);

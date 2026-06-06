@@ -16,6 +16,7 @@ struct AppWindowState;
 constexpr float kDefaultRecordExportSampleRate = 60.0f;
 
 std::filesystem::path activeExportDirectoryPath(const AppRecordingState& state);
+std::filesystem::path activeSessionDirectoryPath(const AppRecordingState& state);
 float sanitizedRecordExportSampleRate(float value) noexcept;
 
 bool writeDeviceNameConfigFile(const AppDeviceState& state, std::string& error);

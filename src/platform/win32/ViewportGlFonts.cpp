@@ -9,6 +9,7 @@ namespace ovtr::win32 {
 namespace {
 
 constexpr int kLabelFontHeight = 13;
+constexpr int kActorLabelFontHeight = kLabelFontHeight * 2;
 constexpr int kRecordingElapsedFontHeight = kLabelFontHeight * 2;
 constexpr int kDelayCountdownFontHeight = 54;
 
@@ -49,6 +50,12 @@ void createGlFontDisplayList(
 void createViewportGlFontDisplayLists(AppWindowState& state)
 {
     createGlFontDisplayList(state.glLabelFontBase, state.glDeviceContext.get(), -kLabelFontHeight, FW_SEMIBOLD);
+    createGlFontDisplayList(
+        state.glActorLabelFontBase,
+        state.glDeviceContext.get(),
+        -kActorLabelFontHeight,
+        FW_SEMIBOLD
+    );
     createGlFontDisplayList(
         state.glRecordingElapsedFontBase,
         state.glDeviceContext.get(),

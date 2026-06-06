@@ -1,5 +1,6 @@
 #include "platform/win32/WindowClickActionSections.h"
 
+#include "platform/win32/AppConfig.h"
 #include "platform/win32/AppState.h"
 #include "platform/win32/AppLog.h"
 #include "platform/win32/DeviceList.h"
@@ -104,6 +105,7 @@ bool handleProfileToggleClick(
         state.mappingDropdownSlot = -1;
         state.mappingProfileDropdownOpen = false;
         state.mappingPresetDropdownOpen = false;
+        closeMappingActorNameEditor(hwnd, state);
         closeMappingNameEditor(hwnd, state);
     }
     state.profileSplitterDragging = false;
@@ -142,6 +144,9 @@ bool handleMappingToggleClick(
         state.mappingEditOffsetPresetDropdownOpen = false;
         disableProfilePreview(state);
         closeProfileEditor(hwnd, state);
+        if (state.mappingActorName.empty()) {
+            state.mappingActorName = state.profile.name;
+        }
         if (state.mappingPresetName.empty()) {
             state.mappingPresetName = state.profile.name;
         }
@@ -150,6 +155,7 @@ bool handleMappingToggleClick(
     state.mappingProfileDropdownOpen = false;
     state.mappingPresetDropdownOpen = false;
     if (!state.mappingPanelVisible) {
+        closeMappingActorNameEditor(hwnd, state);
         closeMappingNameEditor(hwnd, state);
     }
     state.profileSplitterDragging = false;
@@ -246,7 +252,7 @@ bool handleSessionListClick(
 )
 {
     const std::vector<RecordingSessionListRow> rows =
-        listRecordingSessionFolders(recordingSessionsRootPath());
+        listRecordingSessionFolders(activeSessionDirectoryPath(state));
     const SessionListLayout layout = sessionListLayoutForClient(
         &state,
         clientWidth,

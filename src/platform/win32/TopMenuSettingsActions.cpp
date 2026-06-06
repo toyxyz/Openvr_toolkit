@@ -38,6 +38,7 @@ bool showExportLocationSettings(HWND parent, AppWindowState& state)
 {
     RecordSettingsDialogInput input;
     input.initialDirectory = activeExportDirectoryPath(state);
+    input.initialSessionDirectory = activeSessionDirectoryPath(state);
     input.initialRecordDelaySeconds = sanitizedRecordDelaySeconds(state.recordDelaySeconds);
     input.initialExportSampleRate = sanitizedRecordExportSampleRate(state.recordExportSampleRate);
     input.initialStartRecordingOnCalibration = state.startRecordingOnCalibration;
@@ -56,6 +57,7 @@ bool showExportLocationSettings(HWND parent, AppWindowState& state)
     {
         std::lock_guard<std::mutex> lock(state.recordingMutex);
         state.exportDirectory = result.directory;
+        state.sessionDirectory = result.sessionDirectory;
         state.recordDelaySeconds = result.recordDelaySeconds;
         state.recordExportSampleRate = result.exportSampleRate;
         state.startRecordingOnCalibration = result.startRecordingOnCalibration;

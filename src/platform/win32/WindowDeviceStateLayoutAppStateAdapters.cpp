@@ -4,6 +4,7 @@
 #include "platform/win32/AppMarkerState.h"
 #include "platform/win32/AppRuntimeState.h"
 #include "platform/win32/AppState.h"
+#include "platform/win32/DeviceList.h"
 #include "platform/win32/MarkerList.h"
 
 namespace ovtr::win32 {
@@ -152,7 +153,7 @@ DeviceListLayout deviceListLayoutForClient(
         contentBottom,
         lowerPanelValid,
         lowerPanelTop,
-        static_cast<int>(state->devices.size())
+        static_cast<int>(makeDevicePanelRows(*state).size())
     );
 }
 
@@ -177,7 +178,7 @@ MarkerListLayout markerListLayoutForClient(
 int maxDeviceListScrollOffset(const AppWindowState& state, const int visibleItemCount)
 {
     return maxDeviceListScrollOffset(
-        static_cast<int>(state.devices.size()),
+        static_cast<int>(makeDevicePanelRows(state).size()),
         visibleItemCount
     );
 }
@@ -186,7 +187,7 @@ void clampDeviceListScroll(AppWindowState& state, const int visibleItemCount)
 {
     state.deviceListScrollOffset = clampDeviceListScrollOffset(
         state.deviceListScrollOffset,
-        static_cast<int>(state.devices.size()),
+        static_cast<int>(makeDevicePanelRows(state).size()),
         visibleItemCount
     );
 }

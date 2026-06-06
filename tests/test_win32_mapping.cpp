@@ -34,6 +34,8 @@ void testWin32MappingModel()
     require(state.selectedMappingActorId == 0, "mapping actor selection default");
     require(state.mappingActorScrollOffset == 0, "mapping actor scroll default");
     require(state.mappingDropdownSlot == -1, "mapping dropdown defaults closed");
+    require(state.mappingFingerRuntimeIndices[0] == ovtr::win32::kNoSelectedRuntimeIndex, "left finger defaults none");
+    require(state.mappingFingerRuntimeIndices[1] == ovtr::win32::kNoSelectedRuntimeIndex, "right finger defaults none");
     require(!state.mappingProfileDropdownOpen, "mapping profile dropdown defaults closed");
     require(!state.mappingPresetDropdownOpen, "mapping preset dropdown defaults closed");
     require(state.mappingArmSoftIkStrength == ovtr::win32::kDefaultMappingArmSoftIkStrength, "arm soft IK default");
@@ -46,6 +48,7 @@ void testWin32MappingModel()
 
     ovtr::win32::MappingPreset preset;
     preset.name = L"actor_01";
+    preset.actorName = L"Hero Actor";
     preset.hasProfile = true;
     preset.profile.name = L"profile_in_mapping";
     preset.profile.measurements[0] = 92.0f;
@@ -54,11 +57,14 @@ void testWin32MappingModel()
     preset.skeletonColor = ovtr::win32::RgbColor{12, 34, 56};
     preset.deviceSerials[0] = L"hmd_serial";
     preset.deviceSerials[10] = L"foot_serial";
+    preset.fingerSerials[0] = L"Left hand";
+    preset.fingerSerials[1] = L"Right hand";
     std::istringstream input(ovtr::win32::serializeMappingPreset(preset));
     ovtr::win32::MappingPreset parsed;
     std::string error;
     require(ovtr::win32::parseMappingPreset(input, parsed, error), "mapping preset parses");
     require(parsed.name == L"actor_01", "mapping preset name round trip");
+    require(parsed.actorName == L"Hero Actor", "mapping preset actor name round trip");
     require(parsed.hasProfile, "mapping preset includes profile");
     require(parsed.profile.name == L"profile_in_mapping", "mapping preset profile name round trip");
     require(parsed.profile.measurements[0] == 92.0f, "mapping preset profile pelvis round trip");
@@ -69,6 +75,8 @@ void testWin32MappingModel()
     require(parsed.skeletonColor.b == 56, "mapping preset color b");
     require(parsed.deviceSerials[0] == L"hmd_serial", "mapping preset first serial");
     require(parsed.deviceSerials[10] == L"foot_serial", "mapping preset last serial");
+    require(parsed.fingerSerials[0] == L"Left hand", "mapping preset left finger serial");
+    require(parsed.fingerSerials[1] == L"Right hand", "mapping preset right finger serial");
 
     std::istringstream legacyPreset(
         "version=2\nname=legacy\narm_mode=fk\nslot_0=\nslot_1=\nslot_2=\nslot_3=\nslot_4=\nslot_5=\n"
@@ -76,7 +84,10 @@ void testWin32MappingModel()
     );
     require(ovtr::win32::parseMappingPreset(legacyPreset, parsed, error), "old arm_mode mapping preset parses");
     require(!parsed.hasProfile, "legacy mapping preset has no embedded profile");
+    require(parsed.actorName == L"legacy", "legacy mapping preset actor name fallback");
     require(parsed.skeletonColor.r == 255, "legacy mapping preset default color");
+    require(parsed.fingerSerials[0].empty(), "legacy mapping preset left finger defaults none");
+    require(parsed.fingerSerials[1].empty(), "legacy mapping preset right finger defaults none");
 
     ovtr::win32::MappingActor actor;
     actor.id = 77;
@@ -95,23 +106,35 @@ void testWin32MappingModel()
     ovtr::win32::AppProfileState selectionState;
     ovtr::win32::MappingActor selectionActor;
     selectionActor.id = 11;
+    selectionActor.name = L"custom_actor";
     selectionActor.profile.name = L"actor_profile";
     selectionActor.skeletonColor = ovtr::win32::RgbColor{1, 2, 3};
     selectionActor.mappingDeviceRuntimeIndices[0] = 123;
+    selectionActor.mappingFingerRuntimeIndices[0] = 321;
+    selectionActor.mappingFingerRuntimeIndices[1] = 322;
     selectionState.mappingActors.push_back(selectionActor);
     selectionState.profile.name = L"top_profile";
     require(ovtr::win32::toggleMappingActorSelectionAtIndex(selectionState, 0), "actor selection syncs");
+    require(selectionState.mappingActorName == L"custom_actor", "selected actor name reaches controls");
     require(selectionState.profile.name == L"actor_profile", "selected actor profile reaches controls");
     require(selectionState.mappingSkeletonColor.g == 2, "selected actor color reaches controls");
     require(selectionState.mappingDeviceRuntimeIndices[0] == 123, "selected actor mapping reaches controls");
+    require(selectionState.mappingFingerRuntimeIndices[0] == 321, "selected actor left finger reaches controls");
+    require(selectionState.mappingFingerRuntimeIndices[1] == 322, "selected actor right finger reaches controls");
     selectionState.profile.name = L"edited_profile";
+    selectionState.mappingActorName = L"renamed_actor";
     selectionState.mappingSkeletonColor = ovtr::win32::RgbColor{4, 5, 6};
     selectionState.mappingDeviceRuntimeIndices[0] = 456;
+    selectionState.mappingFingerRuntimeIndices[0] = 654;
+    selectionState.mappingFingerRuntimeIndices[1] = 655;
     selectionState.mappingActors[0].calibrated = true;
     ovtr::win32::syncSelectedMappingActorFromControls(selectionState);
+    require(selectionState.mappingActors[0].name == L"renamed_actor", "controls actor name updates actor");
     require(selectionState.mappingActors[0].profile.name == L"edited_profile", "controls profile updates actor");
     require(selectionState.mappingActors[0].skeletonColor.b == 6, "controls color updates actor");
     require(selectionState.mappingActors[0].mappingDeviceRuntimeIndices[0] == 456, "controls mapping updates actor");
+    require(selectionState.mappingActors[0].mappingFingerRuntimeIndices[0] == 654, "controls left finger updates actor");
+    require(selectionState.mappingActors[0].mappingFingerRuntimeIndices[1] == 655, "controls right finger updates actor");
     require(selectionState.mappingActors[0].calibrated, "source change keeps actor calibration");
 }
 
@@ -125,37 +148,38 @@ void testWin32MappingPanelLayout()
         ovtr::win32::mappingControlsLayoutForPanel(panel);
     require(controls.valid, "mapping panel controls valid");
     require(sameRect(controls.profileBoxRect, 858, 42, 1158, 70), "mapping profile box");
-    require(sameRect(controls.tableRect, 858, 78, 1158, 218), "mapping list box below profile");
-    require(sameRect(controls.colorBoxRect, 858, 222, 1158, 250), "mapping color box below list");
-    require(sameRect(controls.nameBoxRect, 858, 254, 1158, 282), "mapping name box below color");
-    require(sameRect(controls.presetSaveButtonRect, 858, 286, 944, 314), "mapping preset save button");
-    require(sameRect(controls.presetValueRect, 952, 286, 1158, 314), "mapping preset dropdown");
-    require(sameRect(controls.addActorButtonRect, 858, 320, 1158, 348), "mapping add actor button");
-    require(sameRect(controls.actorListRect, 858, 356, 1158, 440), "mapping actor list");
-    require(sameRect(controls.calibrateButtonRect, 858, 446, 1158, 474), "mapping calibrate button");
-    require(sameRect(controls.filterBoxRect, 858, 482, 1158, 516), "mapping filter box");
-    require(controls.visibleRowCount == 5, "mapping full visible row count");
-    require(ovtr::win32::maxMappingScrollOffset(controls.visibleRowCount) == 6, "mapping full scroll");
+    require(sameRect(controls.tableRect, 858, 78, 1158, 190), "mapping list box below profile");
+    require(sameRect(controls.colorBoxRect, 858, 194, 1158, 222), "mapping color box below list");
+    require(sameRect(controls.actorNameBoxRect, 858, 226, 1158, 254), "mapping actor name box below color");
+    require(sameRect(controls.nameBoxRect, 858, 258, 1158, 286), "mapping preset name box below actor name");
+    require(sameRect(controls.presetSaveButtonRect, 858, 290, 944, 318), "mapping preset save button");
+    require(sameRect(controls.presetValueRect, 952, 290, 1158, 318), "mapping preset dropdown");
+    require(sameRect(controls.addActorButtonRect, 858, 324, 1158, 352), "mapping add actor button");
+    require(sameRect(controls.actorListRect, 858, 360, 1158, 444), "mapping actor list");
+    require(sameRect(controls.calibrateButtonRect, 858, 450, 1158, 478), "mapping calibrate button");
+    require(sameRect(controls.filterBoxRect, 858, 486, 1158, 520), "mapping filter box");
+    require(controls.visibleRowCount == 4, "mapping full visible row count");
+    require(ovtr::win32::maxMappingScrollOffset(controls.visibleRowCount) == 9, "mapping full scroll");
 
     const std::vector<ovtr::win32::MappingPanelRowLayout> rows =
         ovtr::win32::mappingRowLayoutsForPanel(panel);
-    require(rows.size() == 5, "mapping row count");
+    require(rows.size() == 4, "mapping row count");
     require(rows.front().slotIndex == 0, "mapping first row is first device slot");
-    require(rows.back().slotIndex == 4, "mapping last visible row slot");
+    require(rows.back().slotIndex == 3, "mapping last visible row slot");
     const std::vector<ovtr::win32::MappingActorRowLayout> actorRows =
         ovtr::win32::mappingActorRowLayouts(controls, 4, 1);
     require(actorRows.size() == 3, "mapping actor row count");
     require(actorRows.front().actorIndex == 1, "mapping scrolled first actor row");
     require(ovtr::win32::maxMappingActorScrollOffset(4, 3) == 1, "mapping actor max scroll");
 
-    panel.panelRect = RECT{848, 32, 1168, 320};
+    panel.panelRect = RECT{848, 32, 1168, 352};
     const ovtr::win32::MappingPanelControlsLayout smallControls =
         ovtr::win32::mappingControlsLayoutForPanel(panel);
     require(smallControls.valid, "small mapping panel controls valid");
     require(smallControls.visibleRowCount == 1, "small mapping visible row count");
-    require(ovtr::win32::maxMappingScrollOffset(smallControls.visibleRowCount) == 10, "mapping max scroll");
+    require(ovtr::win32::maxMappingScrollOffset(smallControls.visibleRowCount) == 12, "mapping max scroll");
     require(
-        ovtr::win32::clampMappingScrollOffset(99, smallControls.visibleRowCount) == 10,
+        ovtr::win32::clampMappingScrollOffset(99, smallControls.visibleRowCount) == 12,
         "mapping scroll clamps high"
     );
 
@@ -168,6 +192,19 @@ void testWin32MappingPanelLayout()
         ovtr::win32::mappingRowLayoutAtPoint(panel, hitPoint, 4);
     require(hitRow.slotIndex == 4, "mapping scrolled hit target");
     require(std::wstring(ovtr::win32::mappingPanelRowLabel(10)) == L"Right Foot", "mapping last row label");
+    require(std::wstring(ovtr::win32::mappingPanelRowLabel(11)) == L"Left Finger", "mapping left finger row label");
+    require(std::wstring(ovtr::win32::mappingPanelRowLabel(12)) == L"Right Finger", "mapping right finger row label");
+
+    ovtr::win32::AppProfileState defaultNameState;
+    defaultNameState.profile.name = L"profile_name";
+    defaultNameState.mappingActorName = L"manual_name";
+    ovtr::win32::addMappingActorFromProfile(defaultNameState, defaultNameState.profile, 3);
+    ovtr::win32::addMappingActorFromProfile(defaultNameState, defaultNameState.profile, 3);
+    ovtr::win32::addMappingActorFromProfile(defaultNameState, defaultNameState.profile, 3);
+    require(defaultNameState.mappingActors[0].name == L"actor_0", "first actor gets default suffix");
+    require(defaultNameState.mappingActors[1].name == L"actor_1", "second actor increments default suffix");
+    require(defaultNameState.mappingActors[2].name == L"actor_2", "third actor increments default suffix");
+    require(defaultNameState.mappingActorName == L"actor_2", "actor name editor reflects default name");
 
     const RECT dropdown = ovtr::win32::mappingDropdownRectForRow(scrolledRows.front(), panel, 2);
     require(dropdown.right > dropdown.left && dropdown.bottom > dropdown.top, "mapping dropdown rect valid");
@@ -208,6 +245,8 @@ void testWin32MappingPanelLayout()
     ovtr::win32::AppProfileState state;
     for (int index = 0; index < 4; ++index) {
         ovtr::win32::addMappingActorFromProfile(state, state.profile, 3);
+        const std::wstring expectedName = L"actor_" + std::to_wstring(index);
+        require(state.mappingActors.back().name == expectedName, "new mapping actor gets default name");
         require(
             state.selectedMappingActorId == state.mappingActors.back().id,
             "new mapping actor is selected"

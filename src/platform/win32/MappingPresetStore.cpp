@@ -22,6 +22,11 @@ std::string slotKey(const int index)
     return "slot_" + std::to_string(index);
 }
 
+std::string fingerKey(const int sideIndex)
+{
+    return sideIndex == 0 ? "left_finger" : "right_finger";
+}
+
 std::string profileKey(const std::string& key)
 {
     return "profile_" + key;
@@ -144,6 +149,7 @@ std::string serializeMappingPreset(const MappingPreset& preset)
     output << "# toyxyz_openvr_toolkit mapping preset v3\n";
     output << "version=3\n";
     output << "name=" << narrow(preset.name) << "\n";
+    output << "actor_name=" << narrow(preset.actorName) << "\n";
     output << "color_r=" << preset.skeletonColor.r << "\n";
     output << "color_g=" << preset.skeletonColor.g << "\n";
     output << "color_b=" << preset.skeletonColor.b << "\n";
@@ -159,6 +165,9 @@ std::string serializeMappingPreset(const MappingPreset& preset)
     }
     for (int i = 0; i < kMappingSlotCount; ++i) {
         output << slotKey(i) << "=" << narrow(preset.deviceSerials[static_cast<std::size_t>(i)]) << "\n";
+    }
+    for (int i = 0; i < kMappingFingerSourceCount; ++i) {
+        output << fingerKey(i) << "=" << narrow(preset.fingerSerials[static_cast<std::size_t>(i)]) << "\n";
     }
     return output.str();
 }
@@ -183,6 +192,8 @@ bool parseMappingPreset(std::istream& input, MappingPreset& outPreset, std::stri
     MappingPreset preset;
     const auto name = values.find("name");
     preset.name = name == values.end() ? L"mapping" : widen(name->second);
+    const auto actorName = values.find("actor_name");
+    preset.actorName = actorName == values.end() ? L"" : widen(actorName->second);
     preset.skeletonColor = RgbColor{
         parsedColorComponent(values, "color_r", preset.skeletonColor.r),
         parsedColorComponent(values, "color_g", preset.skeletonColor.g),
@@ -196,8 +207,25 @@ bool parseMappingPreset(std::istream& input, MappingPreset& outPreset, std::stri
         }
         preset.deviceSerials[static_cast<std::size_t>(i)] = widen(found->second);
     }
+    for (int i = 0; i < kMappingFingerSourceCount; ++i) {
+        const auto found = values.find(fingerKey(i));
+        preset.fingerSerials[static_cast<std::size_t>(i)] =
+            found == values.end() ? L"" : widen(found->second);
+    }
+    const auto legacyFinger = values.find("finger");
+    if (legacyFinger != values.end()) {
+        const std::wstring serial = widen(legacyFinger->second);
+        if (serial == L"Right hand") {
+            preset.fingerSerials[1] = serial;
+        } else if (!serial.empty()) {
+            preset.fingerSerials[0] = serial;
+        }
+    }
     if (!parseEmbeddedProfile(values, preset, error)) {
         return false;
+    }
+    if (preset.actorName.empty()) {
+        preset.actorName = preset.hasProfile ? preset.profile.name : preset.name;
     }
     outPreset = std::move(preset);
     return true;

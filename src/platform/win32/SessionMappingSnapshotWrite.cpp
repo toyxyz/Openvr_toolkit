@@ -82,10 +82,13 @@ void writeActor(
 {
     const std::string prefix = "actor_" + std::to_string(actorIndex) + "_";
     out << prefix << "id=" << actor.id << "\n";
+    out << prefix << "actor_name=" << narrow(effectiveMappingActorName(actor)) << "\n";
     writeProfile(out, prefix.c_str(), actor.profile);
     writeColor(out, prefix.c_str(), actor.skeletonColor);
     out << prefix << "arm_soft_ik=" << actor.calibration.armSoftIkStrength << "\n";
     out << prefix << "leg_soft_ik=" << actor.calibration.legSoftIkStrength << "\n";
+    out << prefix << "left_finger_runtime_index=" << actor.mappingFingerRuntimeIndices[0] << "\n";
+    out << prefix << "right_finger_runtime_index=" << actor.mappingFingerRuntimeIndices[1] << "\n";
     for (int slot = 0; slot < kMappingSlotCount; ++slot) {
         const auto index = static_cast<std::size_t>(slot);
         const std::string slotPrefix = prefix + "slot_" + std::to_string(slot);
@@ -130,6 +133,8 @@ bool saveSessionMappingSnapshot(
         out << "mapping_slot_" << slot << "_serial="
             << narrow(serialForRuntimeIndex(devices, runtimeIndex)) << "\n";
     }
+    out << "mapping_left_finger_runtime_index=" << profileState.mappingFingerRuntimeIndices[0] << "\n";
+    out << "mapping_right_finger_runtime_index=" << profileState.mappingFingerRuntimeIndices[1] << "\n";
 
     out << "selected_actor_id=" << profileState.selectedMappingActorId << "\n";
     out << "actor_count=" << calibratedActorCount(profileState) << "\n";

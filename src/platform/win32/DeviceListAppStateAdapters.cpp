@@ -12,6 +12,24 @@ std::vector<DeviceListRow> makeDeviceListRows(const AppWindowState& state)
     );
 }
 
+std::vector<DeviceListRow> makeDevicePanelRows(const AppWindowState& state)
+{
+    return makeDevicePanelRows(
+        static_cast<const AppRuntimeState&>(state),
+        static_cast<const AppDeviceState&>(state)
+    );
+}
+
+std::vector<DeviceListRow> makeSkeletalInputRows(const AppWindowState& state)
+{
+    return makeSkeletalInputRows(static_cast<const AppRuntimeState&>(state));
+}
+
+std::vector<DeviceListRow> makeSkeletalInputRows(const AppWindowState& state, const int sideIndex)
+{
+    return makeSkeletalInputRows(static_cast<const AppRuntimeState&>(state), sideIndex);
+}
+
 const ovtr::DeviceDescriptor* selectedOriginDevice(const AppWindowState& state)
 {
     return selectedOriginDevice(

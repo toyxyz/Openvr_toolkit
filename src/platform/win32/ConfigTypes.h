@@ -74,6 +74,7 @@ enum class RealtimeSmoothingPreset {
 
 struct RecordSettingsConfig {
     std::string exportDirectoryText;
+    std::string sessionDirectoryText;
     float recordDelaySeconds = 0.0f;
     float exportSampleRate = 60.0f;
     bool startRecordingOnCalibration = false;

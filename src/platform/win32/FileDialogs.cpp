@@ -18,11 +18,10 @@ int CALLBACK browseFolderCallback(HWND hwnd, UINT message, LPARAM, LPARAM data)
     return 0;
 }
 
-} // namespace
-
-bool chooseExportDirectory(
+bool chooseFolderDirectory(
     HWND owner,
     const std::filesystem::path& initialDirectory,
+    const wchar_t* title,
     std::filesystem::path& outDirectory
 )
 {
@@ -31,7 +30,7 @@ bool chooseExportDirectory(
     BROWSEINFOW browse{};
     browse.hwndOwner = owner;
     browse.pszDisplayName = displayName;
-    browse.lpszTitle = L"Select export folder";
+    browse.lpszTitle = title;
     browse.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE | BIF_EDITBOX;
     browse.lpfn = browseFolderCallback;
     browse.lParam = reinterpret_cast<LPARAM>(initialText.c_str());
@@ -49,6 +48,26 @@ bool chooseExportDirectory(
 
     outDirectory = std::filesystem::path(pathBuffer);
     return true;
+}
+
+} // namespace
+
+bool chooseExportDirectory(
+    HWND owner,
+    const std::filesystem::path& initialDirectory,
+    std::filesystem::path& outDirectory
+)
+{
+    return chooseFolderDirectory(owner, initialDirectory, L"Select export folder", outDirectory);
+}
+
+bool chooseSessionDirectory(
+    HWND owner,
+    const std::filesystem::path& initialDirectory,
+    std::filesystem::path& outDirectory
+)
+{
+    return chooseFolderDirectory(owner, initialDirectory, L"Select session folder", outDirectory);
 }
 
 bool chooseImportGlbFile(

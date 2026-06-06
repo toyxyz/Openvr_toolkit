@@ -36,6 +36,10 @@ LRESULT CALLBACK recordSettingsDialogProc(HWND hwnd, UINT message, WPARAM wparam
             browseRecordSettingsDirectory(hwnd, *dialog);
             return 0;
         }
+        if (command == kSessionLocationBrowseControlId) {
+            browseRecordSettingsSessionDirectory(hwnd, *dialog);
+            return 0;
+        }
         if (command == IDOK) {
             finishRecordSettingsDialog(hwnd, *dialog, true);
             return 0;

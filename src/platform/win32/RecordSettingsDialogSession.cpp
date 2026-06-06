@@ -50,10 +50,24 @@ void browseRecordSettingsDirectory(HWND hwnd, RecordSettingsDialogState& dialog)
     }
 }
 
+void browseRecordSettingsSessionDirectory(HWND hwnd, RecordSettingsDialogState& dialog)
+{
+    std::filesystem::path selectedDirectory;
+    if (chooseSessionDirectory(
+            hwnd,
+            normalizedSessionDirectoryPath(dialog.result.sessionDirectory),
+            selectedDirectory
+        )) {
+        dialog.result.sessionDirectory = normalizedSessionDirectoryPath(selectedDirectory);
+        setEditText(dialog.controls.sessionDirectoryEdit, dialog.result.sessionDirectory.wstring());
+    }
+}
+
 void finishRecordSettingsDialog(HWND hwnd, RecordSettingsDialogState& dialog, const bool accepted)
 {
     if (accepted) {
         if (!dialog.controls.directoryEdit ||
+            !dialog.controls.sessionDirectoryEdit ||
             !dialog.controls.delayEdit ||
             !dialog.controls.resampleFpsEdit ||
             !dialog.controls.startRecordingOnCalibrationCheck ||
@@ -68,11 +82,22 @@ void finishRecordSettingsDialog(HWND hwnd, RecordSettingsDialogState& dialog, co
         const std::filesystem::path directory = normalizedExportDirectoryPath(
             std::filesystem::path(readTrimmedWindowText(dialog.controls.directoryEdit))
         );
+        const std::filesystem::path sessionDirectory = normalizedSessionDirectoryPath(
+            std::filesystem::path(readTrimmedWindowText(dialog.controls.sessionDirectoryEdit))
+        );
         std::error_code createError;
         std::filesystem::create_directories(directory, createError);
         if (createError) {
             const std::wstring message = L"Could not create export folder:\n" +
                 directory.wstring() + L"\n\n" + widen(createError.message());
+            MessageBoxW(hwnd, message.c_str(), L"Record Settings", MB_OK | MB_ICONWARNING);
+            return;
+        }
+        createError.clear();
+        std::filesystem::create_directories(sessionDirectory, createError);
+        if (createError) {
+            const std::wstring message = L"Could not create session folder:\n" +
+                sessionDirectory.wstring() + L"\n\n" + widen(createError.message());
             MessageBoxW(hwnd, message.c_str(), L"Record Settings", MB_OK | MB_ICONWARNING);
             return;
         }
@@ -134,6 +159,7 @@ void finishRecordSettingsDialog(HWND hwnd, RecordSettingsDialogState& dialog, co
         }
         dialog.result = sanitizedRecordSettingsDialogResult(
             directory,
+            sessionDirectory,
             recordDelaySeconds,
             exportSampleRate,
             startRecordingOnCalibration,

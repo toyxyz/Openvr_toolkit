@@ -62,6 +62,11 @@ bool chooseExportDirectory(
     const std::filesystem::path& initialDirectory,
     std::filesystem::path& outDirectory
 );
+bool chooseSessionDirectory(
+    HWND owner,
+    const std::filesystem::path& initialDirectory,
+    std::filesystem::path& outDirectory
+);
 bool chooseImportGlbFile(
     HWND owner,
     const std::filesystem::path& initialDirectory,

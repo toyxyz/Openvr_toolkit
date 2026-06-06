@@ -164,7 +164,7 @@ void drawLabels3D(AppWindowState& state)
         return;
     }
     setGlColor(state.viewportSettings.labelTextColor);
-    drawMappingActorLabels3D(static_cast<const AppProfileState&>(state), state.glLabelFontBase.get());
+    drawMappingActorLabels3D(static_cast<const AppProfileState&>(state), state.glActorLabelFontBase.get());
     drawTrackedDeviceLabels3D(state);
     drawSceneMarkerLabels3D(
         static_cast<const AppMarkerState&>(state),

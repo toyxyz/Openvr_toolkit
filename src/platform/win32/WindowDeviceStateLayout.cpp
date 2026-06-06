@@ -15,17 +15,13 @@ std::uint32_t deviceRuntimeIndexFromListPoint(
     const POINT point
 )
 {
-    if (runtimeState.devices.empty()) {
-        return kNoSelectedRuntimeIndex;
-    }
-
+    const std::vector<DeviceListRow> rows = makeDevicePanelRows(runtimeState, deviceState);
     const int rowIndex = deviceListRowIndexFromPoint(
         layout,
         point,
-        static_cast<int>(runtimeState.devices.size()),
+        static_cast<int>(rows.size()),
         deviceState.deviceListScrollOffset
     );
-    const std::vector<DeviceListRow> rows = makeDeviceListRows(runtimeState, deviceState);
     if (rowIndex < 0 || rowIndex >= static_cast<int>(rows.size())) {
         return kNoSelectedRuntimeIndex;
     }

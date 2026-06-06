@@ -1,5 +1,6 @@
 #include "platform/win32/SessionSaveActions.h"
 
+#include "platform/win32/AppConfig.h"
 #include "platform/win32/AppLog.h"
 #include "platform/win32/AppState.h"
 #include "platform/win32/Dialogs.h"
@@ -109,7 +110,7 @@ bool saveLoadedSessionFolder(HWND hwnd, AppWindowState& state)
         return false;
     }
 
-    const std::filesystem::path root = recordingSessionsRootPath();
+    const std::filesystem::path root = activeSessionDirectoryPath(state);
     std::string error;
     if (!ensureRecordingsRoot(root, error)) {
         appendDebugLog(state, "Save session failed: " + error);

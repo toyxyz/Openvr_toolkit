@@ -34,10 +34,13 @@ struct AppLoadedSessionState {
     std::uint64_t loadedSessionLastSampledFrameIndex = 0;
     bool loadedSessionLiveMappingBackupValid = false;
     BodyProfile loadedSessionLiveProfile;
+    std::wstring loadedSessionLiveMappingActorName;
     RgbColor loadedSessionLiveMappingSkeletonColor{255, 255, 255};
     bool loadedSessionLiveMappingSkeletonColorCustomized = false;
     std::array<std::uint32_t, kMappingSlotCount> loadedSessionLiveMappingDeviceRuntimeIndices =
         defaultMappingDeviceRuntimeIndices();
+    std::array<std::uint32_t, kMappingFingerSourceCount> loadedSessionLiveMappingFingerRuntimeIndices =
+        defaultMappingFingerRuntimeIndices();
     std::vector<MappingActor> loadedSessionLiveMappingActors;
     std::uint32_t loadedSessionLiveNextMappingActorId = 1;
     std::uint32_t loadedSessionLiveSelectedMappingActorId = 0;

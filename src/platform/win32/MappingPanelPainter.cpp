@@ -7,6 +7,7 @@
 #include "platform/win32/MappingPanelColorPainter.h"
 #include "platform/win32/MappingPanelDropdownPainter.h"
 #include "platform/win32/MappingPanelLayout.h"
+#include "platform/win32/MappingPanelScrollPainter.h"
 #include "platform/win32/MappingSoftIkFilter.h"
 #include "platform/win32/Win32GdiResources.h"
 
@@ -28,53 +29,6 @@ void drawTableBox(HDC drawDc, const RECT& rect)
     LineTo(drawDc, rect.right - 1, rect.bottom - 1);
     LineTo(drawDc, rect.left, rect.bottom - 1);
     LineTo(drawDc, rect.left, rect.top);
-}
-
-void drawScrollbar(HDC drawDc, const RECT& tableRect, const int visibleRows, const int scrollOffset)
-{
-    const int maxOffset = maxMappingScrollOffset(visibleRows);
-    if (maxOffset <= 0) {
-        return;
-    }
-
-    RECT track{tableRect.right - 8, tableRect.top, tableRect.right, tableRect.bottom};
-    UniqueBrush trackBrush(CreateSolidBrush(RGB(34, 38, 47)));
-    FillRect(drawDc, &track, trackBrush.get());
-
-    const int trackHeight = track.bottom - track.top;
-    int thumbHeight = (trackHeight * visibleRows) / (visibleRows + maxOffset);
-    if (thumbHeight < 18) {
-        thumbHeight = 18;
-    }
-    if (thumbHeight > trackHeight) {
-        thumbHeight = trackHeight;
-    }
-
-    const int thumbTop = track.top + (scrollOffset * (trackHeight - thumbHeight)) / maxOffset;
-    RECT thumb{track.left, thumbTop, track.right, thumbTop + thumbHeight};
-    UniqueBrush thumbBrush(CreateSolidBrush(RGB(88, 101, 123)));
-    FillRect(drawDc, &thumb, thumbBrush.get());
-}
-
-void drawActorScrollbar(HDC drawDc, const MappingPanelControlsLayout& controls, const AppWindowState& state)
-{
-    const int visibleRows = visibleMappingActorRowCount(controls);
-    const int maxOffset = maxMappingActorScrollOffset(state.mappingActors.size(), visibleRows);
-    if (maxOffset <= 0) {
-        return;
-    }
-    RECT track{controls.actorListRect.right - 8, controls.actorListRect.top, controls.actorListRect.right, controls.actorListRect.bottom};
-    UniqueBrush trackBrush(CreateSolidBrush(RGB(34, 38, 47)));
-    FillRect(drawDc, &track, trackBrush.get());
-    const int trackHeight = track.bottom - track.top;
-    int thumbHeight = (trackHeight * visibleRows) / (visibleRows + maxOffset);
-    if (thumbHeight < 18) {
-        thumbHeight = 18;
-    }
-    const int top = track.top + (state.mappingActorScrollOffset * (trackHeight - thumbHeight)) / maxOffset;
-    RECT thumb{track.left, top, track.right, top + thumbHeight};
-    UniqueBrush thumbBrush(CreateSolidBrush(RGB(88, 101, 123)));
-    FillRect(drawDc, &thumb, thumbBrush.get());
 }
 
 void drawDropdownGlyph(HDC drawDc, const RECT& valueRect)
@@ -126,32 +80,66 @@ std::wstring mappingPresetNameText(const AppWindowState& state)
 std::wstring actorDisplayName(const MappingActor& actor)
 {
     if (!actor.calibrated) {
-        return actor.profile.name;
+        return effectiveMappingActorName(actor);
     }
-    return actor.profile.name + L" calibrated";
+    return effectiveMappingActorName(actor) + L" calibrated";
+}
+
+void drawLabeledTextBox(
+    HDC drawDc,
+    HFONT font,
+    const RECT& boxRect,
+    const RECT& labelRect,
+    const RECT& valueRect,
+    const wchar_t* label,
+    const std::wstring& value
+)
+{
+    drawTableBox(drawDc, boxRect);
+    UniquePen dividerPen(CreatePen(PS_SOLID, 1, RGB(43, 48, 59)));
+    SelectObjectGuard penSelection(drawDc, dividerPen.get());
+    MoveToEx(drawDc, labelRect.right + 8, boxRect.top, nullptr);
+    LineTo(drawDc, labelRect.right + 8, boxRect.bottom);
+
+    SelectObjectGuard fontSelection(drawDc, font);
+    SetTextColor(drawDc, RGB(168, 180, 196));
+    RECT drawLabelRect = labelRect;
+    DrawTextW(drawDc, label, -1, &drawLabelRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+
+    SetTextColor(drawDc, RGB(225, 231, 240));
+    RECT drawValueRect = valueRect;
+    DrawTextW(
+        drawDc,
+        value.c_str(),
+        -1,
+        &drawValueRect,
+        DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS
+    );
+}
+
+void drawActorNameBox(HDC drawDc, HFONT font, const AppWindowState& state, const MappingPanelControlsLayout& controls)
+{
+    drawLabeledTextBox(
+        drawDc,
+        font,
+        controls.actorNameBoxRect,
+        controls.actorNameLabelRect,
+        controls.actorNameValueRect,
+        L"Actor name",
+        effectiveMappingActorNameText(state)
+    );
 }
 
 void drawNameBox(HDC drawDc, HFONT font, const AppWindowState& state, const MappingPanelControlsLayout& controls)
 {
-    drawTableBox(drawDc, controls.nameBoxRect);
-    UniquePen dividerPen(CreatePen(PS_SOLID, 1, RGB(43, 48, 59)));
-    SelectObjectGuard penSelection(drawDc, dividerPen.get());
-    MoveToEx(drawDc, controls.nameLabelRect.right + 8, controls.nameBoxRect.top, nullptr);
-    LineTo(drawDc, controls.nameLabelRect.right + 8, controls.nameBoxRect.bottom);
-
-    SelectObjectGuard fontSelection(drawDc, font);
-    SetTextColor(drawDc, RGB(168, 180, 196));
-    RECT labelRect = controls.nameLabelRect;
-    DrawTextW(drawDc, L"Preset name", -1, &labelRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
-
-    SetTextColor(drawDc, RGB(225, 231, 240));
-    RECT valueRect = controls.nameValueRect;
-    DrawTextW(
+    drawLabeledTextBox(
         drawDc,
-        mappingPresetNameText(state).c_str(),
-        -1,
-        &valueRect,
-        DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS
+        font,
+        controls.nameBoxRect,
+        controls.nameLabelRect,
+        controls.nameValueRect,
+        L"Preset name",
+        mappingPresetNameText(state)
     );
 }
 
@@ -223,6 +211,7 @@ void paintMappingPanelContent(
     drawProfileBox(drawDc, font, state, controls);
     drawTableBox(drawDc, controls.tableRect);
     drawMappingColorRow(drawDc, font, state, controls);
+    drawActorNameBox(drawDc, font, state, controls);
     drawNameBox(drawDc, font, state, controls);
     drawPresetControls(drawDc, font, controls);
     drawActorList(drawDc, font, state, controls);
@@ -268,6 +257,14 @@ void paintMappingPanelContent(
     if (state.mappingDropdownSlot >= 0) {
         if (isMappingDeviceRow(state.mappingDropdownSlot)) {
             drawMappingDeviceDropdown(drawDc, font, state, layout, makeDeviceListRows(state));
+        } else if (isMappingFingerRow(state.mappingDropdownSlot)) {
+            drawMappingDeviceDropdown(
+                drawDc,
+                font,
+                state,
+                layout,
+                makeSkeletalInputRows(state, mappingFingerSideIndexForRow(state.mappingDropdownSlot))
+            );
         } else if (isMappingSoftIkRow(state.mappingDropdownSlot)) {
             drawMappingSoftIkFilterDropdown(drawDc, font, state, controls);
         }
