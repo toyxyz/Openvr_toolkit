@@ -128,10 +128,10 @@ Vec3 segmentSideHint(
         return sideFromTarget(targets, MappingTrackerRole::Pelvis);
     case kProfileJointLeftArm:
     case kProfileJointLeftForeArm:
-        return limbPlaneSideHint(joints, kProfileJointLeftShoulder, kProfileJointLeftArm, kProfileJointLeftForeArm);
+        return storedHint;
     case kProfileJointRightArm:
     case kProfileJointRightForeArm:
-        return limbPlaneSideHint(joints, kProfileJointRightShoulder, kProfileJointRightArm, kProfileJointRightForeArm);
+        return storedHint;
     case kProfileJointLeftHand:
         return forwardFromTarget(targets, MappingTrackerRole::LeftHand);
     case kProfileJointRightHand:
@@ -176,6 +176,28 @@ void drawJointAxis(const ProfileSkeletonJoints& joints, const int index, const V
     drawAxisLine(origin, zAxis, RgbColor{90, 130, 255});
 }
 
+void drawPoseJointAxis(
+    const ProfileSkeletonJoints& joints,
+    const std::array<Vec3, kProfileSkeletonJointCount>& sideAxes,
+    const std::array<Vec3, kProfileSkeletonJointCount>& forwardAxes,
+    const int index,
+    const Vec3 offset
+) {
+    const Vec3 origin = add(joints[static_cast<std::size_t>(index)].positionMeters, offset);
+    const int child = firstChildIndex(joints, index);
+    const int segmentIndex = child >= 0 ? child : index;
+    const Vec3 yAxis = jointMainAxis(joints, index);
+    Vec3 xAxis = sideAxes[static_cast<std::size_t>(segmentIndex)];
+    xAxis = normalizeVec3(sub(xAxis, scale(yAxis, dot(xAxis, yAxis))));
+    if (!hasVector(xAxis)) {
+        xAxis = normalizeVec3(cross(yAxis, forwardAxes[static_cast<std::size_t>(segmentIndex)]));
+    }
+    const Vec3 zAxis = normalizeVec3(cross(xAxis, yAxis));
+    drawAxisLine(origin, xAxis, RgbColor{255, 64, 64});
+    drawAxisLine(origin, yAxis, RgbColor{80, 255, 90});
+    drawAxisLine(origin, zAxis, RgbColor{90, 130, 255});
+}
+
 } // namespace
 
 void drawSkeletonJointAxes3D(
@@ -189,6 +211,24 @@ void drawSkeletonJointAxes3D(
     glBegin(GL_LINES);
     for (int index = 0; index < kProfileSkeletonJointCount; ++index) {
         drawJointAxis(joints, index, offset, targets);
+    }
+    glEnd();
+}
+
+void drawSkeletonPoseJointAxes3D(
+    const ProfileSkeletonJoints& rest,
+    const ProfileSkeletonJoints& joints,
+    const SkeletonPose& pose,
+    const Vec3 offset
+) {
+    const auto sideAxes = computeSkeletonPoseWorldSideAxes(rest, pose);
+    const auto forwardAxes = computeSkeletonPoseWorldForwardAxes(rest, pose);
+    ScopedGlCapability lighting(GL_LIGHTING, false);
+    ScopedGlCapability texture2D(GL_TEXTURE_2D, false);
+    ScopedGlLineWidth lineWidth(2.0f);
+    glBegin(GL_LINES);
+    for (int index = 0; index < kProfileSkeletonJointCount; ++index) {
+        drawPoseJointAxis(joints, sideAxes, forwardAxes, index, offset);
     }
     glEnd();
 }

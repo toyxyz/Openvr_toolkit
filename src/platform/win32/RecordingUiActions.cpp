@@ -36,11 +36,15 @@ void toggleRecording(HWND hwnd)
     if (!state) {
         return;
     }
+    if (state->loadedSessionActive) {
+        appendDebugLog(*state, L"Recording blocked: close loaded session first");
+        invalidateStatusPanel(hwnd);
+        return;
+    }
 
     bool canceledDelay = false;
     bool stopAttempted = false;
     bool stopSucceeded = false;
-    ExportFormat exportFormat = state->recordSaveFormat;
     std::uint64_t stoppedFrameCount = 0;
     std::uint64_t stoppedDroppedFrames = 0;
     std::string stopError;
@@ -85,7 +89,11 @@ void toggleRecording(HWND hwnd)
             stream << L"Recording stopped: frames " << stoppedFrameCount
                    << L", dropped " << stoppedDroppedFrames;
             appendDebugLog(*state, stream.str());
-            exportCurrentSession(hwnd, exportFormat);
+            if (state->exportAfterRecording) {
+                exportCurrentSession(hwnd);
+            } else {
+                appendDebugLog(*state, L"Export after recording disabled");
+            }
         } else {
             appendDebugLog(*state, "Recording stop failed: " + stopError);
         }

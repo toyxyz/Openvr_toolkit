@@ -1,7 +1,5 @@
 #pragma once
 
-#include "platform/win32/ConfigTypes.h"
-
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -13,15 +11,14 @@ struct RecordingExportUiMessages {
     std::vector<std::string> logMessages;
 };
 
-std::wstring recordingExportStartLogMessage(ExportFormat format);
-std::string recordingExportSuccessMessage(ExportFormat format, const std::filesystem::path& outputPath);
-std::string recordingExportFailureMessage(ExportFormat format, const std::string& error);
+std::wstring recordingExportStartLogMessage();
+std::string recordingExportSuccessMessage(const std::filesystem::path& outputPath);
+std::string recordingExportFailureMessage(const std::string& error);
 RecordingExportUiMessages recordingExportSuccessUiMessages(
-    ExportFormat format,
     const std::filesystem::path& outputPath,
     bool cleanupSucceeded,
     const std::string& cleanupMessage
 );
-RecordingExportUiMessages recordingExportFailureUiMessages(ExportFormat format, const std::string& error);
+RecordingExportUiMessages recordingExportFailureUiMessages(const std::string& error);
 
 } // namespace ovtr::win32

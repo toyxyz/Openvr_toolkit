@@ -13,10 +13,13 @@ inline constexpr int kMappingPanelRowCount = kMappingSlotCount;
 inline constexpr int kMappingArmSoftIkSlot = kMappingSlotCount;
 inline constexpr int kMappingLegSoftIkSlot = kMappingSlotCount + 1;
 inline constexpr const wchar_t* kMappingNoDeviceLabel = L"None";
-inline constexpr float kDefaultMappingSoftIkStrength = 0.06f;
-inline constexpr std::array<float, 6> kMappingSoftIkStrengthOptions{
+inline constexpr float kDefaultMappingArmSoftIkStrength = 0.06f;
+inline constexpr float kDefaultMappingLegSoftIkStrength = 0.03f;
+inline constexpr float kDefaultMappingSoftIkStrength = kDefaultMappingArmSoftIkStrength;
+inline constexpr std::array<float, 7> kMappingSoftIkStrengthOptions{
     0.0f,
-    0.03f,
+    0.01f,
+    kDefaultMappingLegSoftIkStrength,
     kDefaultMappingSoftIkStrength,
     0.10f,
     0.15f,

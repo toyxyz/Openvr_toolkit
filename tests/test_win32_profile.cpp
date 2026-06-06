@@ -33,7 +33,7 @@ void requireDefaultProfile(const ovtr::win32::BodyProfile& profile, const std::s
     requireNear(ovtr::win32::computedProfileHeightCm(profile), 170.0f, context + " computed height");
     const std::array<float, ovtr::win32::kProfileMeasurementCount> expectedMeasurements{
         90.0f, 28.0f, 53.0f, 27.0f, 7.0f, 41.0f, 31.0f,
-        26.0f, 19.0f, 42.0f, 40.0f, 25.0f, 8.0f, 2.0f
+        26.0f, 19.0f, 42.0f, 40.0f, 25.0f, 8.0f, 2.0f, 8.0f, 5.0f
     };
     for (std::size_t index = 0; index < expectedMeasurements.size(); ++index) {
         require(
@@ -50,6 +50,14 @@ void requireVecNear(const ovtr::win32::Vec3 actual, const ovtr::win32::Vec3 expe
     requireNear(actual.x, expected.x, context + " x");
     requireNear(actual.y, expected.y, context + " y");
     requireNear(actual.z, expected.z, context + " z");
+}
+
+float distanceMeters(const ovtr::win32::Vec3 left, const ovtr::win32::Vec3 right)
+{
+    const float dx = left.x - right.x;
+    const float dy = left.y - right.y;
+    const float dz = left.z - right.z;
+    return std::sqrt(dx * dx + dy * dy + dz * dz);
 }
 
 } // namespace
@@ -72,6 +80,14 @@ void testWin32ProfileModel()
         ovtr::win32::profileMeasurementDefinitions()[13].key == std::string("toe_tip_height_cm"),
         "profile measurement order"
     );
+    require(
+        ovtr::win32::profileMeasurementDefinitions()[14].key == std::string("arm_bend_degrees"),
+        "profile arm bend measurement order"
+    );
+    require(
+        ovtr::win32::profileMeasurementDefinitions()[15].key == std::string("leg_bend_degrees"),
+        "profile leg bend measurement order"
+    );
 
     float parsed = 0.0f;
     require(ovtr::win32::parseProfileNumberText(L"181.5", parsed), "profile number parses");
@@ -92,13 +108,17 @@ void testWin32ProfileSerialization()
     profile.measurements[4] = 8.0f;
     profile.measurements[11] = 24.0f;
     profile.measurements[13] = 3.0f;
+    profile.measurements[14] = 9.0f;
+    profile.measurements[15] = 6.0f;
 
     const std::string text = ovtr::win32::serializeProfile(profile);
     require(text.find("total_height_cm") == std::string::npos, "profile does not serialize duplicate total height");
     require(text.find("\nheight_cm=") == std::string::npos, "profile does not serialize display height");
-    require(text.find("version=4") != std::string::npos, "profile serializes v4 schema");
+    require(text.find("version=5") != std::string::npos, "profile serializes v5 schema");
     require(text.find("neck_length_cm=8") != std::string::npos, "profile serializes neck length");
     require(text.find("toe_tip_height_cm=3") != std::string::npos, "profile serializes toe height");
+    require(text.find("arm_bend_degrees=9") != std::string::npos, "profile serializes arm bend");
+    require(text.find("leg_bend_degrees=6") != std::string::npos, "profile serializes leg bend");
     std::istringstream input(text);
     ovtr::win32::BodyProfile loaded;
     std::string error;
@@ -109,6 +129,8 @@ void testWin32ProfileSerialization()
     require(loaded.measurements[4] == 8.0f, "profile neck length round trip");
     require(loaded.measurements[11] == 24.0f, "profile final measurement round trip");
     require(loaded.measurements[13] == 3.0f, "profile toe height round trip");
+    require(loaded.measurements[14] == 9.0f, "profile arm bend round trip");
+    require(loaded.measurements[15] == 6.0f, "profile leg bend round trip");
 
     std::istringstream legacy(
         "name=legacy\nheight_cm=170\n"
@@ -122,6 +144,8 @@ void testWin32ProfileSerialization()
     require(loaded.measurements[4] == 7.0f, "legacy profile default neck length");
     require(loaded.measurements[12] == 8.0f, "legacy profile default ankle height");
     require(loaded.measurements[13] == 2.0f, "legacy profile default toe height");
+    require(loaded.measurements[14] == 8.0f, "legacy profile default arm bend");
+    require(loaded.measurements[15] == 5.0f, "legacy profile default leg bend");
 
     std::istringstream invalid("name=actor\nheight_cm=170\n");
     require(!ovtr::win32::parseProfile(invalid, loaded, error), "profile parse rejects missing fields");
@@ -151,9 +175,9 @@ void testWin32ProfilePanelLayout()
         ovtr::win32::profileControlsLayoutForPanel(panel);
     require(smallControls.valid, "small profile panel controls valid");
     require(smallControls.visibleRowCount == 6, "small profile visible row count");
-    require(ovtr::win32::maxProfileScrollOffset(smallControls.visibleRowCount) == 10, "profile max scroll");
+    require(ovtr::win32::maxProfileScrollOffset(smallControls.visibleRowCount) == 12, "profile max scroll");
     require(
-        ovtr::win32::clampProfileScrollOffset(99, smallControls.visibleRowCount) == 10,
+        ovtr::win32::clampProfileScrollOffset(99, smallControls.visibleRowCount) == 12,
         "profile scroll clamps high"
     );
     const std::vector<ovtr::win32::ProfilePanelFieldLayout> scrolledFields =
@@ -224,14 +248,19 @@ void testWin32ProfileSkeleton()
     );
 
     requireVecNear(joints[0].positionMeters, {0.0f, 0.9f, 0.0f}, "hips");
-    requireVecNear(joints[16].positionMeters, {0.14f, 0.48f, 0.0f}, "left knee");
+    requireVecNear(joints[8].positionMeters, {0.5151f, 1.43f, -0.0201f}, "left elbow");
+    requireVecNear(joints[16].positionMeters, {0.14f, 0.48f, 0.0175f}, "left knee");
     requireVecNear(joints[17].positionMeters, {0.14f, 0.08f, 0.0f}, "left ankle");
+    requireNear(distanceMeters(joints[7].positionMeters, joints[9].positionMeters), 0.57f, "arm endpoint length");
+    requireNear(distanceMeters(joints[15].positionMeters, joints[17].positionMeters), 0.82f, "leg endpoint length");
+    require(distanceMeters(joints[7].positionMeters, joints[8].positionMeters) > 0.31f, "arm upper segment grows with bend");
+    require(distanceMeters(joints[15].positionMeters, joints[16].positionMeters) > 0.42f, "leg upper segment grows with bend");
     requireVecNear(joints[3].positionMeters, {0.0f, 1.43f, 0.0f}, "spine2");
     requireVecNear(joints[4].positionMeters, {0.0f, 1.50f, 0.0f}, "neck");
     requireVecNear(joints[5].positionMeters, {0.0f, 1.60f, 0.0f}, "head");
     requireVecNear(joints[6].positionMeters, {0.0f, 1.70f, 0.0f}, "head top");
     requireVecNear(joints[10].positionMeters, {0.775f, 1.43f, 0.0f}, "left hand root");
-    requireVecNear(joints[ovtr::win32::kProfileJointLeftHandIndex1].positionMeters, {0.8206f, 1.43f, 0.0247f}, "left index root");
+    requireVecNear(joints[ovtr::win32::kProfileJointLeftHandIndex1].positionMeters, {0.8852f, 1.43f, 0.0247f}, "left index root");
     requireVecNear(joints[ovtr::win32::kProfileJointLeftHandIndex4].positionMeters, {0.9498f, 1.43f, 0.0247f}, "left index tip");
     requireVecNear(
         joints[ovtr::win32::kProfileJointLeftHandMiddle4].positionMeters,

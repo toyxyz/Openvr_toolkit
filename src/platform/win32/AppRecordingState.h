@@ -25,7 +25,12 @@ struct AppRecordingState {
     std::filesystem::path exportDirectory;
     float recordDelaySeconds = 0.0f;
     float recordExportSampleRate = 60.0f;
-    ExportFormat recordSaveFormat = ExportFormat::Glb;
+    bool startRecordingOnCalibration = false;
+    bool exportAfterRecording = false;
+    bool applyNoiseFilterOnExport = false;
+    float noiseFilterCutoffHz = 8.0f;
+    OutlierRepairStrength outlierRepairStrength = OutlierRepairStrength::Light;
+    int smoothingIterations = 0;
     SkeletonRecordingClip skeletonRecording;
     bool recordingDelayActive = false;
     std::chrono::steady_clock::time_point recordingDelayDeadline{};

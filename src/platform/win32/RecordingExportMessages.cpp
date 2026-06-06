@@ -2,33 +2,29 @@
 
 namespace ovtr::win32 {
 
-std::wstring recordingExportStartLogMessage(const ExportFormat format)
+std::wstring recordingExportStartLogMessage()
 {
-    return format == ExportFormat::Fbx ? L"Starting FBX export" : L"Starting GLB export";
+    return L"Starting GLB export";
 }
 
-std::string recordingExportSuccessMessage(
-    const ExportFormat format,
-    const std::filesystem::path& outputPath
-)
+std::string recordingExportSuccessMessage(const std::filesystem::path& outputPath)
 {
-    return (format == ExportFormat::Fbx ? "FBX saved to " : "GLB saved to ") + outputPath.string();
+    return "GLB saved to " + outputPath.string();
 }
 
-std::string recordingExportFailureMessage(const ExportFormat format, const std::string& error)
+std::string recordingExportFailureMessage(const std::string& error)
 {
-    return (format == ExportFormat::Fbx ? "FBX export failed: " : "GLB export failed: ") + error;
+    return "GLB export failed: " + error;
 }
 
 RecordingExportUiMessages recordingExportSuccessUiMessages(
-    const ExportFormat format,
     const std::filesystem::path& outputPath,
     const bool cleanupSucceeded,
     const std::string& cleanupMessage
 )
 {
     RecordingExportUiMessages messages;
-    messages.statusMessage = recordingExportSuccessMessage(format, outputPath);
+    messages.statusMessage = recordingExportSuccessMessage(outputPath);
     messages.logMessages.push_back(messages.statusMessage);
     if (!cleanupMessage.empty()) {
         messages.logMessages.push_back(cleanupMessage);
@@ -39,13 +35,10 @@ RecordingExportUiMessages recordingExportSuccessUiMessages(
     return messages;
 }
 
-RecordingExportUiMessages recordingExportFailureUiMessages(
-    const ExportFormat format,
-    const std::string& error
-)
+RecordingExportUiMessages recordingExportFailureUiMessages(const std::string& error)
 {
     RecordingExportUiMessages messages;
-    messages.statusMessage = recordingExportFailureMessage(format, error);
+    messages.statusMessage = recordingExportFailureMessage(error);
     messages.logMessages.push_back(messages.statusMessage);
     return messages;
 }

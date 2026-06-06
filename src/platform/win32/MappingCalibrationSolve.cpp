@@ -1,11 +1,16 @@
 #include "platform/win32/MappingCalibrationSolve.h"
-
 #include "platform/win32/MappingCalibrationIk.h"
+#include "platform/win32/MappingArmRollHints.h"
 #include "platform/win32/MappingCoreSolve.h"
+#include "platform/win32/MappingEstimatedArmPole.h"
+#include "platform/win32/MappingEstimatedChest.h"
 #include "platform/win32/MappingFingerSolve.h"
+#include "platform/win32/MappingLegRollHints.h"
 #include "platform/win32/MappingPoleSolve.h"
 #include "platform/win32/MappingTransformMath.h"
 #include "platform/win32/MappingVirtualTargets.h"
+#include "platform/win32/SkeletonFingerRoll.h"
+#include "platform/win32/SkeletonPose.h"
 
 #include <array>
 #include <cstddef>
@@ -20,10 +25,51 @@ MappingTransform targetFor(
     return targets[static_cast<std::size_t>(mappingSlotForRole(role))].transform;
 }
 
+bool hasDrivenTarget(
+    const MappingCalibrationData& calibration,
+    const std::array<MappingVirtualTarget, kMappingSlotCount>& targets,
+    const MappingTrackerRole role
+) noexcept {
+    const std::size_t index = static_cast<std::size_t>(mappingSlotForRole(role));
+    return calibration.targetBindings[index].source != MappingVirtualTargetSource::RestFallback &&
+        targets[index].valid;
+}
+
+void updateArmPoleTargetHistoryOne(
+    MappingActor& actor,
+    const std::array<MappingVirtualTarget, kMappingSlotCount>& targets,
+    const bool left
+) noexcept {
+    const MappingTrackerRole armRole = left ? MappingTrackerRole::LeftArm : MappingTrackerRole::RightArm;
+    const MappingTrackerRole handRole = left ? MappingTrackerRole::LeftHand : MappingTrackerRole::RightHand;
+    const std::size_t poleIndex = static_cast<std::size_t>(mappingPoleIndex(
+        left ? MappingPoleKind::LeftArm : MappingPoleKind::RightArm
+    ));
+    const bool estimatedArm = actor.calibration.targetBindings[
+        static_cast<std::size_t>(mappingSlotForRole(armRole))
+    ].source == MappingVirtualTargetSource::RestFallback;
+    if (estimatedArm && hasDrivenTarget(actor.calibration, targets, handRole)) {
+        actor.livePoleTargets[poleIndex] = targetFor(targets, handRole).position;
+        actor.livePoleTargetValid[poleIndex] = true;
+        return;
+    }
+    actor.livePoleTargetValid[poleIndex] = false;
+}
+
+void updateArmPoleTargetHistory(
+    MappingActor& actor,
+    const std::array<MappingVirtualTarget, kMappingSlotCount>& targets
+) noexcept {
+    updateArmPoleTargetHistoryOne(actor, targets, true);
+    updateArmPoleTargetHistoryOne(actor, targets, false);
+}
+
 Vec3 restDelta(const ProfileSkeletonJoints& joints, const int child, const int parent) noexcept
 {
     return subMappingVec3(joints[child].positionMeters, joints[parent].positionMeters);
 }
+
+Vec3 add(const Vec3 a, const Vec3 b) noexcept { return {a.x + b.x, a.y + b.y, a.z + b.z}; }
 
 float restDistance(const ProfileSkeletonJoints& joints, const int child, const int parent) noexcept
 {
@@ -141,6 +187,37 @@ void solveLeg(
     out[toe].positionMeters = transformMappingPoint(ankleTarget, restDelta(rest, toe, ankle));
 }
 
+Vec3 targetSide(const std::array<MappingVirtualTarget, kMappingSlotCount>& targets, const MappingTrackerRole role) noexcept { return rotateMappingVector(targetFor(targets, role), Vec3{1.0f, 0.0f, 0.0f}); }
+
+Vec3 targetUp(const std::array<MappingVirtualTarget, kMappingSlotCount>& targets, const MappingTrackerRole role) noexcept { return rotateMappingVector(targetFor(targets, role), Vec3{0.0f, 1.0f, 0.0f}); }
+
+Vec3 targetForward(const std::array<MappingVirtualTarget, kMappingSlotCount>& targets, const MappingTrackerRole role) noexcept { return rotateMappingVector(targetFor(targets, role), Vec3{0.0f, 0.0f, 1.0f}); }
+
+void applyStableRollHints(
+    ProfileSkeletonJoints& out,
+    const ProfileSkeletonJoints& rest,
+    const std::array<MappingVirtualTarget, kMappingSlotCount>& targets,
+    const std::array<Vec3, kProfileSkeletonJointCount>* previousSideAxes
+) noexcept
+{
+    out[kProfileJointHips].sideHint = targetSide(targets, MappingTrackerRole::Pelvis);
+    out[kProfileJointHips].upHint = targetUp(targets, MappingTrackerRole::Pelvis);
+    out[kProfileJointSpine].sideHint = targetSide(targets, MappingTrackerRole::Pelvis);
+    out[kProfileJointSpine1].sideHint =
+        add(targetSide(targets, MappingTrackerRole::Pelvis), targetSide(targets, MappingTrackerRole::Chest));
+    out[kProfileJointSpine2].sideHint = targetSide(targets, MappingTrackerRole::Chest);
+    out[kProfileJointLeftShoulder].sideHint = targetForward(targets, MappingTrackerRole::Chest);
+    out[kProfileJointRightShoulder].sideHint = scaleMappingVec3(targetForward(targets, MappingTrackerRole::Chest), -1.0f);
+    out[kProfileJointNeck].sideHint = targetSide(targets, MappingTrackerRole::Head);
+    out[kProfileJointHead].sideHint = targetSide(targets, MappingTrackerRole::Head);
+    out[kProfileJointHeadTopEnd].sideHint = targetSide(targets, MappingTrackerRole::Head);
+
+    applyMappingLegRollHints(out, rest, targets, previousSideAxes);
+    applyMappingArmRollHints(out, rest, targets, previousSideAxes);
+    out[kProfileJointLeftHand].sideHint = targetForward(targets, MappingTrackerRole::LeftHand);
+    out[kProfileJointRightHand].sideHint = targetForward(targets, MappingTrackerRole::RightHand);
+}
+
 } // namespace
 
 bool updateCalibratedMappingActorJoints(
@@ -165,16 +242,34 @@ bool updateCalibratedMappingActorJoints(
     );
     if (!targetResult.success) {
         actor.liveTrackingLost = true;
+        actor.livePoleTargetValid = {};
         return false;
     }
 
+    const ProfileSkeletonJoints rest = buildProfileSkeletonJoints(actor.profile);
+    applyEstimatedChestTarget(actor.calibration, rest, targets);
+
     resetFrameState(actor);
     actor.liveTrackingLost = targetResult.trackingLost;
-    actor.liveVirtualTargets = targets;
-    const ProfileSkeletonJoints rest = buildProfileSkeletonJoints(actor.profile);
     ProfileSkeletonJoints out = rest;
+    const auto previousSideAxes = actor.liveJointsValid
+        ? computeSkeletonPoseWorldSideAxes(rest, actor.liveSkeletonPose)
+        : std::array<Vec3, kProfileSkeletonJointCount>{};
+    const auto* previousSideAxesPtr = actor.liveJointsValid ? &previousSideAxes : nullptr;
     const MappingCoreSolveResult core = solveMappingCoreJoints(rest, targets, out);
     actor.liveLimited = core.limited;
+    applyEstimatedArmPoleTargets(
+        actor.calibration,
+        rest,
+        out,
+        actor.livePoleDirections,
+        actor.livePoleDirectionValid,
+        actor.livePoleTargets,
+        actor.livePoleTargetValid,
+        targets
+    );
+    actor.liveVirtualTargets = targets;
+    updateArmPoleTargetHistory(actor, targets);
     solveArm(actor, out, rest, targets, true);
     solveArm(actor, out, rest, targets, false);
     solveLeg(actor, out, rest, targets, true);
@@ -189,8 +284,13 @@ bool updateCalibratedMappingActorJoints(
         originRotationDegrees,
         targets
     );
-    actor.liveJoints = out;
+    applyStableRollHints(out, rest, targets, previousSideAxesPtr);
+    actor.liveSkeletonPose = makeSkeletonPoseFromWorldJoints(rest, out);
+    stabilizeSkeletonConnectorRolls(rest, actor.liveSkeletonPose);
+    stabilizeSkeletonFingerRolls(rest, actor.liveSkeletonPose);
+    actor.liveJoints = computeSkeletonPoseWorldJoints(rest, actor.liveSkeletonPose);
     actor.liveJointsValid = true;
+    // Temporary CSV diagnostics remain in MappingCalibrationPoseDebugLog.* for future reuse.
     return true;
 }
 

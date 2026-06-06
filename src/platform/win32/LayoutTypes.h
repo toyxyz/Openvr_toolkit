@@ -16,6 +16,9 @@ struct DebugScrollbarLayout {
 struct ViewportControlLayout {
     RECT barRect{0, 0, 0, 0};
     RECT quadViewButtonRect{0, 0, 0, 0};
+    RECT showTextButtonRect{0, 0, 0, 0};
+    RECT showModelButtonRect{0, 0, 0, 0};
+    RECT smoothButtonRect{0, 0, 0, 0};
     RECT recordButtonRect{0, 0, 0, 0};
     RECT sessionBoxRect{0, 0, 0, 0};
     RECT sessionLabelRect{0, 0, 0, 0};
@@ -40,6 +43,14 @@ struct DeviceListLayout {
 };
 
 struct MarkerListLayout {
+    RECT boxRect{0, 0, 0, 0};
+    RECT headerRect{0, 0, 0, 0};
+    RECT contentRect{0, 0, 0, 0};
+    int visibleItemCount = 0;
+    bool valid = false;
+};
+
+struct SessionListLayout {
     RECT boxRect{0, 0, 0, 0};
     RECT headerRect{0, 0, 0, 0};
     RECT contentRect{0, 0, 0, 0};

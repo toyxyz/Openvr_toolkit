@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include <system_error>
+#include <vector>
 
 namespace ovtr::test {
 
@@ -63,6 +64,30 @@ void testWin32RecordingCleanup()
         cleanupMessage == "session cleanup skipped: folder is outside recordings",
         "rejected cleanup message"
     );
+
+    std::filesystem::remove_all(folder, ignored);
+    const std::filesystem::path batchA = root / "session_batch_a";
+    const std::filesystem::path batchB = root / "session_batch_b";
+    const std::filesystem::path namedSession = root / "ABC_2026_06_01_034720";
+    const std::filesystem::path keepFolder = root / "keep_me";
+    std::filesystem::create_directories(batchA, ignored);
+    std::filesystem::create_directories(batchB, ignored);
+    std::filesystem::create_directories(namedSession, ignored);
+    std::filesystem::create_directories(keepFolder, ignored);
+    {
+        std::ofstream manifest(namedSession / "manifest.json");
+        manifest << "{}";
+    }
+    std::vector<std::string> cleanupMessages;
+    require(
+        ovtr::win32::deleteTemporarySessionFolders(root, cleanupMessages),
+        "batch cleanup deletes temporary session folders"
+    );
+    require(!std::filesystem::exists(batchA), "batch cleanup removes first session folder");
+    require(!std::filesystem::exists(batchB), "batch cleanup removes second session folder");
+    require(!std::filesystem::exists(namedSession), "batch cleanup removes named session folder");
+    require(std::filesystem::exists(keepFolder), "batch cleanup keeps non-session folder");
+    require(cleanupMessages.size() == 3, "batch cleanup reports deleted session folders");
 
     std::filesystem::remove_all(root, ignored);
     std::filesystem::remove_all(sibling, ignored);

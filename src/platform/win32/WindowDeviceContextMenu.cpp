@@ -10,6 +10,8 @@
 #include "platform/win32/MappingActorLayout.h"
 #include "platform/win32/MappingPanelLayout.h"
 #include "platform/win32/Menus.h"
+#include "platform/win32/RecordingSessionList.h"
+#include "platform/win32/SessionActions.h"
 #include "platform/win32/ViewportRenderer.h"
 #include "platform/win32/Win32MenuResources.h"
 #include "platform/win32/Win32String.h"
@@ -20,6 +22,7 @@
 
 #include <array>
 #include <cstdint>
+#include <vector>
 
 namespace ovtr::win32 {
 namespace {
@@ -123,6 +126,59 @@ bool showDeviceContextMenu(HWND hwnd, AppWindowState& state, const DeviceListLay
     return true;
 }
 
+bool showSessionContextMenu(HWND hwnd, AppWindowState& state, const POINT point, const int width, const int height)
+{
+    const std::vector<RecordingSessionListRow> rows =
+        listRecordingSessionFolders(recordingSessionsRootPath());
+    const SessionListLayout layout = sessionListLayoutForClient(
+        &state,
+        width,
+        height,
+        static_cast<int>(rows.size())
+    );
+    const int rowIndex = sessionListRowIndexFromPoint(
+        layout,
+        point,
+        static_cast<int>(rows.size()),
+        state.sessionListScrollOffset
+    );
+    if (rowIndex < 0) {
+        return false;
+    }
+
+    state.selectedSessionName = rows[static_cast<std::size_t>(rowIndex)].name;
+    InvalidateRect(hwnd, &layout.boxRect, FALSE);
+
+    UniqueMenu menu(CreatePopupMenu());
+    if (!menu) {
+        return false;
+    }
+    PopupMenuItem loadItem{kSessionContextMenuLoadId, L"Load"};
+    PopupMenuItem deleteItem{kSessionContextMenuDeleteId, L"Delete"};
+    appendPopupMenuItem(menu.get(), loadItem);
+    AppendMenuW(menu.get(), MF_SEPARATOR, 0, nullptr);
+    appendPopupMenuItem(menu.get(), deleteItem);
+
+    POINT screenPoint = point;
+    ClientToScreen(hwnd, &screenPoint);
+    SetForegroundWindow(hwnd);
+    const UINT command = TrackPopupMenu(
+        menu.get(),
+        TPM_RIGHTBUTTON | TPM_RETURNCMD,
+        screenPoint.x,
+        screenPoint.y,
+        0,
+        hwnd,
+        nullptr
+    );
+    if (command == kSessionContextMenuLoadId) {
+        loadSelectedSessionFolder(hwnd, state);
+    } else if (command == kSessionContextMenuDeleteId) {
+        deleteSelectedSessionFolder(hwnd, state);
+    }
+    return true;
+}
+
 bool showMappingActorContextMenu(HWND hwnd, AppWindowState& state, const POINT point, const int width, const int height)
 {
     if (!state.mappingPanelVisible) {
@@ -135,14 +191,16 @@ bool showMappingActorContextMenu(HWND hwnd, AppWindowState& state, const POINT p
     if (!row.valid) {
         return false;
     }
-    state.selectedMappingActorId = state.mappingActors[row.actorIndex].id;
-    InvalidateRect(hwnd, &controls.actorListRect, FALSE);
+    if (state.selectedMappingActorId != state.mappingActors[row.actorIndex].id) {
+        toggleMappingActorSelectionAtIndex(state, row.actorIndex);
+    }
+    InvalidateRect(hwnd, nullptr, FALSE);
 
     UniqueMenu menu(CreatePopupMenu());
     if (!menu) {
         return false;
     }
-    PopupMenuItem resetItem{kMappingActorContextMenuResetId, L"Reset"};
+    PopupMenuItem resetItem{kMappingActorContextMenuResetId, L"Uncalibrate"};
     PopupMenuItem deleteItem{kMappingActorContextMenuDeleteId, L"Delete"};
     appendPopupMenuItem(menu.get(), resetItem);
     AppendMenuW(menu.get(), MF_SEPARATOR, 0, nullptr);
@@ -184,6 +242,10 @@ bool handleMainWindowRButtonDown(HWND hwnd, LPARAM lparam)
     const POINT point{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
 
     if (showMappingActorContextMenu(hwnd, *state, point, clientWidth, clientHeight)) {
+        return true;
+    }
+
+    if (showSessionContextMenu(hwnd, *state, point, clientWidth, clientHeight)) {
         return true;
     }
 

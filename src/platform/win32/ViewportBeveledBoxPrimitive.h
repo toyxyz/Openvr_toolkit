@@ -19,4 +19,12 @@ void drawBeveledSegmentBoxWithSideHint3D(
     float halfDepth
 );
 
+void drawBeveledSegmentBoxWithBasis3D(
+    Vec3 start,
+    Vec3 end,
+    Vec3 xAxis,
+    float halfSide,
+    float halfDepth
+);
+
 } // namespace ovtr::win32

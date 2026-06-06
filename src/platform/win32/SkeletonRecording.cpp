@@ -48,7 +48,8 @@ void recordSkeletonFrameIfRecording(
 
     SkeletonRecordingFrame frame;
     frame.timeSeconds = std::chrono::duration<double>(now - recordingState.recordingStart).count();
-    frame.joints = actor.liveJoints;
+    frame.pose = actor.liveSkeletonPose;
+    frame.pose.timeSeconds = frame.timeSeconds;
     clip.frames.push_back(std::move(frame));
 }
 

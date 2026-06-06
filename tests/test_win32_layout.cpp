@@ -4,7 +4,14 @@
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/Layout.h"
+#include "platform/win32/MappingEditPanelLayout.h"
+#include "platform/win32/RecordingSessionList.h"
 #include "platform/win32/WindowLayout.h"
+
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <thread>
 
 namespace ovtr::test {
 
@@ -75,6 +82,10 @@ void testWin32Layout()
         sameRect(ovtr::win32::deviceToggleButtonRectForClient(&state, 1200, 800), 4, 44, 28, 140),
         "state device toggle rect"
     );
+    require(
+        sameRect(ovtr::win32::sessionToggleButtonRectForClient(&state, 1200, 800), 4, 148, 28, 260),
+        "state session toggle rect"
+    );
     require(!state.profilePanelVisible, "profile panel defaults hidden");
     require(
         sameRect(ovtr::win32::profileToggleButtonRectForClient(&state, 1200, 800), 1172, 44, 1196, 156),
@@ -83,6 +94,10 @@ void testWin32Layout()
     require(
         sameRect(ovtr::win32::mappingToggleButtonRectForClient(&state, 1200, 800), 1172, 164, 1196, 276),
         "state mapping toggle rect"
+    );
+    require(
+        sameRect(ovtr::win32::editToggleButtonRectForClient(&state, 1200, 800), 1172, 284, 1196, 348),
+        "state edit toggle rect"
     );
     require(
         !ovtr::win32::profilePanelLayoutForClient(&state, 1200, 800).valid,
@@ -113,6 +128,40 @@ void testWin32Layout()
         "state mapping panel uses requested width"
     );
     state.mappingPanelVisible = false;
+    state.editPanelVisible = true;
+    const ovtr::win32::ProfilePanelLayout editPanel =
+        ovtr::win32::profilePanelLayoutForClient(&state, 1200, 800);
+    require(sameRect(editPanel.panelRect, 768, 32, 1168, 544), "state edit panel uses requested width");
+    const ovtr::win32::MappingEditPanelLayout editLayout =
+        ovtr::win32::mappingEditPanelLayoutForPanel(editPanel);
+    require(editLayout.valid, "mapping edit layout valid");
+    require(
+        ovtr::win32::mappingEditStepOptionsForPanel(editPanel).size() == 3,
+        "mapping edit step dropdown has three options"
+    );
+    require(state.mappingEditOffsetStepMeters == 0.001f, "mapping edit step defaults to one millimeter");
+    state.editPanelVisible = false;
+    state.sessionPanelVisible = true;
+    state.devicePanelVisible = false;
+    const ovtr::win32::SessionListLayout stateSessionList =
+        ovtr::win32::sessionListLayoutForClient(&state, 1200, 800, 3);
+    require(stateSessionList.valid, "state session list layout is valid");
+    require(stateSessionList.boxRect.top == 44, "state session list top anchored");
+    require(stateSessionList.boxRect.bottom - stateSessionList.boxRect.top > 180, "state session list extends downward");
+    state.sessionListScrollOffset = 99;
+    ovtr::win32::clampSessionListScroll(state, 3, stateSessionList.visibleItemCount);
+    require(state.sessionListScrollOffset == 0, "state session scroll clamps");
+    require(
+        ovtr::win32::sessionListRowIndexFromPoint(
+            stateSessionList,
+            POINT{stateSessionList.contentRect.left + 4, stateSessionList.contentRect.top + 4},
+            3,
+            0
+        ) == 0,
+        "state session hit test selects first row"
+    );
+    state.sessionPanelVisible = false;
+    state.devicePanelVisible = true;
     const ovtr::win32::DeviceListLayout stateDeviceList =
         ovtr::win32::deviceListLayoutForClient(&state, 1200, 800);
     require(stateDeviceList.valid, "state device list layout is valid");
@@ -139,6 +188,17 @@ void testWin32Layout()
         "device toggle button rect"
     );
     require(
+        sameRect(ovtr::win32::sessionToggleButtonRectForClient(764, 1200, 800), 4, 148, 28, 260),
+        "session toggle button rect"
+    );
+    const ovtr::win32::SessionListLayout tallSessionList =
+        ovtr::win32::sessionListLayoutForClient(true, 500, 1100, false, 0, 20);
+    require(tallSessionList.boxRect.top == 44, "tall session list is top anchored");
+    require(
+        tallSessionList.boxRect.bottom - tallSessionList.boxRect.top == 900,
+        "session list grows to five-times previous height"
+    );
+    require(
         sameRect(ovtr::win32::profileToggleButtonRectForClient(764, 1200, 800), 1172, 44, 1196, 156),
         "profile toggle button rect"
     );
@@ -147,9 +207,38 @@ void testWin32Layout()
         "mapping toggle button rect"
     );
     require(
+        sameRect(ovtr::win32::editToggleButtonRectForClient(764, 1200, 800), 1172, 284, 1196, 348),
+        "edit toggle button rect"
+    );
+    require(
         sameRect(ovtr::win32::deviceToggleButtonRectForClient(80, 1200, 800), 0, 0, 0, 0),
         "device toggle rejects short content"
     );
+
+    const std::filesystem::path sessionRoot =
+        std::filesystem::current_path() / ".tmp_ovtr_session_list_order";
+    std::error_code cleanupError;
+    std::filesystem::remove_all(sessionRoot, cleanupError);
+    require(std::filesystem::create_directories(sessionRoot), "session list test root");
+    const auto makeSessionFolder = [&](const std::wstring& name) {
+            const std::filesystem::path folder = sessionRoot / name;
+            require(std::filesystem::create_directories(folder), "session folder created");
+            std::ofstream manifest(folder / "manifest.json");
+            manifest << "{}";
+            manifest.close();
+        };
+    makeSessionFolder(L"session_2026_06_01_010000");
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    makeSessionFolder(L"session_2026_06_01_020000");
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    makeSessionFolder(L"Alpha_2026_06_01_030000");
+    const std::vector<ovtr::win32::RecordingSessionListRow> sessionRows =
+        ovtr::win32::listRecordingSessionFolders(sessionRoot);
+    require(sessionRows.size() == 3, "session list includes manifest folders");
+    require(sessionRows[0].name == L"Alpha_2026_06_01_030000", "newest session folder is first");
+    require(sessionRows[1].name == L"session_2026_06_01_020000", "second newest session folder is second");
+    require(sessionRows[2].name == L"session_2026_06_01_010000", "oldest session folder is last");
+    std::filesystem::remove_all(sessionRoot, cleanupError);
 }
 
 } // namespace ovtr::test

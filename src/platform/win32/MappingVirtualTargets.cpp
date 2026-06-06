@@ -42,6 +42,105 @@ MappingVirtualTarget targetFromPose(
     return target;
 }
 
+MappingVirtualTarget targetFromTransform(
+    const MappingTrackerRole role,
+    const MappingTransform& transform
+) noexcept {
+    MappingVirtualTarget target;
+    target.role = role;
+    target.transform = transform;
+    target.valid = true;
+    return target;
+}
+
+bool mappedPoseTarget(
+    const MappingCalibrationData& calibration,
+    const ovtr::PosePollResult& poses,
+    const bool originEnabled,
+    const std::array<float, 3>& originOffset,
+    const std::array<float, 3>& originRotationDegrees,
+    const int slot,
+    MappingVirtualTarget& outTarget
+) {
+    const std::size_t index = static_cast<std::size_t>(slot);
+    const ovtr::PoseSample* pose = poseForRuntimeIndex(poses, calibration.runtimeIndices[index]);
+    if (!pose || (pose->flags & ovtr::PoseFlagPoseValid) == 0) {
+        return false;
+    }
+    outTarget = targetFromPose(
+        mappingRoleForSlot(slot),
+        *pose,
+        calibration.trackerToTarget[index],
+        originEnabled,
+        originOffset,
+        originRotationDegrees
+    );
+    return true;
+}
+
+bool parentedPoseTarget(
+    const MappingCalibrationData& calibration,
+    const ovtr::PosePollResult& poses,
+    const bool originEnabled,
+    const std::array<float, 3>& originOffset,
+    const std::array<float, 3>& originRotationDegrees,
+    const int slot,
+    MappingVirtualTarget& outTarget
+) {
+    const std::size_t index = static_cast<std::size_t>(slot);
+    const int parentSlot = calibration.targetBindings[index].parentSlot;
+    if (parentSlot < 0 || parentSlot >= kMappingSlotCount) {
+        return false;
+    }
+    MappingVirtualTarget parentTarget;
+    if (!mappedPoseTarget(calibration, poses, originEnabled, originOffset, originRotationDegrees, parentSlot, parentTarget)) {
+        return false;
+    }
+    outTarget = targetFromTransform(
+        mappingRoleForSlot(slot),
+        composeMappingTransforms(parentTarget.trackerTransform, calibration.trackerToTarget[index])
+    );
+    outTarget.trackerTransform = parentTarget.trackerTransform;
+    return true;
+}
+
+bool buildTargetForSlot(
+    const MappingCalibrationData& calibration,
+    const ovtr::PosePollResult& poses,
+    const bool originEnabled,
+    const std::array<float, 3>& originOffset,
+    const std::array<float, 3>& originRotationDegrees,
+    const int slot,
+    MappingVirtualTarget& outTarget
+) {
+    const std::size_t index = static_cast<std::size_t>(slot);
+    const MappingVirtualTargetBinding& binding = calibration.targetBindings[index];
+    if (binding.source == MappingVirtualTargetSource::RestFallback) {
+        outTarget = targetFromTransform(mappingRoleForSlot(slot), calibration.trackerToTarget[index]);
+        return true;
+    }
+    if (binding.source == MappingVirtualTargetSource::ParentedTracker) {
+        return parentedPoseTarget(
+            calibration,
+            poses,
+            originEnabled,
+            originOffset,
+            originRotationDegrees,
+            slot,
+            outTarget
+        );
+    }
+    return mappedPoseTarget(
+        calibration,
+        poses,
+        originEnabled,
+        originOffset,
+        originRotationDegrees,
+        slot,
+        outTarget
+    );
+}
+
 } // namespace
 
 MappingVirtualTargetBuildResult buildMappingVirtualTargets(
@@ -55,18 +154,17 @@ MappingVirtualTargetBuildResult buildMappingVirtualTargets(
     for (int slot = 0; slot < kMappingSlotCount; ++slot) {
         const std::size_t index = static_cast<std::size_t>(slot);
         outTargets[index] = MappingVirtualTarget{mappingRoleForSlot(slot), {}, {}, false};
-        const ovtr::PoseSample* pose = poseForRuntimeIndex(poses, calibration.runtimeIndices[index]);
-        if (!pose || (pose->flags & ovtr::PoseFlagPoseValid) == 0) {
+        if (!buildTargetForSlot(
+                calibration,
+                poses,
+                originEnabled,
+                originOffset,
+                originRotationDegrees,
+                slot,
+                outTargets[index]
+            )) {
             return MappingVirtualTargetBuildResult{false, slot, true};
         }
-        outTargets[index] = targetFromPose(
-            mappingRoleForSlot(slot),
-            *pose,
-            calibration.trackerToTarget[index],
-            originEnabled,
-            originOffset,
-            originRotationDegrees
-        );
     }
     return MappingVirtualTargetBuildResult{true, -1, false};
 }
@@ -84,16 +182,15 @@ MappingVirtualTargetBuildResult buildMappingVirtualTargetsWithFallback(
     for (int slot = 0; slot < kMappingSlotCount; ++slot) {
         const std::size_t index = static_cast<std::size_t>(slot);
         const MappingTrackerRole role = mappingRoleForSlot(slot);
-        const ovtr::PoseSample* pose = poseForRuntimeIndex(poses, calibration.runtimeIndices[index]);
-        if (pose && (pose->flags & ovtr::PoseFlagPoseValid) != 0) {
-            outTargets[index] = targetFromPose(
-                role,
-                *pose,
-                calibration.trackerToTarget[index],
+        if (buildTargetForSlot(
+                calibration,
+                poses,
                 originEnabled,
                 originOffset,
-                originRotationDegrees
-            );
+                originRotationDegrees,
+                slot,
+                outTargets[index]
+            )) {
             continue;
         }
         if (!fallbackTargets[index].valid) {

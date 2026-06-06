@@ -15,13 +15,25 @@ void createRecordDelayControls(
     const RecordSettingsDialogResult& result,
     RecordSettingsDialogControls& controls
 );
-void createRecordSaveFormatControls(
+void createRecordResampleControls(
     HWND hwnd,
     HFONT font,
     const RecordSettingsDialogResult& result,
     RecordSettingsDialogControls& controls
 );
-void createRecordResampleControls(
+void createStartRecordingOnCalibrationControls(
+    HWND hwnd,
+    HFONT font,
+    const RecordSettingsDialogResult& result,
+    RecordSettingsDialogControls& controls
+);
+void createExportAfterRecordingControls(
+    HWND hwnd,
+    HFONT font,
+    const RecordSettingsDialogResult& result,
+    RecordSettingsDialogControls& controls
+);
+void createNoiseFilterOnExportControls(
     HWND hwnd,
     HFONT font,
     const RecordSettingsDialogResult& result,

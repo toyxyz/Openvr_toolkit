@@ -22,6 +22,11 @@ bool writeManifestJson(
     const std::filesystem::path& path,
     std::string& outError
 );
+bool readManifestJson(
+    const std::filesystem::path& path,
+    RecordingSession& outSession,
+    SessionManifestStats& outStats,
+    std::string& outError
+);
 
 } // namespace ovtr
-

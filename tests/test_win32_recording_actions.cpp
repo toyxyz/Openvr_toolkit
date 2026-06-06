@@ -7,11 +7,13 @@
 #include "platform/win32/DeviceList.h"
 #include "platform/win32/RecordingExportMessages.h"
 #include "platform/win32/RecordingExportPlan.h"
+#include "platform/win32/RecordingExportDispatch.h"
 #include "platform/win32/RecordingSessionActions.h"
 #include "platform/win32/RecordingStartPlan.h"
 #include "platform/win32/RecordingStateQueries.h"
 
 #include <filesystem>
+#include <fstream>
 
 namespace ovtr::test {
 
@@ -90,6 +92,8 @@ void testWin32RecordingActions()
     require(newSession.devices.size() == 1, "recording session device count");
 
     const std::filesystem::path root = std::filesystem::current_path() / ".tmp_ovtr_recording_actions";
+    std::error_code rootCleanupError;
+    std::filesystem::remove_all(root, rootCleanupError);
     const std::filesystem::path folder = ovtr::win32::recordingSessionFolder(root, "session_action");
     require(folder == root / "session_action", "recording session folder");
 
@@ -121,6 +125,18 @@ void testWin32RecordingActions()
     require(plan.options.session.targetSampleRate == 120.0, "recording start plan sample rate");
     require(plan.options.session.devices.size() == 1, "recording start plan device count");
     require(plan.options.session.devices[0].displayName == "Named tracker", "recording start plan custom names");
+    require(std::filesystem::create_directories(root / "session_plan"), "existing session_plan folder created");
+    require(std::filesystem::create_directories(root / "session_plan_0"), "existing session_plan_0 folder created");
+    const ovtr::win32::RecordingStartPlan uniquePlan = ovtr::win32::makeRecordingStartPlan(
+        runtimeState,
+        deviceState,
+        root,
+        "session_plan",
+        "2026-05-27T13:00:00Z",
+        120.0
+    );
+    require(uniquePlan.sessionFolder == root / "session_plan_1", "recording start plan avoids folder collision");
+    require(uniquePlan.options.session.sessionId == "session_plan_1", "recording start plan updates unique id");
 
     recordingState.currentSessionFolder = root / "session_export_plan";
     recordingState.exportDirectory = root;
@@ -149,16 +165,42 @@ void testWin32RecordingActions()
             (root / std::filesystem::path(L"Take_01")).lexically_normal(),
         "session export path uses sanitized session folder"
     );
+    require(
+        ovtr::win32::recordingSessionIdForName(L"ABC", "2026_06_01_034720") ==
+            "ABC",
+        "recording session id uses exact named session"
+    );
+    require(
+        ovtr::win32::recordingSessionIdForName(L"  ", "2026_06_01_034720") ==
+            "session_2026_06_01_034720",
+        "recording session id falls back for blank session name"
+    );
     ovtr::win32::RecordingExportPlan sessionExportPlan =
         ovtr::win32::makeRecordingExportPlan(recordingState, runtimeState, deviceState, L" Session: A ");
     require(
         sessionExportPlan.exportDirectory == (root / std::filesystem::path(L"Session_ A")).lexically_normal(),
         "recording export plan uses session folder when provided"
     );
+    std::error_code cleanupError;
+    const std::filesystem::path uniqueRoot = root / "unique_exports";
+    std::filesystem::remove_all(uniqueRoot, cleanupError);
+    require(std::filesystem::create_directories(uniqueRoot), "unique export directory created");
+    {
+        std::ofstream existing(uniqueRoot / "session_2026_06_01_141045.glb");
+        existing << "existing";
+    }
+    {
+        std::ofstream existing(uniqueRoot / "session_2026_06_01_141045_0.glb");
+        existing << "existing";
+    }
+    require(
+        ovtr::win32::uniqueExportOutputPath(uniqueRoot, "session_2026_06_01_141045", ".glb") ==
+            uniqueRoot / "session_2026_06_01_141045_1.glb",
+        "unique export path increments suffix without overwrite"
+    );
 
     const ovtr::win32::RecordingExportUiMessages successMessages =
         ovtr::win32::recordingExportSuccessUiMessages(
-            ovtr::win32::ExportFormat::Glb,
             root / "session.glb",
             true,
             "Temporary session folder deleted: session"
@@ -171,8 +213,7 @@ void testWin32RecordingActions()
 
     const ovtr::win32::RecordingExportUiMessages cleanupFailedMessages =
         ovtr::win32::recordingExportSuccessUiMessages(
-            ovtr::win32::ExportFormat::Fbx,
-            root / "session.fbx",
+            root / "session.glb",
             false,
             "session cleanup skipped: folder is outside recordings"
         );
@@ -183,7 +224,7 @@ void testWin32RecordingActions()
     );
 
     const ovtr::win32::RecordingExportUiMessages failureMessages =
-        ovtr::win32::recordingExportFailureUiMessages(ovtr::win32::ExportFormat::Glb, "bad session");
+        ovtr::win32::recordingExportFailureUiMessages("bad session");
     require(failureMessages.statusMessage == "GLB export failed: bad session", "recording export failure status");
     require(failureMessages.logMessages.size() == 1, "recording export failure logs once");
 }

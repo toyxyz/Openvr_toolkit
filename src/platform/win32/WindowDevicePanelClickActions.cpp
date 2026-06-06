@@ -8,11 +8,13 @@
 #include "platform/win32/OriginActions.h"
 #include "platform/win32/OriginEditor.h"
 #include "platform/win32/ProfileEditor.h"
+#include "platform/win32/RecordingSessionList.h"
 #include "platform/win32/SessionEditor.h"
 #include "platform/win32/ViewportRenderer.h"
 #include "platform/win32/WindowLayout.h"
 
 #include <cstdint>
+#include <vector>
 
 namespace ovtr::win32 {
 
@@ -30,6 +32,9 @@ bool handleDeviceToggleClick(
     }
 
     state.devicePanelVisible = !state.devicePanelVisible;
+    if (state.devicePanelVisible) {
+        state.sessionPanelVisible = false;
+    }
     state.splitterDragging = false;
     if (!state.devicePanelVisible && state.originEditWindow) {
         closeOriginEditor(hwnd, state);
@@ -45,7 +50,38 @@ bool handleDeviceToggleClick(
     invalidateWindowLayout(hwnd);
     return true;
 }
+bool handleSessionToggleClick(
+    HWND hwnd,
+    AppWindowState& state,
+    const int clientWidth,
+    const int clientHeight,
+    const POINT point
+)
+{
+    const RECT sessionButtonRect = sessionToggleButtonRectForClient(&state, clientWidth, clientHeight);
+    if (!PtInRect(&sessionButtonRect, point)) {
+        return false;
+    }
 
+    state.sessionPanelVisible = !state.sessionPanelVisible;
+    if (state.sessionPanelVisible) {
+        state.devicePanelVisible = false;
+        if (state.originEditWindow) {
+            closeOriginEditor(hwnd, state);
+        }
+        if (state.sessionEditWindow) {
+            closeSessionEditor(hwnd, state);
+        }
+    }
+    state.splitterDragging = false;
+    appendDebugLog(
+        state,
+        state.sessionPanelVisible ? L"Session panel opened" : L"Session panel closed"
+    );
+    layoutChildWindows(hwnd);
+    invalidateWindowLayout(hwnd);
+    return true;
+}
 bool handleProfileToggleClick(
     HWND hwnd,
     AppWindowState& state,
@@ -62,6 +98,9 @@ bool handleProfileToggleClick(
     state.profilePanelVisible = !state.profilePanelVisible;
     if (state.profilePanelVisible) {
         state.mappingPanelVisible = false;
+        state.editPanelVisible = false;
+        state.mappingEditStepDropdownOpen = false;
+        state.mappingEditOffsetPresetDropdownOpen = false;
         state.mappingDropdownSlot = -1;
         state.mappingProfileDropdownOpen = false;
         state.mappingPresetDropdownOpen = false;
@@ -82,7 +121,6 @@ bool handleProfileToggleClick(
     invalidateWindowLayout(hwnd);
     return true;
 }
-
 bool handleMappingToggleClick(
     HWND hwnd,
     AppWindowState& state,
@@ -99,6 +137,9 @@ bool handleMappingToggleClick(
     state.mappingPanelVisible = !state.mappingPanelVisible;
     if (state.mappingPanelVisible) {
         state.profilePanelVisible = false;
+        state.editPanelVisible = false;
+        state.mappingEditStepDropdownOpen = false;
+        state.mappingEditOffsetPresetDropdownOpen = false;
         disableProfilePreview(state);
         closeProfileEditor(hwnd, state);
         if (state.mappingPresetName.empty()) {
@@ -130,7 +171,8 @@ bool handleProfileSplitterClick(
 )
 {
     const RECT splitterRect = profileSplitterRectForClient(&state, clientWidth, clientHeight);
-    if (!(state.profilePanelVisible || state.mappingPanelVisible) || !PtInRect(&splitterRect, point)) {
+    if (!(state.profilePanelVisible || state.mappingPanelVisible || state.editPanelVisible) ||
+        !PtInRect(&splitterRect, point)) {
         return false;
     }
 
@@ -153,7 +195,7 @@ bool handleDeviceSplitterClick(
 )
 {
     const RECT splitterRect = splitterRectForClient(&state, clientWidth, clientHeight);
-    if (!state.devicePanelVisible || !PtInRect(&splitterRect, point)) {
+    if (!(state.devicePanelVisible || state.sessionPanelVisible) || !PtInRect(&splitterRect, point)) {
         return false;
     }
 
@@ -192,6 +234,44 @@ bool handleDeviceListClick(
         renderViewport(state.glWindow);
     }
     InvalidateRect(hwnd, nullptr, FALSE);
+    return true;
+}
+
+bool handleSessionListClick(
+    HWND hwnd,
+    AppWindowState& state,
+    const int clientWidth,
+    const int clientHeight,
+    const POINT point
+)
+{
+    const std::vector<RecordingSessionListRow> rows =
+        listRecordingSessionFolders(recordingSessionsRootPath());
+    const SessionListLayout layout = sessionListLayoutForClient(
+        &state,
+        clientWidth,
+        clientHeight,
+        static_cast<int>(rows.size())
+    );
+    const int rowIndex = sessionListRowIndexFromPoint(
+        layout,
+        point,
+        static_cast<int>(rows.size()),
+        state.sessionListScrollOffset
+    );
+    if (rowIndex < 0) {
+        return false;
+    }
+
+    const std::wstring clickedName = rows[static_cast<std::size_t>(rowIndex)].name;
+    if (state.selectedSessionName == clickedName) {
+        state.selectedSessionName.clear();
+        appendDebugLog(state, L"Session selection cleared: " + clickedName);
+    } else {
+        state.selectedSessionName = clickedName;
+        appendDebugLog(state, L"Session selected: " + state.selectedSessionName);
+    }
+    InvalidateRect(hwnd, &layout.boxRect, FALSE);
     return true;
 }
 

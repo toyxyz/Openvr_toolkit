@@ -21,6 +21,50 @@ void writeJsonStringField(std::ostringstream& json, const std::string& name, con
     json << '\n';
 }
 
+void writeIndentedJsonStringField(
+    std::ostringstream& json,
+    const std::string& indent,
+    const std::string& name,
+    const std::string& value,
+    const bool comma
+)
+{
+    json << indent << "\"" << name << "\": \"" << escapeJsonString(value) << "\"";
+    if (comma) {
+        json << ',';
+    }
+    json << '\n';
+}
+
+void writeDeviceJson(std::ostringstream& json, const DeviceDescriptor& device, const bool comma)
+{
+    json << "    {\n";
+    json << "      \"id\": " << device.id << ",\n";
+    json << "      \"runtimeIndex\": " << device.runtimeIndex << ",\n";
+    writeIndentedJsonStringField(json, "      ", "deviceClass", toString(device.deviceClass), true);
+    writeIndentedJsonStringField(json, "      ", "serial", device.serial, true);
+    writeIndentedJsonStringField(json, "      ", "displayName", device.displayName, true);
+    writeIndentedJsonStringField(json, "      ", "role", device.role, true);
+    writeIndentedJsonStringField(json, "      ", "modelName", device.modelName, true);
+    writeIndentedJsonStringField(json, "      ", "renderModelName", device.renderModelName, true);
+    writeIndentedJsonStringField(json, "      ", "manufacturerName", device.manufacturerName, true);
+    json << "      \"recordEnabled\": " << (device.recordEnabled ? "true" : "false") << '\n';
+    json << "    }";
+    if (comma) {
+        json << ',';
+    }
+    json << '\n';
+}
+
+void writeDevicesJson(std::ostringstream& json, const std::vector<DeviceDescriptor>& devices)
+{
+    json << "  \"devices\": [\n";
+    for (std::size_t index = 0; index < devices.size(); ++index) {
+        writeDeviceJson(json, devices[index], index + 1 < devices.size());
+    }
+    json << "  ],\n";
+}
+
 } // namespace
 
 std::string makeManifestJson(const RecordingSession& session, const SessionManifestStats& stats)
@@ -45,6 +89,7 @@ std::string makeManifestJson(const RecordingSession& session, const SessionManif
     writeJsonStringField(json, "frames", session.framesPath.generic_string(), true);
     writeJsonStringField(json, "frameIndex", session.frameIndexPath.generic_string(), false);
     json << "  },\n";
+    writeDevicesJson(json, session.devices);
     json << "  \"stats\": {\n";
     json << "    \"frameCount\": " << stats.frameCount << ",\n";
     json << "    \"durationSeconds\": " << stats.durationSeconds << ",\n";

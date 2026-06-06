@@ -5,6 +5,7 @@
 #include "platform/win32/AppState.h"
 #include "platform/win32/ImportedScenePlayback.h"
 #include "platform/win32/PoseSamplingWorker.h"
+#include "platform/win32/SessionPlayback.h"
 #include "platform/win32/ViewportMath.h"
 #include "platform/win32/ViewportQuadView.h"
 #include "platform/win32/ViewportRenderer.h"
@@ -109,7 +110,7 @@ void applyOrthoPan(AppViewportState& state, const ViewportPaneKind pane, const V
 
 void invalidateImportedAnimationControls(HWND viewportHwnd, const AppWindowState& state)
 {
-    if (!state.importedSceneLoaded) {
+    if (!state.importedSceneLoaded && !state.loadedSessionActive) {
         return;
     }
     HWND parent = GetParent(viewportHwnd);
@@ -132,7 +133,12 @@ void invalidateImportedAnimationControls(HWND viewportHwnd, const AppWindowState
 void refreshInteractiveViewport(HWND hwnd, AppWindowState& state)
 {
     updateImportedScenePlayback(state);
-    state.poses = copyLatestPoseSnapshot(state);
+    updateLoadedSessionPlayback(state);
+    if (state.loadedSessionActive) {
+        sampleLoadedSessionFrame(state);
+    } else {
+        state.poses = copyLatestPoseSnapshot(state);
+    }
     renderViewport(hwnd);
     invalidateImportedAnimationControls(hwnd, state);
 }

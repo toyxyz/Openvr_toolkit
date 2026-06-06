@@ -7,6 +7,8 @@ namespace ovtr::win32 {
 namespace {
 
 constexpr int kViewportControlBarSidePadding = 14;
+constexpr int kViewportControlButtonGap = 8;
+constexpr int kViewportSmoothButtonWidth = 66;
 
 } // namespace
 
@@ -66,6 +68,24 @@ ViewportControlLayout viewportControlLayoutForClient(
         left + kViewportControlBarSidePadding,
         buttonY,
         left + kViewportControlBarSidePadding + kViewportControlButtonSize,
+        buttonY + kViewportControlButtonSize
+    };
+    layout.showTextButtonRect = RECT{
+        layout.quadViewButtonRect.right + kViewportControlButtonGap,
+        buttonY,
+        layout.quadViewButtonRect.right + kViewportControlButtonGap + kViewportControlButtonSize,
+        buttonY + kViewportControlButtonSize
+    };
+    layout.showModelButtonRect = RECT{
+        layout.showTextButtonRect.right + kViewportControlButtonGap,
+        buttonY,
+        layout.showTextButtonRect.right + kViewportControlButtonGap + kViewportControlButtonSize,
+        buttonY + kViewportControlButtonSize
+    };
+    layout.smoothButtonRect = RECT{
+        layout.showModelButtonRect.right + kViewportControlButtonGap,
+        buttonY,
+        layout.showModelButtonRect.right + kViewportControlButtonGap + kViewportSmoothButtonWidth,
         buttonY + kViewportControlButtonSize
     };
     layout.recordButtonRect = RECT{

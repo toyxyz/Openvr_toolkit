@@ -94,6 +94,7 @@ struct ProfileSkeletonJoint {
     int parentIndex = -1;
     Vec3 positionMeters{};
     Vec3 sideHint{};
+    Vec3 upHint{};
 };
 
 using ProfileSkeletonJoints = std::array<ProfileSkeletonJoint, kProfileSkeletonJointCount>;

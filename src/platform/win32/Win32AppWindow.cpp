@@ -3,6 +3,8 @@
 
 #include "platform/win32/AppLog.h"
 #include "platform/win32/AppState.h"
+#include "platform/win32/ExportProgressDialog.h"
+#include "platform/win32/ExportProgressWorker.h"
 #include "platform/win32/FrameUpdate.h"
 #include "platform/win32/Menus.h"
 #include "platform/win32/PoseSamplingWorker.h"
@@ -11,6 +13,7 @@
 #include "platform/win32/WindowInput.h"
 #include "platform/win32/WindowLayout.h"
 #include "platform/win32/WindowPainter.h"
+#include "platform/win32/WindowStateAccess.h"
 
 namespace ovtr::win32 {
 namespace {
@@ -55,6 +58,16 @@ LRESULT CALLBACK mainWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM l
         break;
     case kPoseSamplingStatusMessage:
         invalidateStatusPanel(hwnd);
+        return 0;
+    case kExportProgressUpdatedMessage:
+        if (AppWindowState* state = appStateForWindow(hwnd)) {
+            updateExportProgressDialog(*state);
+        }
+        return 0;
+    case kExportProgressCompletedMessage:
+        if (AppWindowState* state = appStateForWindow(hwnd)) {
+            completeExportProgress(hwnd, *state);
+        }
         return 0;
     case WM_SIZE:
         layoutChildWindows(hwnd);

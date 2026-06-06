@@ -20,14 +20,6 @@ void testWin32StatusPanel()
     const auto now = std::chrono::steady_clock::time_point{};
 
     require(
-        ovtr::win32::exportFormatDisplayText(ovtr::win32::ExportFormat::Fbx) == L"fbx",
-        "fbx display text"
-    );
-    require(
-        ovtr::win32::exportFormatDisplayText(ovtr::win32::ExportFormat::Glb) == L"glb",
-        "glb display text"
-    );
-    require(
         ovtr::win32::remainingRecordDelaySeconds(recordingState, now) == 0,
         "inactive recording delay has no remaining seconds"
     );
@@ -78,7 +70,6 @@ void testWin32StatusPanel()
     state.status.runtimeInstalled = true;
     state.status.hmdPresent = true;
     state.providerError = "provider offline";
-    state.recordSaveFormat = ovtr::win32::ExportFormat::Fbx;
     state.recordExportSampleRate = 72.0f;
     state.recordDelaySeconds = 1.5f;
     state.originEnabled = true;
@@ -102,7 +93,7 @@ void testWin32StatusPanel()
     bool foundImportStatus = false;
     for (const std::wstring& line : lines) {
         foundProviderError = foundProviderError || line == L"Provider error: provider offline";
-        foundRecordingLine = foundRecordingLine || line.find(L"Save: fbx") != std::wstring::npos;
+        foundRecordingLine = foundRecordingLine || line.find(L"Resample: 72.000fps") != std::wstring::npos;
         foundOriginLine = foundOriginLine || line.find(L"Origin: Enabled") != std::wstring::npos;
         foundImportStatus = foundImportStatus || line == L"Import status: import ready";
     }

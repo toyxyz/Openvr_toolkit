@@ -2,6 +2,7 @@
 
 #include "platform/win32/AppRecordingState.h"
 #include "platform/win32/AppState.h"
+#include "platform/win32/AppStreamingState.h"
 #include "platform/win32/ConfigStore.h"
 
 namespace ovtr::win32 {
@@ -48,6 +49,22 @@ void loadRecordSettingsConfig(AppWindowState& state)
     );
 }
 
+void saveStreamingSettingsConfig(AppWindowState& state)
+{
+    saveStreamingSettingsConfig(
+        static_cast<AppStreamingState&>(state),
+        static_cast<AppDebugUiState&>(state)
+    );
+}
+
+void loadStreamingSettingsConfig(AppWindowState& state)
+{
+    loadStreamingSettingsConfig(
+        static_cast<AppStreamingState&>(state),
+        static_cast<AppDebugUiState&>(state)
+    );
+}
+
 void saveOriginConfig(AppWindowState& state)
 {
     saveOriginConfig(
@@ -78,6 +95,9 @@ void loadViewportSettingsConfig(AppWindowState& state)
         static_cast<AppViewportState&>(state),
         static_cast<AppDebugUiState&>(state)
     );
+    if (!state.mappingSkeletonColorCustomized) {
+        state.mappingSkeletonColor = state.viewportSettings.bodyColor;
+    }
 }
 
 } // namespace ovtr::win32

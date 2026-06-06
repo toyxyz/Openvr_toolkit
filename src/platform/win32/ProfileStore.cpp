@@ -91,7 +91,9 @@ bool isRequiredProfileMeasurement(const std::string& key) noexcept
 {
     return key != "neck_length_cm" &&
         key != "ankle_height_cm" &&
-        key != "toe_tip_height_cm";
+        key != "toe_tip_height_cm" &&
+        key != "arm_bend_degrees" &&
+        key != "leg_bend_degrees";
 }
 
 } // namespace
@@ -178,8 +180,8 @@ bool listSavedProfiles(std::vector<ProfileFileEntry>& outProfiles, std::string& 
 std::string serializeProfile(const BodyProfile& profile)
 {
     std::ostringstream output;
-    output << "# toyxyz_openvr_toolkit profile v4\n";
-    output << "version=4\n";
+    output << "# toyxyz_openvr_toolkit profile v5\n";
+    output << "version=5\n";
     output << "name=" << narrow(profile.name) << "\n";
     output << std::setprecision(9);
     const auto& definitions = profileMeasurementDefinitions();

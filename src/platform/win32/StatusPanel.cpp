@@ -6,11 +6,6 @@
 
 namespace ovtr::win32 {
 
-std::wstring exportFormatDisplayText(const ExportFormat format)
-{
-    return format == ExportFormat::Fbx ? L"fbx" : L"glb";
-}
-
 int remainingRecordDelaySeconds(
     const AppRecordingState& state,
     const std::chrono::steady_clock::time_point now

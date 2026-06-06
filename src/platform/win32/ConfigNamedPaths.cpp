@@ -22,4 +22,9 @@ std::filesystem::path recordSettingsConfigPath()
     return configFilePath(kRecordSettingsConfigFileName);
 }
 
+std::filesystem::path streamingSettingsConfigPath()
+{
+    return configFilePath(kStreamingSettingsConfigFileName);
+}
+
 } // namespace ovtr::win32

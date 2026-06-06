@@ -1,22 +1,75 @@
 #include "platform/win32/RecordingUiActions.h"
 
-#include "platform/win32/AppState.h"
 #include "platform/win32/AppLog.h"
-#include "platform/win32/RecordingCleanupActions.h"
+#include "platform/win32/AppState.h"
+#include "platform/win32/ExportProgressWorker.h"
 #include "platform/win32/RecordingExportDispatch.h"
 #include "platform/win32/RecordingExportMessages.h"
 #include "platform/win32/RecordingExportPlan.h"
 #include "platform/win32/RecordingStateQueries.h"
-#include "platform/win32/SkeletonBvhExporter.h"
-#include "platform/win32/SkeletonRecording.h"
+#include "platform/win32/SessionExportActions.h"
+#include "platform/win32/SessionSkeletonExportBatch.h"
+#include "platform/win32/SessionSkeletonExportClip.h"
+#include "platform/win32/SkeletonGltfExporter.h"
 #include "platform/win32/WindowLayout.h"
 #include "platform/win32/WindowStateAccess.h"
 
 #include <filesystem>
+#include <utility>
+#include <vector>
 
 namespace ovtr::win32 {
+namespace {
 
-void exportCurrentSession(HWND hwnd, const ExportFormat format)
+ExportProgressResult progressResult(RecordingExportUiMessages messages)
+{
+    ExportProgressResult result;
+    result.statusMessage = std::move(messages.statusMessage);
+    result.logMessages = std::move(messages.logMessages);
+    return result;
+}
+
+ExportProgressResult currentSessionExportWork(
+    const RecordingExportPlan& plan,
+    const std::vector<SessionSkeletonClipRequest>& skeletonRequests,
+    const ExportProgressReporter& reporter
+) {
+    reporter.update(0.10f, "Writing GLB");
+    const ovtr::ExportResult result = exportRecordingSession(
+        plan.session,
+        plan.exportDirectory,
+        plan.exportSampleRate,
+        plan.staticTracks
+    );
+    if (!result.success) {
+        return progressResult(recordingExportFailureUiMessages(result.error));
+    }
+
+    RecordingExportUiMessages messages = recordingExportSuccessUiMessages(
+        result.outputPath,
+        true,
+        {}
+    );
+    if (skeletonRequests.empty()) {
+        messages.logMessages.push_back("Skeleton GLB export skipped: no calibrated Mapping actor");
+        reporter.update(1.0f, "Export complete");
+        return progressResult(std::move(messages));
+    }
+
+    exportSkeletonGlbsForActors(
+        skeletonRequests,
+        plan.exportDirectory,
+        result.outputPath.stem().string(),
+        reporter,
+        messages
+    );
+    reporter.update(1.0f, "Export complete");
+    return progressResult(std::move(messages));
+}
+
+} // namespace
+
+void exportCurrentSession(HWND hwnd)
 {
     AppWindowState* state = appStateForWindow(hwnd);
     if (!state) {
@@ -33,63 +86,36 @@ void exportCurrentSession(HWND hwnd, const ExportFormat format)
         return;
     }
 
-    const RecordingExportPlan plan = makeRecordingExportPlan(
+    RecordingExportPlan plan = makeRecordingExportPlan(
         static_cast<const AppRecordingState&>(*state),
         static_cast<const AppRuntimeState&>(*state),
         static_cast<const AppDeviceState&>(*state),
         static_cast<const AppMarkerState&>(*state),
         state->sessionName
     );
-    appendDebugLog(*state, recordingExportStartLogMessage(format));
-    const bool shouldExportSkeletonBvh = hasSkeletonRecordingFrames(state->skeletonRecording);
-    const ovtr::ExportResult result = exportRecordingSession(
-        plan.session,
-        format,
-        plan.exportDirectory,
-        plan.exportSampleRate,
-        plan.staticTracks
-    );
+    const std::vector<SessionSkeletonClipRequest> skeletonRequests =
+        sessionSkeletonClipRequests(*state, plan.session);
 
-    if (result.success) {
-        std::string bvhError;
-        const std::filesystem::path bvhPath =
-            plan.exportDirectory / (plan.session.sessionId + "_skeleton.bvh");
-        const bool bvhSucceeded = shouldExportSkeletonBvh &&
-            exportSkeletonRecordingToBvh(state->skeletonRecording, bvhPath, bvhError);
-
-        std::string cleanupMessage;
-        const bool cleanupSucceeded = deleteTemporarySessionFolder(
-            state->currentSessionFolder,
-            std::filesystem::current_path() / "recordings",
-            cleanupMessage
-        );
-        const RecordingExportUiMessages messages = recordingExportSuccessUiMessages(
-            format,
-            result.outputPath,
-            cleanupSucceeded,
-            cleanupMessage
-        );
-        state->exportStatusMessage = messages.statusMessage;
-        for (const std::string& message : messages.logMessages) {
-            appendDebugLog(*state, message);
-        }
-        if (bvhSucceeded) {
-            appendDebugLog(*state, "Skeleton BVH export saved: " + bvhPath.string());
-        } else if (shouldExportSkeletonBvh) {
-            appendDebugLog(*state, "Skeleton BVH export failed: " + bvhError);
-            state->exportStatusMessage += " Skeleton BVH export failed.";
-        } else {
-            appendDebugLog(*state, "Skeleton BVH export skipped: no skeleton frames");
-        }
-    } else {
-        const RecordingExportUiMessages messages = recordingExportFailureUiMessages(format, result.error);
-        state->exportStatusMessage = messages.statusMessage;
-        for (const std::string& message : messages.logMessages) {
-            appendDebugLog(*state, message);
-        }
+    if (isExportProgressActive(*state)) {
+        state->exportStatusMessage = "export already in progress";
+        appendDebugLog(*state, "Export blocked: export already in progress");
+        invalidateStatusPanel(hwnd);
+        return;
     }
-
-    invalidateStatusPanel(hwnd);
+    appendDebugLog(*state, recordingExportStartLogMessage());
+    beginExportProgress(
+        hwnd,
+        *state,
+        "Exporting GLB",
+        [plan = std::move(plan),
+         skeletonRequests](const ExportProgressReporter& reporter) {
+            return currentSessionExportWork(
+                plan,
+                skeletonRequests,
+                reporter
+            );
+        }
+    );
 }
 
 } // namespace ovtr::win32

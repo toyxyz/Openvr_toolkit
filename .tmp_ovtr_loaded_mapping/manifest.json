@@ -1,0 +1,160 @@
+{
+  "format": "OpenVRTrackerRecorderSession",
+  "formatVersion": 1,
+  "sessionId": "loaded_mapping_session",
+  "sessionName": "Loaded Mapping Session",
+  "createdAtUtc": "",
+  "appVersion": "",
+  "sampleRate": 90,
+  "trackingUniverse": "Standing",
+  "coordinateSystem": {
+  "name": "OpenVR",
+  "unit": "meter",
+  "upAxis": "Y",
+  "forwardAxis": "-Z"
+  },
+  "files": {
+  "frames": "frames.bin",
+  "frameIndex": "frame_index.bin"
+  },
+  "devices": [
+    {
+      "id": 100,
+      "runtimeIndex": 100,
+      "deviceClass": "GenericTracker",
+      "serial": "LHR-MAPPING-0",
+      "displayName": "Mapping Tracker 0",
+      "role": "",
+      "modelName": "",
+      "renderModelName": "",
+      "manufacturerName": "",
+      "recordEnabled": true
+    },
+    {
+      "id": 101,
+      "runtimeIndex": 101,
+      "deviceClass": "GenericTracker",
+      "serial": "LHR-MAPPING-1",
+      "displayName": "Mapping Tracker 1",
+      "role": "",
+      "modelName": "",
+      "renderModelName": "",
+      "manufacturerName": "",
+      "recordEnabled": true
+    },
+    {
+      "id": 102,
+      "runtimeIndex": 102,
+      "deviceClass": "GenericTracker",
+      "serial": "LHR-MAPPING-2",
+      "displayName": "Mapping Tracker 2",
+      "role": "",
+      "modelName": "",
+      "renderModelName": "",
+      "manufacturerName": "",
+      "recordEnabled": true
+    },
+    {
+      "id": 103,
+      "runtimeIndex": 103,
+      "deviceClass": "GenericTracker",
+      "serial": "LHR-MAPPING-3",
+      "displayName": "Mapping Tracker 3",
+      "role": "",
+      "modelName": "",
+      "renderModelName": "",
+      "manufacturerName": "",
+      "recordEnabled": true
+    },
+    {
+      "id": 104,
+      "runtimeIndex": 104,
+      "deviceClass": "GenericTracker",
+      "serial": "LHR-MAPPING-4",
+      "displayName": "Mapping Tracker 4",
+      "role": "",
+      "modelName": "",
+      "renderModelName": "",
+      "manufacturerName": "",
+      "recordEnabled": true
+    },
+    {
+      "id": 105,
+      "runtimeIndex": 105,
+      "deviceClass": "GenericTracker",
+      "serial": "LHR-MAPPING-5",
+      "displayName": "Mapping Tracker 5",
+      "role": "",
+      "modelName": "",
+      "renderModelName": "",
+      "manufacturerName": "",
+      "recordEnabled": true
+    },
+    {
+      "id": 106,
+      "runtimeIndex": 106,
+      "deviceClass": "GenericTracker",
+      "serial": "LHR-MAPPING-6",
+      "displayName": "Mapping Tracker 6",
+      "role": "",
+      "modelName": "",
+      "renderModelName": "",
+      "manufacturerName": "",
+      "recordEnabled": true
+    },
+    {
+      "id": 107,
+      "runtimeIndex": 107,
+      "deviceClass": "GenericTracker",
+      "serial": "LHR-MAPPING-7",
+      "displayName": "Mapping Tracker 7",
+      "role": "",
+      "modelName": "",
+      "renderModelName": "",
+      "manufacturerName": "",
+      "recordEnabled": true
+    },
+    {
+      "id": 108,
+      "runtimeIndex": 108,
+      "deviceClass": "GenericTracker",
+      "serial": "LHR-MAPPING-8",
+      "displayName": "Mapping Tracker 8",
+      "role": "",
+      "modelName": "",
+      "renderModelName": "",
+      "manufacturerName": "",
+      "recordEnabled": true
+    },
+    {
+      "id": 109,
+      "runtimeIndex": 109,
+      "deviceClass": "GenericTracker",
+      "serial": "LHR-MAPPING-9",
+      "displayName": "Mapping Tracker 9",
+      "role": "",
+      "modelName": "",
+      "renderModelName": "",
+      "manufacturerName": "",
+      "recordEnabled": true
+    },
+    {
+      "id": 110,
+      "runtimeIndex": 110,
+      "deviceClass": "GenericTracker",
+      "serial": "LHR-MAPPING-10",
+      "displayName": "Mapping Tracker 10",
+      "role": "",
+      "modelName": "",
+      "renderModelName": "",
+      "manufacturerName": "",
+      "recordEnabled": true
+    }
+  ],
+  "stats": {
+    "frameCount": 2,
+    "durationSeconds": 1,
+    "droppedFrames": 0
+  },
+  "finalized": true
+}

@@ -5,14 +5,12 @@
 #endif
 #include <windows.h>
 
-#include "platform/win32/ConfigTypes.h"
-
 namespace ovtr::win32 {
 
 struct AppWindowState;
 
 void updateDelayedRecordingStart(HWND hwnd, AppWindowState& state);
 void toggleRecording(HWND hwnd);
-void exportCurrentSession(HWND hwnd, ExportFormat format);
+void exportCurrentSession(HWND hwnd);
 
 } // namespace ovtr::win32

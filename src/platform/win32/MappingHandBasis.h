@@ -48,10 +48,9 @@ inline Vec3 preferredPalmSideForHand(
     const ProfileSkeletonHandSide side,
     const int restWrist
 ) noexcept {
+    (void)side;
     const Vec3 hint = rest[static_cast<std::size_t>(restWrist)].sideHint;
-    return restWrist == kProfileJointRightHand || side == ProfileSkeletonHandSide::Right
-        ? negHandBasis(hint)
-        : hint;
+    return hint;
 }
 
 inline Vec3 addBasisVector(const Vec3 total, const Vec3 axis, const float amount) noexcept
@@ -62,6 +61,15 @@ inline Vec3 addBasisVector(const Vec3 total, const Vec3 axis, const float amount
 inline void orientHandBasisSide(MappingHandBasis& basis, const Vec3 preferredSide) noexcept
 {
     if (lengthMappingVec3(preferredSide) > 0.00001f && dotMappingVec3(basis.side, preferredSide) < 0.0f) {
+        basis.side = negHandBasis(basis.side);
+    }
+}
+
+inline void mirrorRightHandSourceBasis(
+    MappingHandBasis& basis,
+    const ProfileSkeletonHandSide side
+) noexcept {
+    if (side == ProfileSkeletonHandSide::Right) {
         basis.side = negHandBasis(basis.side);
     }
 }
@@ -107,6 +115,13 @@ inline Vec3 pointInRoot(
     return transformMappingPoint(sourceToRoot, transforms[static_cast<std::size_t>(boneIndex)].position);
 }
 
+inline MappingTransform translationOnlySourceRoot(const MappingTransform& sourceRoot) noexcept
+{
+    MappingTransform sourceToRoot;
+    sourceToRoot.position = negHandBasis(sourceRoot.position);
+    return sourceToRoot;
+}
+
 inline MappingFingerAlignment makeMappingFingerAlignment(
     const std::array<MappingTransform, ovtr::kSkeletalHandBoneCount>& transforms,
     const std::array<bool, ovtr::kSkeletalHandBoneCount>& valid,
@@ -123,7 +138,7 @@ inline MappingFingerAlignment makeMappingFingerAlignment(
     }
     const int sourceRoot = valid[kRootBone] ? kRootBone : kWristBone;
     MappingFingerAlignment alignment;
-    alignment.sourceToRoot = inverseMappingTransform(transforms[static_cast<std::size_t>(sourceRoot)]);
+    alignment.sourceToRoot = translationOnlySourceRoot(transforms[static_cast<std::size_t>(sourceRoot)]);
     alignment.sourceWristRoot = pointInRoot(alignment.sourceToRoot, transforms, kWristBone);
     alignment.sourceBasis = makeHandBasisFromPoints(
         alignment.sourceWristRoot,
@@ -132,6 +147,7 @@ inline MappingFingerAlignment makeMappingFingerAlignment(
         pointInRoot(alignment.sourceToRoot, transforms, kPinkyBaseBone),
         {}
     );
+    mirrorRightHandSourceBasis(alignment.sourceBasis, side);
 
     const int restWrist = profileHandRootJoint(side);
     alignment.restBasis = makeHandBasisFromPoints(

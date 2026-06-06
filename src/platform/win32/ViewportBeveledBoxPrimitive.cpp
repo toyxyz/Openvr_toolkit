@@ -187,4 +187,20 @@ void drawBeveledSegmentBoxWithSideHint3D(
     drawBeveledBoxWithBasis(start, end, projectedSideBasis(yAxis, sideHint), halfSide, halfDepth);
 }
 
+void drawBeveledSegmentBoxWithBasis3D(
+    const Vec3 start,
+    const Vec3 end,
+    const Vec3 xAxis,
+    const float halfSide,
+    const float halfDepth
+) {
+    const Vec3 delta = sub(end, start);
+    const float boxLength = length(delta);
+    if (boxLength <= 0.0001f) {
+        return;
+    }
+    const Vec3 yAxis = scale(delta, 1.0f / boxLength);
+    drawBeveledBoxWithBasis(start, end, projectedSideBasis(yAxis, xAxis), halfSide, halfDepth);
+}
+
 } // namespace ovtr::win32

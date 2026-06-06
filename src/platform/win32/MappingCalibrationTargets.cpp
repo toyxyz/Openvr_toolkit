@@ -21,6 +21,12 @@ Vec3 shifted(const Vec3 position, const float zOffset) noexcept
 
 } // namespace
 
+Vec3 mappingCalibrationArmPoleTargetPosition(const ProfileSkeletonJoints& joints, const bool left) noexcept
+{
+    const int joint = left ? kProfileJointLeftArm : kProfileJointRightArm;
+    return shifted(joints[joint].positionMeters, -kLimbPoleTargetOffsetMeters);
+}
+
 std::array<MappingTransform, kMappingSlotCount> mappingCalibrationRestTargets(
     const BodyProfile& profile
 ) {
@@ -29,8 +35,8 @@ std::array<MappingTransform, kMappingSlotCount> mappingCalibrationRestTargets(
         targetAt(joints[kProfileJointHead].positionMeters),
         targetAt(joints[kProfileJointSpine2].positionMeters),
         targetAt(joints[kProfileJointHips].positionMeters),
-        targetAt(shifted(joints[kProfileJointLeftArm].positionMeters, -kLimbPoleTargetOffsetMeters)),
-        targetAt(shifted(joints[kProfileJointRightArm].positionMeters, -kLimbPoleTargetOffsetMeters)),
+        targetAt(mappingCalibrationArmPoleTargetPosition(joints, true)),
+        targetAt(mappingCalibrationArmPoleTargetPosition(joints, false)),
         targetAt(joints[kProfileJointLeftForeArm].positionMeters),
         targetAt(joints[kProfileJointRightForeArm].positionMeters),
         targetAt(shifted(joints[kProfileJointLeftLeg].positionMeters, kLimbPoleTargetOffsetMeters)),

@@ -2,6 +2,7 @@
 
 #include "platform/win32/MappingModel.h"
 #include "platform/win32/ProfileModel.h"
+#include "platform/win32/ConfigTypes.h"
 
 #include <array>
 #include <filesystem>
@@ -15,6 +16,7 @@ struct MappingPreset {
     std::wstring name;
     bool hasProfile = false;
     BodyProfile profile;
+    RgbColor skeletonColor{255, 255, 255};
     std::array<std::wstring, kMappingSlotCount> deviceSerials{};
 };
 

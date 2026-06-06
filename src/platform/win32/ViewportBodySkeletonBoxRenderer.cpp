@@ -3,23 +3,18 @@
 #include "math/PoseTransform.h"
 #include "platform/win32/AppViewportState.h"
 #include "platform/win32/ViewportBeveledBoxPrimitive.h"
+#include "platform/win32/ViewportBodySkeletonBoxStyle.h"
 #include "platform/win32/ViewportDrawPrimitives.h"
 #include "platform/win32/ViewportGlStateScope.h"
 #include "platform/win32/ViewportGlTextureBindingScope.h"
 #include "platform/win32/ViewportRenderModelMatcap.h"
 
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <gl/GL.h>
 
 namespace ovtr::win32 {
 namespace {
-
-struct BodyBoneBoxStyle {
-    float halfSide = 0.02f;
-    float halfDepth = 0.02f;
-};
 
 Vec3 add(const Vec3 a, const Vec3 b) noexcept
 {
@@ -133,86 +128,28 @@ Vec3 boneSideHint(
         return targetSide(targets, MappingTrackerRole::Pelvis);
     case kProfileJointLeftArm:
     case kProfileJointLeftForeArm:
-        return limbPlaneSideHint(joints, kProfileJointLeftShoulder, kProfileJointLeftArm, kProfileJointLeftForeArm);
+        return storedHint;
     case kProfileJointRightArm:
     case kProfileJointRightForeArm:
-        return limbPlaneSideHint(joints, kProfileJointRightShoulder, kProfileJointRightArm, kProfileJointRightForeArm);
+        return storedHint;
     case kProfileJointLeftHand:
         return targetForward(targets, MappingTrackerRole::LeftHand);
     case kProfileJointRightHand:
         return targetForward(targets, MappingTrackerRole::RightHand);
     case kProfileJointLeftLeg:
-    case kProfileJointLeftFoot:
         return limbPlaneSideHint(joints, kProfileJointLeftUpLeg, kProfileJointLeftLeg, kProfileJointLeftFoot);
     case kProfileJointRightLeg:
-    case kProfileJointRightFoot:
         return limbPlaneSideHint(joints, kProfileJointRightUpLeg, kProfileJointRightLeg, kProfileJointRightFoot);
+    case kProfileJointLeftFoot:
     case kProfileJointLeftToeBase:
         return targetSide(targets, MappingTrackerRole::LeftFoot);
+    case kProfileJointRightFoot:
     case kProfileJointRightToeBase:
         return targetSide(targets, MappingTrackerRole::RightFoot);
     default:
         break;
     }
     return storedHint;
-}
-
-BodyBoneBoxStyle scaledStyle(
-    const float heightMeters,
-    const float sideMultiplier,
-    const float depthMultiplier,
-    const float minHalf,
-    const float maxHalf
-) noexcept
-{
-    return {
-        std::clamp(heightMeters * sideMultiplier, minHalf, maxHalf),
-        std::clamp(heightMeters * depthMultiplier, minHalf, maxHalf)
-    };
-}
-
-BodyBoneBoxStyle styleForBone(const int childIndex, const float heightMeters) noexcept
-{
-    if (isProfileFingerJoint(childIndex)) {
-        return scaledStyle(heightMeters, 0.005f, 0.004f, 0.004f, 0.012f);
-    }
-    switch (childIndex) {
-    case kProfileJointSpine:
-    case kProfileJointSpine1:
-        return scaledStyle(heightMeters, 0.030f, 0.022f, 0.030f, 0.060f);
-    case kProfileJointSpine2:
-        return scaledStyle(heightMeters, 0.052f, 0.038f, 0.060f, 0.100f);
-    case kProfileJointNeck:
-        return scaledStyle(heightMeters, 0.010f, 0.010f, 0.014f, 0.024f);
-    case kProfileJointHead:
-    case kProfileJointHeadTopEnd:
-        return scaledStyle(heightMeters, 0.034f, 0.034f, 0.045f, 0.070f);
-    case kProfileJointLeftShoulder:
-    case kProfileJointRightShoulder:
-        return scaledStyle(heightMeters, 0.010f, 0.008f, 0.012f, 0.022f);
-    case kProfileJointLeftArm:
-    case kProfileJointRightArm:
-        return scaledStyle(heightMeters, 0.017f, 0.014f, 0.020f, 0.034f);
-    case kProfileJointLeftForeArm:
-    case kProfileJointRightForeArm:
-        return scaledStyle(heightMeters, 0.014f, 0.012f, 0.018f, 0.030f);
-    case kProfileJointLeftHand:
-    case kProfileJointRightHand:
-        return scaledStyle(heightMeters, 0.018f, 0.006f, 0.010f, 0.035f);
-    case kProfileJointLeftUpLeg:
-    case kProfileJointRightUpLeg:
-    case kProfileJointLeftLeg:
-    case kProfileJointRightLeg:
-        return scaledStyle(heightMeters, 0.018f, 0.015f, 0.022f, 0.040f);
-    case kProfileJointLeftFoot:
-    case kProfileJointRightFoot:
-        return scaledStyle(heightMeters, 0.014f, 0.012f, 0.018f, 0.032f);
-    case kProfileJointLeftToeBase:
-    case kProfileJointRightToeBase:
-        return scaledStyle(heightMeters, 0.024f, 0.007f, 0.012f, 0.045f);
-    default:
-        return scaledStyle(heightMeters, 0.016f, 0.014f, 0.018f, 0.034f);
-    }
 }
 
 void drawSkeletonBoxGeometry(
@@ -224,30 +161,21 @@ void drawSkeletonBoxGeometry(
 {
     for (std::size_t index = 0; index < joints.size(); ++index) {
         const ProfileSkeletonJoint& joint = joints[index];
-        if (joint.parentIndex < 0) {
-            continue;
-        }
-        if (index == kProfileJointHead) {
-            continue;
-        }
+        if (joint.parentIndex < 0 || index == kProfileJointHead) { continue; }
         const Vec3 parent = translated(joints[static_cast<std::size_t>(joint.parentIndex)].positionMeters, offset);
         const Vec3 child = translated(joint.positionMeters, offset);
-        const BodyBoneBoxStyle style = styleForBone(static_cast<int>(index), heightMeters);
+        const BodyBoneBoxStyle style = styleForBodyBone(static_cast<int>(index), heightMeters);
         if (index == kProfileJointHeadTopEnd) {
             const Vec3 neck = translated(joints[static_cast<std::size_t>(kProfileJointNeck)].positionMeters, offset);
             const Vec3 sideHint = boneSideHint(joints, targets, static_cast<int>(index));
             if (hasVector(sideHint)) {
                 drawBeveledSegmentBoxWithSideHint3D(neck, child, sideHint, style.halfSide, style.halfDepth);
-            } else {
-                drawBeveledSegmentBox3D(neck, child, style.halfSide, style.halfDepth);
-            }
+            } else { drawBeveledSegmentBox3D(neck, child, style.halfSide, style.halfDepth); }
         } else {
             const Vec3 sideHint = boneSideHint(joints, targets, static_cast<int>(index));
             if (hasVector(sideHint)) {
                 drawBeveledSegmentBoxWithSideHint3D(parent, child, sideHint, style.halfSide, style.halfDepth);
-            } else {
-                drawBeveledSegmentBox3D(parent, child, style.halfSide, style.halfDepth);
-            }
+            } else { drawBeveledSegmentBox3D(parent, child, style.halfSide, style.halfDepth); }
         }
     }
 }
@@ -259,11 +187,12 @@ void drawBodySkeletonBoxes3D(
     const ProfileSkeletonJoints& joints,
     const float heightMeters,
     const Vec3 offset,
+    const RgbColor color,
     const std::array<MappingVirtualTarget, kMappingSlotCount>* targets
 )
 {
     ScopedGlCapability cullFace(GL_CULL_FACE, false);
-    setGlColor(viewportState.viewportSettings.bodyColor);
+    setGlColor(color);
     if (ensureRenderModelMatcapTexture(viewportState)) {
         ScopedGlCapability lighting(GL_LIGHTING, false);
         ScopedGlCapability texture2D(GL_TEXTURE_2D, true);

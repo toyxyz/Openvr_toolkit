@@ -4,7 +4,9 @@
 #include "platform/win32/Win32AppWindowInternal.h"
 
 #include "platform/win32/AppConfig.h"
+#include "platform/win32/AppIcon.h"
 #include "platform/win32/AppLog.h"
+#include "platform/win32/ExportProgressWorker.h"
 #include "platform/win32/AppState.h"
 #include "platform/win32/PoseSamplingWorker.h"
 #include "platform/win32/SessionEditor.h"
@@ -47,6 +49,7 @@ void loadAppConfiguration(AppWindowState& state)
     loadDeviceNameConfig(state);
     loadViewportSettingsConfig(state);
     loadRecordSettingsConfig(state);
+    loadStreamingSettingsConfig(state);
 }
 
 void destroyAppWindowState(HWND hwnd)
@@ -62,7 +65,9 @@ void destroyAppWindowState(HWND hwnd)
         if (state->sessionEditWindow) {
             closeSessionEditor(hwnd, *state);
         }
+        stopExportProgressWorker(*state);
         stopPoseSamplingWorker(*state);
+        destroyConfiguredAppIcon(*state);
         {
             std::lock_guard<std::mutex> providerLock(state->providerMutex);
             state->provider.shutdown();

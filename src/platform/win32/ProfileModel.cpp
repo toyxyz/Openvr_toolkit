@@ -25,11 +25,13 @@ constexpr std::array<ProfileMeasurementDefinition, kProfileMeasurementCount> kPr
     {"ankle_to_toe_tip_cm", L"Ankle to Toe Tip"},
     {"ankle_height_cm", L"Ankle Height"},
     {"toe_tip_height_cm", L"Toe Tip Height"},
+    {"arm_bend_degrees", L"Arm Bend"},
+    {"leg_bend_degrees", L"Leg Bend"},
 }};
 
 constexpr std::array<float, kProfileMeasurementCount> kDefaultMeasurements{{
     90.0f, 28.0f, 53.0f, 27.0f, 7.0f, 41.0f, 31.0f,
-    26.0f, 19.0f, 42.0f, 40.0f, 25.0f, 8.0f, 2.0f
+    26.0f, 19.0f, 42.0f, 40.0f, 25.0f, 8.0f, 2.0f, 8.0f, 5.0f
 }};
 
 enum MeasurementIndex {

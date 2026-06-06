@@ -6,10 +6,14 @@
 #include "platform/win32/Layout.h"
 #include "platform/win32/MarkerPanelPainter.h"
 #include "platform/win32/OriginPanelPainter.h"
+#include "platform/win32/RecordingSessionList.h"
+#include "platform/win32/SessionPanelPainter.h"
 #include "platform/win32/StatusBarPainter.h"
 #include "platform/win32/ViewportControlPainter.h"
 #include "platform/win32/WindowChromePainter.h"
 #include "platform/win32/WindowLayout.h"
+
+#include <vector>
 
 namespace ovtr::win32 {
 namespace {
@@ -38,6 +42,12 @@ void paintWindowScene(
     const DeviceListLayout deviceListLayout = state
         ? deviceListLayoutForClient(state, clientWidth, clientHeight)
         : DeviceListLayout{};
+    const std::vector<RecordingSessionListRow> sessionRows = state
+        ? listRecordingSessionFolders(recordingSessionsRootPath())
+        : std::vector<RecordingSessionListRow>{};
+    const SessionListLayout sessionListLayout = state
+        ? sessionListLayoutForClient(state, clientWidth, clientHeight, static_cast<int>(sessionRows.size()))
+        : SessionListLayout{};
     const MarkerListLayout markerListLayout = state
         ? markerListLayoutForClient(state, clientWidth, clientHeight)
         : MarkerListLayout{};
@@ -49,6 +59,14 @@ void paintWindowScene(
 
     if (state) {
         paintDeviceListPanel(drawDc, fonts.bodyFont(), fonts.statusFont(), *state, deviceListLayout);
+        paintSessionListPanel(
+            drawDc,
+            fonts.bodyFont(),
+            fonts.statusFont(),
+            *state,
+            sessionListLayout,
+            sessionRows
+        );
         paintMarkerListPanel(drawDc, fonts.bodyFont(), fonts.statusFont(), *state, markerListLayout);
         paintOriginPanel(
             drawDc,

@@ -43,6 +43,13 @@ bool promptForRecordSettings(
     RecordSettingsDialogResult& outResult
 );
 
+bool registerStreamingSettingsDialogClass(HINSTANCE instance);
+bool promptForStreamingSettings(
+    HWND parent,
+    const StreamingSettingsConfig& input,
+    StreamingSettingsConfig& outResult
+);
+
 bool registerViewportColorDialogClass(HINSTANCE instance);
 bool promptForViewportColorSettings(
     HWND parent,

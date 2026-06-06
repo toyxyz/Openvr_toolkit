@@ -11,5 +11,6 @@ struct AppWindowState;
 
 bool showViewportColorSettings(HWND parent, AppWindowState& state);
 bool showExportLocationSettings(HWND parent, AppWindowState& state);
+bool showStreamingSettings(HWND parent, AppWindowState& state);
 
 } // namespace ovtr::win32

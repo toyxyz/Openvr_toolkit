@@ -1,17 +1,21 @@
 #include "platform/win32/ViewportAnimationControlSections.h"
 
 #include "platform/win32/AppImportedSceneState.h"
+#include "platform/win32/AppLoadedSessionState.h"
 #include "platform/win32/ImportedScenePlayback.h"
+#include "platform/win32/SessionPlayback.h"
 #include "platform/win32/Win32GdiResources.h"
 
 #include <algorithm>
 
 namespace ovtr::win32 {
+namespace {
 
-void drawImportedAnimationTimeline(
+void drawAnimationTimeline(
     HDC drawDc,
     const ViewportControlLayout& layout,
-    const AppImportedSceneState& state
+    const double playbackSeconds,
+    const double durationSeconds
 )
 {
     RECT trackRect{
@@ -23,9 +27,8 @@ void drawImportedAnimationTimeline(
     UniqueBrush trackBrush(CreateSolidBrush(RGB(48, 54, 66)));
     FillRect(drawDc, &trackRect, trackBrush.get());
 
-    const double durationSeconds = importedSceneDurationSeconds(state);
     const double factor = durationSeconds > 0.0
-        ? std::clamp(state.importedScenePlaybackSeconds / durationSeconds, 0.0, 1.0)
+        ? std::clamp(playbackSeconds / durationSeconds, 0.0, 1.0)
         : 0.0;
     RECT fillRect = trackRect;
     fillRect.right = fillRect.left + static_cast<int>(
@@ -42,6 +45,26 @@ void drawImportedAnimationTimeline(
         SelectObjectGuard penSelection(drawDc, GetStockObject(NULL_PEN));
         Ellipse(drawDc, handleRect.left, handleRect.top, handleRect.right, handleRect.bottom);
     }
+}
+
+} // namespace
+
+void drawImportedAnimationTimeline(
+    HDC drawDc,
+    const ViewportControlLayout& layout,
+    const AppImportedSceneState& state
+)
+{
+    drawAnimationTimeline(drawDc, layout, state.importedScenePlaybackSeconds, importedSceneDurationSeconds(state));
+}
+
+void drawLoadedSessionAnimationTimeline(
+    HDC drawDc,
+    const ViewportControlLayout& layout,
+    const AppLoadedSessionState& state
+)
+{
+    drawAnimationTimeline(drawDc, layout, state.loadedSessionPlaybackSeconds, loadedSessionDurationSeconds(state));
 }
 
 } // namespace ovtr::win32

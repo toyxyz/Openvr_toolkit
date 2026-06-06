@@ -21,6 +21,15 @@ bool handleMainWindowLButtonUp(HWND hwnd)
         InvalidateRect(hwnd, nullptr, FALSE);
         return true;
     }
+    if (state && state->loadedSessionTimelineDragging) {
+        state->loadedSessionTimelineDragging = false;
+        state->loadedSessionLastUpdate = std::chrono::steady_clock::now();
+        if (GetCapture() == hwnd) {
+            ReleaseCapture();
+        }
+        InvalidateRect(hwnd, nullptr, FALSE);
+        return true;
+    }
     if (state && state->debugResizeDragging) {
         state->debugResizeDragging = false;
         if (GetCapture() == hwnd) {

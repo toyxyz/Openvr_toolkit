@@ -26,6 +26,10 @@ struct MappingPanelControlsLayout {
     RECT nameBoxRect{0, 0, 0, 0};
     RECT nameLabelRect{0, 0, 0, 0};
     RECT nameValueRect{0, 0, 0, 0};
+    RECT colorBoxRect{0, 0, 0, 0};
+    RECT colorLabelRect{0, 0, 0, 0};
+    RECT colorSwatchRect{0, 0, 0, 0};
+    RECT colorPickButtonRect{0, 0, 0, 0};
     RECT tableRect{0, 0, 0, 0};
     RECT presetSaveButtonRect{0, 0, 0, 0};
     RECT presetValueRect{0, 0, 0, 0};

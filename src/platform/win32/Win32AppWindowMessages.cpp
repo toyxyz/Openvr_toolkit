@@ -1,6 +1,7 @@
 #include "platform/win32/Win32AppWindowMessages.h"
 
 #include "platform/win32/AppLog.h"
+#include "platform/win32/AppIcon.h"
 #include "platform/win32/AppState.h"
 #include "platform/win32/FrameUpdate.h"
 #include "platform/win32/PoseSamplingWorker.h"
@@ -20,6 +21,7 @@ bool handleMainWindowCreate(HWND hwnd, LPARAM lparam)
     ownedState.release();
 
     const auto* createStruct = reinterpret_cast<LPCREATESTRUCTW>(lparam);
+    applyConfiguredAppIcon(hwnd, *state);
     createViewportChild(hwnd, createStruct->hInstance, *state);
     appendDebugLog(*state, L"Application window created");
     loadAppConfiguration(*state);

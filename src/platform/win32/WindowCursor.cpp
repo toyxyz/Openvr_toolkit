@@ -2,6 +2,7 @@
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/Layout.h"
+#include "platform/win32/MappingEditPanelLayout.h"
 #include "platform/win32/MappingPanelLayout.h"
 #include "platform/win32/ProfilePanelLayout.h"
 #include "platform/win32/WindowLayout.h"
@@ -53,6 +54,9 @@ bool handleMainWindowSetCursor(HWND hwnd, LPARAM lparam)
     );
     if (viewportControls.valid &&
         (PtInRect(&viewportControls.quadViewButtonRect, point) ||
+         PtInRect(&viewportControls.showTextButtonRect, point) ||
+         PtInRect(&viewportControls.showModelButtonRect, point) ||
+         PtInRect(&viewportControls.smoothButtonRect, point) ||
          PtInRect(&viewportControls.recordButtonRect, point))) {
         return setHandCursor();
     }
@@ -79,12 +83,20 @@ bool handleMainWindowSetCursor(HWND hwnd, LPARAM lparam)
     if (PtInRect(&deviceButtonRect, point)) {
         return setHandCursor();
     }
+    const RECT sessionButtonRect = sessionToggleButtonRectForClient(state, clientWidth, clientHeight);
+    if (PtInRect(&sessionButtonRect, point)) {
+        return setHandCursor();
+    }
     const RECT profileButtonRect = profileToggleButtonRectForClient(state, clientWidth, clientHeight);
     if (PtInRect(&profileButtonRect, point)) {
         return setHandCursor();
     }
     const RECT mappingButtonRect = mappingToggleButtonRectForClient(state, clientWidth, clientHeight);
     if (PtInRect(&mappingButtonRect, point)) {
+        return setHandCursor();
+    }
+    const RECT editButtonRect = editToggleButtonRectForClient(state, clientWidth, clientHeight);
+    if (PtInRect(&editButtonRect, point)) {
         return setHandCursor();
     }
     const ProfilePanelControlsLayout profileControls =
@@ -108,8 +120,30 @@ bool handleMainWindowSetCursor(HWND hwnd, LPARAM lparam)
     if (state->mappingPanelVisible && mappingControls.valid && PtInRect(&mappingControls.profileValueRect, point)) {
         return setHandCursor();
     }
+    const ProfilePanelLayout rightPanel = profilePanelLayoutForClient(state, clientWidth, clientHeight);
+    const MappingEditPanelRowLayout editRow = mappingEditRowAtPoint(
+        rightPanel,
+        state->mappingEditOffsetScrollOffset,
+        point
+    );
+    const MappingEditAxisButton editButton = mappingEditAxisButtonAtPoint(rightPanel, point);
+    const MappingEditPanelLayout editLayout = mappingEditPanelLayoutForPanel(rightPanel);
+    const MappingEditStepOptionLayout editStepOption = mappingEditStepOptionAtPoint(rightPanel, point);
+    const RECT editPresetDropdownRect = mappingEditOffsetPresetDropdownRectForPanel(rightPanel, 8);
+    if (state->editPanelVisible &&
+        (editRow.valid ||
+         editButton.valid ||
+         (editLayout.valid && PtInRect(&editLayout.listScrollbarRect, point)) ||
+         (editLayout.valid && PtInRect(&editLayout.stepValueRect, point)) ||
+         (editLayout.valid && PtInRect(&editLayout.presetNameEditRect, point)) ||
+         (editLayout.valid && PtInRect(&editLayout.presetSaveButtonRect, point)) ||
+         (editLayout.valid && PtInRect(&editLayout.presetValueRect, point)) ||
+         (state->mappingEditOffsetPresetDropdownOpen && PtInRect(&editPresetDropdownRect, point)) ||
+         (state->mappingEditStepDropdownOpen && editStepOption.valid))) {
+        return setHandCursor();
+    }
     const RECT profileSplitterRect = profileSplitterRectForClient(state, clientWidth, clientHeight);
-    if ((state->profilePanelVisible || state->mappingPanelVisible) &&
+    if ((state->profilePanelVisible || state->mappingPanelVisible || state->editPanelVisible) &&
         (state->profileSplitterDragging || PtInRect(&profileSplitterRect, point))) {
         SetCursor(LoadCursor(nullptr, IDC_SIZEWE));
         return true;
@@ -122,7 +156,8 @@ bool handleMainWindowSetCursor(HWND hwnd, LPARAM lparam)
     }
 
     const RECT splitterRect = splitterRectForClient(state, clientWidth, clientHeight);
-    if (state->devicePanelVisible && (state->splitterDragging || PtInRect(&splitterRect, point))) {
+    if ((state->devicePanelVisible || state->sessionPanelVisible) &&
+        (state->splitterDragging || PtInRect(&splitterRect, point))) {
         SetCursor(LoadCursor(nullptr, IDC_SIZEWE));
         return true;
     }

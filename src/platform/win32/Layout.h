@@ -39,12 +39,14 @@ int leftPanelWidthForClient(bool devicePanelVisible, int requestedWidth, int cli
 int contentBottomForClient(int activeDebugMonitorHeight, int clientHeight) noexcept;
 RECT splitterRectForClient(int leftPanelWidth, int activeDebugMonitorHeight, int clientHeight) noexcept;
 RECT deviceToggleButtonRectForClient(int contentBottom, int clientWidth, int clientHeight) noexcept;
+RECT sessionToggleButtonRectForClient(int contentBottom, int clientWidth, int clientHeight) noexcept;
 int defaultProfilePanelWidthForClient(int clientWidth) noexcept;
 int clampProfilePanelWidthForClient(int requestedWidth, int clientWidth) noexcept;
 int rightProfileAreaWidthForClient(bool profilePanelVisible, int clientWidth) noexcept;
 int rightProfileAreaWidthForClient(bool profilePanelVisible, int requestedWidth, int clientWidth) noexcept;
 RECT profileToggleButtonRectForClient(int contentBottom, int clientWidth, int clientHeight) noexcept;
 RECT mappingToggleButtonRectForClient(int contentBottom, int clientWidth, int clientHeight) noexcept;
+RECT editToggleButtonRectForClient(int contentBottom, int clientWidth, int clientHeight) noexcept;
 ProfilePanelLayout profilePanelLayoutForClient(
     bool profilePanelVisible,
     int requestedWidth,
@@ -71,6 +73,14 @@ MarkerListLayout markerListLayoutForClient(
     int leftPanelWidth,
     int contentBottom,
     int markerCount
+) noexcept;
+SessionListLayout sessionListLayoutForClient(
+    bool sessionPanelVisible,
+    int leftPanelWidth,
+    int contentBottom,
+    bool lowerPanelValid,
+    int lowerPanelTop,
+    int sessionCount
 ) noexcept;
 int maxDeviceListScrollOffset(int totalItemCount, int visibleItemCount) noexcept;
 int clampDeviceListScrollOffset(int scrollOffset, int totalItemCount, int visibleItemCount) noexcept;

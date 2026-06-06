@@ -3,6 +3,7 @@
 #include "platform/win32/AppLog.h"
 #include "platform/win32/AppState.h"
 #include "platform/win32/RuntimeStatusInternal.h"
+#include "platform/win32/SessionPlayback.h"
 #include "platform/win32/WindowLayout.h"
 #include "platform/win32/WindowStateAccess.h"
 
@@ -23,12 +24,14 @@ void refreshStatus(HWND hwnd, const bool forceDeviceEnumeration)
     state->status = state->runtime.queryStatus();
     state->providerError.clear();
 
-    refreshProviderAndDevices(*state, forceDeviceEnumeration);
-    appendProviderStatusLogChanges(
-        static_cast<AppRuntimeState&>(*state),
-        static_cast<AppDebugUiState&>(*state),
-        providerWasInitialized
-    );
+    if (!state->loadedSessionActive) {
+        refreshProviderAndDevices(*state, forceDeviceEnumeration);
+        appendProviderStatusLogChanges(
+            static_cast<AppRuntimeState&>(*state),
+            static_cast<AppDebugUiState&>(*state),
+            providerWasInitialized
+        );
+    }
     updateFpsCounters(static_cast<AppRuntimeState&>(*state));
     invalidateStatusPanel(hwnd);
 }

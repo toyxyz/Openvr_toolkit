@@ -5,6 +5,7 @@
 #include "platform/win32/ImportedScenePlayback.h"
 #include "platform/win32/PoseSamplingWorker.h"
 #include "platform/win32/RecordingUiActions.h"
+#include "platform/win32/SessionPlayback.h"
 #include "platform/win32/ViewportRenderer.h"
 #include "platform/win32/WindowLayout.h"
 #include "platform/win32/WindowStateAccess.h"
@@ -20,12 +21,17 @@ void refreshPoseAndViewport(HWND hwnd)
 
     updateDelayedRecordingStart(hwnd, *state);
     updateImportedScenePlayback(*state);
-    state->poses = copyLatestPoseSnapshot(*state);
+    updateLoadedSessionPlayback(*state);
+    if (state->loadedSessionActive) {
+        sampleLoadedSessionFrame(*state);
+    } else {
+        state->poses = copyLatestPoseSnapshot(*state);
+    }
 
     if (state->glWindow) {
         renderViewport(state->glWindow);
     }
-    if (state->importedSceneLoaded) {
+    if (state->importedSceneLoaded || state->loadedSessionActive) {
         RECT clientRect;
         GetClientRect(hwnd, &clientRect);
         const ViewportControlLayout controls = viewportControlLayoutForClient(

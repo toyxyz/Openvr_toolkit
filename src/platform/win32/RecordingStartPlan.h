@@ -23,5 +23,9 @@ RecordingStartPlan makeRecordingStartPlan(
     const std::string& createdAtUtc,
     double targetSampleRate
 );
+std::string recordingSessionIdForName(
+    const std::wstring& sessionName,
+    const std::string& timestamp
+);
 
 } // namespace ovtr::win32

@@ -123,6 +123,7 @@ add_library(openvr_tracker_recorder_core STATIC
     src/recording/RecordingControllerState.cpp
     src/recording/SamplingScheduler.cpp
     src/recording/SessionManifest.cpp
+    src/recording/SessionManifestReader.cpp
     src/util/BinaryBuffer.cpp
     src/util/Identifier.cpp
     src/util/JsonWriter.cpp
@@ -188,9 +189,11 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
     add_executable(OpenVRTrackerRecorderDesktop WIN32
         src/platform/win32/AppConfig.cpp
         src/platform/win32/AppDeviceNameConfig.cpp
+        src/platform/win32/AppIcon.cpp
         src/platform/win32/AppLog.cpp
         src/platform/win32/AppOriginConfig.cpp
         src/platform/win32/AppRecordSettingsConfig.cpp
+        src/platform/win32/AppStreamingSettingsConfig.cpp
         src/platform/win32/AppViewportSettingsConfig.cpp
         src/platform/win32/ConfigStore.cpp
         src/platform/win32/ConfigDeviceNamesText.cpp
@@ -198,6 +201,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/ConfigNamedPaths.cpp
         src/platform/win32/ConfigOriginText.cpp
         src/platform/win32/ConfigRecordSettingsText.cpp
+        src/platform/win32/ConfigStreamingSettingsText.cpp
         src/platform/win32/ConfigText.cpp
         src/platform/win32/ConfigViewportSettingsClamp.cpp
         src/platform/win32/ConfigViewportSettingsSerialize.cpp
@@ -234,6 +238,11 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/DeviceListRows.cpp
         src/platform/win32/DeviceLookup.cpp
         src/platform/win32/Dialogs.cpp
+        src/platform/win32/ExportLegacySmoothing.cpp
+        src/platform/win32/ExportNoiseFilter.cpp
+        src/platform/win32/ExportOutlierRepair.cpp
+        src/platform/win32/ExportProgressDialog.cpp
+        src/platform/win32/ExportProgressWorker.cpp
         src/platform/win32/FileDialogs.cpp
         src/platform/win32/DevicePanelTablePainter.cpp
         src/platform/win32/FrameUpdate.cpp
@@ -256,20 +265,35 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/MarkerPoseActions.cpp
         src/platform/win32/MappingActions.cpp
         src/platform/win32/MappingActorLayout.cpp
+        src/platform/win32/MappingArmRollHints.cpp
         src/platform/win32/MappingCalibrationActions.cpp
         src/platform/win32/MappingCalibrationCapture.cpp
         src/platform/win32/MappingCalibrationIk.cpp
+        src/platform/win32/MappingCalibrationPoseDebugLog.cpp
+        src/platform/win32/MappingCalibrationTargetOffsetDebugLog.cpp
         src/platform/win32/MappingCoreSolve.cpp
+        src/platform/win32/MappingElbowPosePrior.cpp
+        src/platform/win32/MappingEstimatedArmPole.cpp
+        src/platform/win32/MappingEstimatedChest.cpp
         src/platform/win32/MappingCalibrationSolve.cpp
         src/platform/win32/MappingFingerSolve.cpp
+        src/platform/win32/MappingFingerSampling.cpp
+        src/platform/win32/MappingLegRollHints.cpp
         src/platform/win32/MappingCalibrationTargets.cpp
         src/platform/win32/MappingPoleSolve.cpp
         src/platform/win32/MappingTransformMath.cpp
         src/platform/win32/MappingVirtualTargets.cpp
         src/platform/win32/MappingDropdownActions.cpp
+        src/platform/win32/MappingEditActions.cpp
+        src/platform/win32/MappingEditPanelLayout.cpp
+        src/platform/win32/MappingEditPanelPainter.cpp
+        src/platform/win32/MappingEditPresetPainter.cpp
         src/platform/win32/MappingNameEditor.cpp
         src/platform/win32/MappingModel.cpp
+        src/platform/win32/MappingOffsetPresetNameEditor.cpp
+        src/platform/win32/MappingOffsetPresetStore.cpp
         src/platform/win32/MappingPanelLayout.cpp
+        src/platform/win32/MappingPanelColorPainter.cpp
         src/platform/win32/MappingPanelDropdownPainter.cpp
         src/platform/win32/MappingPanelPainter.cpp
         src/platform/win32/MappingPresetActions.cpp
@@ -316,7 +340,9 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/ProfileSkeleton.cpp
         src/platform/win32/ProfileStore.cpp
         src/platform/win32/PoseSamplingWorker.cpp
+        src/platform/win32/RealtimePoseSmoothing.cpp
         src/platform/win32/RecordSettingsActionButtons.cpp
+        src/platform/win32/RecordSettingsAutoExportControls.cpp
         src/platform/win32/RecordSettingsCaptureControls.cpp
         src/platform/win32/RecordSettingsDelayControls.cpp
         src/platform/win32/RecordSettingsDialog.cpp
@@ -325,33 +351,55 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/RecordSettingsDialogPrompt.cpp
         src/platform/win32/RecordSettingsDialogSession.cpp
         src/platform/win32/RecordSettingsExportFolderControls.cpp
-        src/platform/win32/RecordSettingsFormatControls.cpp
         src/platform/win32/RecordSettingsModel.cpp
         src/platform/win32/RecordSettingsResampleControls.cpp
         src/platform/win32/RecordingCleanupActions.cpp
         src/platform/win32/RecordingExportDispatch.cpp
         src/platform/win32/RecordingExportMessages.cpp
         src/platform/win32/RecordingExportActions.cpp
+        src/platform/win32/RecordingSessionList.cpp
         src/platform/win32/RecordingSessionActions.cpp
         src/platform/win32/RecordingExportPlan.cpp
         src/platform/win32/RecordingStartActions.cpp
         src/platform/win32/RecordingStartPlan.cpp
         src/platform/win32/RecordingStateQueries.cpp
         src/platform/win32/RecordingUiActions.cpp
-        src/platform/win32/SkeletonBvhExporter.cpp
-        src/platform/win32/SkeletonBvhMath.cpp
+        src/platform/win32/SkeletonGltfAnimationKeys.cpp
+        src/platform/win32/SkeletonGltfAnimationWriter.cpp
+        src/platform/win32/SkeletonGltfExporter.cpp
+        src/platform/win32/SkeletonGltfForearmHingeLog.cpp
+        src/platform/win32/SkeletonGltfHierarchy.cpp
+        src/platform/win32/SkeletonGltfPose.cpp
+        src/platform/win32/SkeletonGltfPoseBasis.cpp
+        src/platform/win32/SkeletonGltfPoseCompareLog.cpp
+        src/platform/win32/SkeletonGltfSkin.cpp
+        src/platform/win32/SkeletonFingerRoll.cpp
+        src/platform/win32/SkeletonPose.cpp
         src/platform/win32/SkeletonRecording.cpp
         src/platform/win32/RuntimeDeviceRefresh.cpp
         src/platform/win32/RuntimeFpsCounters.cpp
         src/platform/win32/RuntimeStatus.cpp
         src/platform/win32/RuntimeStatusAppStateAdapters.cpp
         src/platform/win32/RuntimeStatusLogging.cpp
+        src/platform/win32/SessionActions.cpp
+        src/platform/win32/SessionExportActions.cpp
+        src/platform/win32/SessionMappingSnapshotApply.cpp
+        src/platform/win32/SessionMappingSnapshotRead.cpp
+        src/platform/win32/SessionMappingSnapshotWrite.cpp
+        src/platform/win32/SessionPlayback.cpp
+        src/platform/win32/SessionPlaybackSampling.cpp
+        src/platform/win32/SessionSaveActions.cpp
+        src/platform/win32/SessionSkeletonExportBatch.cpp
+        src/platform/win32/SessionSkeletonExportClip.cpp
+        src/platform/win32/StreamingSettingsDialog.cpp
         src/platform/win32/StatusBarPainter.cpp
         src/platform/win32/StatusBarPainterAppStateAdapters.cpp
         src/platform/win32/StatusBarText.cpp
         src/platform/win32/StatusPanel.cpp
         src/platform/win32/StatusPanelAppStateAdapters.cpp
         src/platform/win32/SessionEditor.cpp
+        src/platform/win32/SessionListLayout.cpp
+        src/platform/win32/SessionPanelPainter.cpp
         src/platform/win32/TopMenuSettingsActions.cpp
         src/platform/win32/TopMenus.cpp
         src/platform/win32/TopBarLayout.cpp
@@ -377,6 +425,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/ViewportControlPainterAppStateAdapters.cpp
         src/platform/win32/ViewportControlLayout.cpp
         src/platform/win32/ViewportBodySkeletonBoxRenderer.cpp
+        src/platform/win32/ViewportBodySkeletonPoseBoxRenderer.cpp
         src/platform/win32/ViewportDeviceMarker.cpp
         src/platform/win32/ViewportDrawPrimitives.cpp
         src/platform/win32/ViewportColorDialogSession.cpp
@@ -435,6 +484,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/WindowDeviceStateLayoutAppStateAdapters.cpp
         src/platform/win32/WindowDrag.cpp
         src/platform/win32/WindowDragRelease.cpp
+        src/platform/win32/WindowEditToggleClickActions.cpp
         src/platform/win32/WindowDebugStateLayout.cpp
         src/platform/win32/WindowDebugStateLayoutAppStateAdapters.cpp
         src/platform/win32/WindowInput.cpp
@@ -448,6 +498,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/WindowPaintScene.cpp
         src/platform/win32/WindowPanelClickActions.cpp
         src/platform/win32/WindowScroll.cpp
+        src/platform/win32/WindowSessionStateLayoutAppStateAdapters.cpp
         src/platform/win32/WindowStateLayout.cpp
         src/platform/win32/WindowTopBarClickActions.cpp
         src/platform/win32/WindowViewportStateLayout.cpp
@@ -461,6 +512,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/Win32WindowClasses.cpp
         src/platform/win32/Win32WindowCreation.cpp
         src/platform/win32/Win32BootstrapApp.cpp
+        assets/app_icon.rc
     )
 
     set_target_properties(OpenVRTrackerRecorderDesktop PROPERTIES
@@ -579,6 +631,11 @@ if(OVTR_BUILD_TESTS)
                 src/platform/win32/DeviceLookup.cpp
                 src/platform/win32/DeviceNameKeys.cpp
                 src/platform/win32/Dialogs.cpp
+                src/platform/win32/ExportLegacySmoothing.cpp
+                src/platform/win32/ExportNoiseFilter.cpp
+                src/platform/win32/ExportOutlierRepair.cpp
+                src/platform/win32/ExportProgressDialog.cpp
+                src/platform/win32/ExportProgressWorker.cpp
                 src/platform/win32/ImportedSceneLifecycle.cpp
                 src/platform/win32/ImportedScenePlayback.cpp
                 src/platform/win32/ImportedScenePlaybackAppStateAdapters.cpp
@@ -593,17 +650,28 @@ if(OVTR_BUILD_TESTS)
                 src/platform/win32/MarkerListLayout.cpp
                 src/platform/win32/MarkerPoseActions.cpp
                 src/platform/win32/MappingCalibrationCapture.cpp
+                src/platform/win32/MappingArmRollHints.cpp
                 src/platform/win32/MappingCalibrationIk.cpp
+                src/platform/win32/MappingCalibrationPoseDebugLog.cpp
+                src/platform/win32/MappingCalibrationTargetOffsetDebugLog.cpp
                 src/platform/win32/MappingCoreSolve.cpp
+                src/platform/win32/MappingElbowPosePrior.cpp
+                src/platform/win32/MappingEstimatedArmPole.cpp
+                src/platform/win32/MappingEstimatedChest.cpp
                 src/platform/win32/MappingCalibrationSolve.cpp
                 src/platform/win32/MappingFingerSolve.cpp
+                src/platform/win32/MappingFingerSampling.cpp
+                src/platform/win32/MappingLegRollHints.cpp
                 src/platform/win32/MappingCalibrationTargets.cpp
                 src/platform/win32/MappingModel.cpp
                 src/platform/win32/MappingPoleSolve.cpp
                 src/platform/win32/MappingTransformMath.cpp
                 src/platform/win32/MappingVirtualTargets.cpp
                 src/platform/win32/MappingActorLayout.cpp
+                src/platform/win32/MappingEditPanelLayout.cpp
+                src/platform/win32/MappingOffsetPresetNameEditor.cpp
                 src/platform/win32/MappingPanelLayout.cpp
+                src/platform/win32/MappingOffsetPresetStore.cpp
                 src/platform/win32/MappingDropdownActions.cpp
                 src/platform/win32/MappingNameEditor.cpp
                 src/platform/win32/MappingPresetStore.cpp
@@ -628,18 +696,39 @@ if(OVTR_BUILD_TESTS)
                 src/platform/win32/ProfileSkeleton.cpp
                 src/platform/win32/ProfileStore.cpp
                 src/platform/win32/PoseSamplingWorker.cpp
+                src/platform/win32/RealtimePoseSmoothing.cpp
                 src/platform/win32/RecordSettingsModel.cpp
                 src/platform/win32/RecordingCleanupActions.cpp
+                src/platform/win32/RecordingExportDispatch.cpp
                 src/platform/win32/RecordingExportPlan.cpp
                 src/platform/win32/RecordingExportMessages.cpp
+                src/platform/win32/RecordingSessionList.cpp
                 src/platform/win32/RecordingSessionActions.cpp
                 src/platform/win32/RecordingStartPlan.cpp
                 src/platform/win32/RecordingStateQueries.cpp
-                src/platform/win32/SkeletonBvhExporter.cpp
-                src/platform/win32/SkeletonBvhMath.cpp
+                src/platform/win32/SkeletonGltfAnimationKeys.cpp
+                src/platform/win32/SkeletonGltfAnimationWriter.cpp
+                src/platform/win32/SkeletonGltfExporter.cpp
+                src/platform/win32/SkeletonGltfForearmHingeLog.cpp
+                src/platform/win32/SkeletonGltfHierarchy.cpp
+                src/platform/win32/SkeletonGltfPose.cpp
+                src/platform/win32/SkeletonGltfPoseBasis.cpp
+                src/platform/win32/SkeletonGltfPoseCompareLog.cpp
+                src/platform/win32/SkeletonGltfSkin.cpp
+                src/platform/win32/SkeletonFingerRoll.cpp
+                src/platform/win32/SkeletonPose.cpp
                 src/platform/win32/SkeletonRecording.cpp
                 src/platform/win32/RuntimeFpsCounters.cpp
                 src/platform/win32/SessionEditor.cpp
+                src/platform/win32/SessionListLayout.cpp
+                src/platform/win32/SessionExportActions.cpp
+                src/platform/win32/SessionMappingSnapshotApply.cpp
+                src/platform/win32/SessionMappingSnapshotRead.cpp
+                src/platform/win32/SessionMappingSnapshotWrite.cpp
+                src/platform/win32/SessionSkeletonExportBatch.cpp
+                src/platform/win32/SessionSkeletonExportClip.cpp
+                src/platform/win32/SessionPlayback.cpp
+                src/platform/win32/SessionPlaybackSampling.cpp
                 src/platform/win32/StatusPanel.cpp
                 src/platform/win32/StatusPanelAppStateAdapters.cpp
                 src/platform/win32/StatusBarText.cpp
@@ -659,8 +748,10 @@ if(OVTR_BUILD_TESTS)
                 src/platform/win32/WindowDebugStateLayoutAppStateAdapters.cpp
                 src/platform/win32/WindowDeviceStateLayout.cpp
                 src/platform/win32/WindowDeviceStateLayoutAppStateAdapters.cpp
+                src/platform/win32/WindowInvalidation.cpp
                 src/platform/win32/WindowLayout.cpp
                 src/platform/win32/WindowOriginStateLayout.cpp
+                src/platform/win32/WindowSessionStateLayoutAppStateAdapters.cpp
                 src/platform/win32/WindowStateLayout.cpp
                 src/platform/win32/WindowViewportStateLayout.cpp
                 src/platform/win32/Win32String.cpp
@@ -675,6 +766,12 @@ if(OVTR_BUILD_TESTS)
         tests/test_win32_layout.cpp
                 tests/test_win32_mapping.cpp
                 tests/test_win32_mapping_calibration.cpp
+                tests/test_win32_mapping_calibration_axes.cpp
+                tests/test_win32_mapping_core_direct_targets.cpp
+                tests/test_win32_mapping_estimated_arm_pole.cpp
+                tests/test_win32_mapping_estimated_chest.cpp
+                tests/test_win32_mapping_leg_parent_fallback.cpp
+                tests/test_win32_mapping_pelvis.cpp
                 tests/test_win32_mapping_fingers.cpp
                 tests/test_win32_marker_state.cpp
         tests/test_win32_origin_formatting.cpp
@@ -683,11 +780,15 @@ if(OVTR_BUILD_TESTS)
                 tests/test_win32_origin_state.cpp
                 tests/test_win32_pose_sampling.cpp
                 tests/test_win32_profile.cpp
+                tests/test_win32_export_noise_filter.cpp
                 tests/test_win32_record_settings_config.cpp
                 tests/test_win32_recording_actions.cpp
                 tests/test_win32_recording_cleanup.cpp
                 tests/test_win32_runtime_status.cpp
-                tests/test_win32_skeleton_bvh.cpp
+                tests/test_win32_session_playback.cpp
+                tests/test_win32_skeleton_gltf.cpp
+                tests/test_win32_skeleton_gltf_hand_roll.cpp
+                tests/test_win32_skeleton_gltf_leg_roll.cpp
                 tests/test_win32_status_panel.cpp
                 tests/test_win32_string.cpp
                 tests/test_win32_viewport_control_layout.cpp

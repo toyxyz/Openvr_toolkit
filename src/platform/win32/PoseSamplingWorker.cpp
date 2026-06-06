@@ -159,6 +159,15 @@ bool pollAndRecordPoseSampleOnce(
             return true;
         }
     }
+    {
+        std::lock_guard<std::mutex> smoothingLock(state.realtimeSmoothingMutex);
+        state.realtimePoseSmoother.setPreset(state.realtimeSmoothingPreset);
+        if (state.realtimeSmoothingEnabled) {
+            state.realtimePoseSmoother.apply(poses);
+        } else {
+            state.realtimePoseSmoother.reset();
+        }
+    }
     storeLatestPoseSnapshot(state, poses);
     ++state.posePollFrames;
     return appendRecordingFrameIfDue(state, poses, now);

@@ -6,6 +6,8 @@
 #include "platform/win32/ImportedSceneActions.h"
 #include "platform/win32/Layout.h"
 #include "platform/win32/PanelLayoutMetrics.h"
+#include "platform/win32/SessionPlayback.h"
+#include "platform/win32/ViewportRenderer.h"
 #include "platform/win32/WindowLayout.h"
 #include "platform/win32/WindowStateAccess.h"
 
@@ -36,6 +38,21 @@ bool handleMainWindowMouseMove(HWND hwnd, LPARAM lparam)
             clientHeight
         );
         seekImportedGlbFromTimeline(hwnd, *state, viewportControls.timelineRect, point);
+        SetCursor(LoadCursor(nullptr, IDC_HAND));
+        return true;
+    }
+    if (state->loadedSessionTimelineDragging) {
+        const ViewportControlLayout viewportControls = viewportControlLayoutForClient(
+            state,
+            clientWidth,
+            clientHeight
+        );
+        seekLoadedSessionFromTimeline(*state, viewportControls.timelineRect, point);
+        sampleLoadedSessionFrame(*state);
+        if (state->glWindow) {
+            renderViewport(state->glWindow);
+        }
+        InvalidateRect(hwnd, &viewportControls.animationBarRect, FALSE);
         SetCursor(LoadCursor(nullptr, IDC_HAND));
         return true;
     }
@@ -84,7 +101,8 @@ bool handleMainWindowMouseMove(HWND hwnd, LPARAM lparam)
         return true;
     }
     const RECT profileSplitterRect = profileSplitterRectForClient(state, clientWidth, clientHeight);
-    if ((state->profilePanelVisible || state->mappingPanelVisible) && PtInRect(&profileSplitterRect, point)) {
+    if ((state->profilePanelVisible || state->mappingPanelVisible || state->editPanelVisible) &&
+        PtInRect(&profileSplitterRect, point)) {
         SetCursor(LoadCursor(nullptr, IDC_SIZEWE));
         return true;
     }

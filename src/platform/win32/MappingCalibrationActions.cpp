@@ -2,8 +2,10 @@
 
 #include "platform/win32/AppLog.h"
 #include "platform/win32/MappingCalibrationCapture.h"
+#include "platform/win32/RecordingStartActions.h"
 
 #include <cstddef>
+#include <mutex>
 
 namespace ovtr::win32 {
 namespace {
@@ -25,6 +27,36 @@ void refreshCalibrationUi(HWND hwnd, const AppWindowState& state)
         InvalidateRect(state.glWindow, nullptr, FALSE);
         UpdateWindow(state.glWindow);
     }
+}
+
+void startRecordingForCalibration(HWND hwnd, AppWindowState& state)
+{
+    if (!state.startRecordingOnCalibration) {
+        return;
+    }
+    if (state.loadedSessionActive) {
+        appendDebugLog(state, L"Calibration recording start blocked: close loaded session first");
+        return;
+    }
+
+    bool canceledDelay = false;
+    bool canStart = false;
+    {
+        std::lock_guard<std::mutex> lock(state.recordingMutex);
+        canceledDelay = state.recordingDelayActive;
+        state.recordingDelayActive = false;
+        const ovtr::RecorderState recorderState = state.recorder.state();
+        canStart = recorderState == ovtr::RecorderState::Idle ||
+            recorderState == ovtr::RecorderState::Error;
+    }
+    if (!canStart) {
+        appendDebugLog(state, L"Calibration recording start skipped: recorder is busy");
+        return;
+    }
+    if (canceledDelay) {
+        appendDebugLog(state, L"Recording delay canceled for calibration start");
+    }
+    startRecordingNow(hwnd, state);
 }
 
 } // namespace
@@ -54,6 +86,8 @@ void calibrateSelectedMappingActor(HWND hwnd, AppWindowState& state)
     }
 
     appendDebugLog(state, L"Mapping actor calibrated: " + actor->profile.name);
+    // Temporary CSV diagnostics remain in MappingCalibrationPoseDebugLog.* for future reuse.
+    startRecordingForCalibration(hwnd, state);
     refreshCalibrationUi(hwnd, state);
 }
 

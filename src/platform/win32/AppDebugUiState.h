@@ -13,6 +13,9 @@ struct AppDebugUiState {
     std::vector<std::wstring> debugLogLines;
     int leftPanelWidth = 0;
     bool devicePanelVisible = true;
+    bool sessionPanelVisible = false;
+    int sessionListScrollOffset = 0;
+    std::wstring selectedSessionName;
     bool splitterDragging = false;
     bool debugResizeDragging = false;
 };

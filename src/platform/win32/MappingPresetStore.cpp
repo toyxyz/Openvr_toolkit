@@ -6,6 +6,7 @@
 #include "platform/win32/Win32String.h"
 
 #include <algorithm>
+#include <charconv>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -24,6 +25,21 @@ std::string slotKey(const int index)
 std::string profileKey(const std::string& key)
 {
     return "profile_" + key;
+}
+
+int parsedColorComponent(
+    const std::unordered_map<std::string, std::string>& values,
+    const char* key,
+    const int fallback
+) noexcept {
+    const auto found = values.find(key);
+    if (found == values.end()) {
+        return fallback;
+    }
+    int value = fallback;
+    const std::string& text = found->second;
+    const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+    return result.ec == std::errc{} ? std::clamp(value, 0, 255) : fallback;
 }
 
 bool parseEmbeddedProfile(
@@ -128,6 +144,9 @@ std::string serializeMappingPreset(const MappingPreset& preset)
     output << "# toyxyz_openvr_toolkit mapping preset v3\n";
     output << "version=3\n";
     output << "name=" << narrow(preset.name) << "\n";
+    output << "color_r=" << preset.skeletonColor.r << "\n";
+    output << "color_g=" << preset.skeletonColor.g << "\n";
+    output << "color_b=" << preset.skeletonColor.b << "\n";
     if (preset.hasProfile) {
         output << "profile_name=" << narrow(preset.profile.name) << "\n";
         output << std::setprecision(9);
@@ -164,6 +183,11 @@ bool parseMappingPreset(std::istream& input, MappingPreset& outPreset, std::stri
     MappingPreset preset;
     const auto name = values.find("name");
     preset.name = name == values.end() ? L"mapping" : widen(name->second);
+    preset.skeletonColor = RgbColor{
+        parsedColorComponent(values, "color_r", preset.skeletonColor.r),
+        parsedColorComponent(values, "color_g", preset.skeletonColor.g),
+        parsedColorComponent(values, "color_b", preset.skeletonColor.b)
+    };
     for (int i = 0; i < kMappingSlotCount; ++i) {
         const auto found = values.find(slotKey(i));
         if (found == values.end()) {

@@ -3,6 +3,7 @@
 #include "platform/win32/AppLog.h"
 #include "platform/win32/AppState.h"
 #include "platform/win32/Dialogs.h"
+#include "platform/win32/MappingActions.h"
 #include "platform/win32/ProfileEditor.h"
 #include "platform/win32/ProfilePanelLayout.h"
 #include "platform/win32/ProfileStore.h"
@@ -63,6 +64,7 @@ void saveCurrentProfile(HWND hwnd, AppWindowState& state)
     }
 
     state.profile.name = stem;
+    syncSelectedMappingActorFromControls(state);
     const std::filesystem::path path = profilePathForName(state.profile.name);
     if (hasExistingFile(path)) {
         const int choice = MessageBoxW(
@@ -107,6 +109,7 @@ void loadProfileFromDialog(HWND hwnd, AppWindowState& state)
     }
 
     state.profile = std::move(loaded);
+    syncSelectedMappingActorFromControls(state);
     appendDebugLog(state, L"Profile loaded: " + selectedPath.filename().wstring());
     refreshProfileUi(hwnd, state);
 }

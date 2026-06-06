@@ -2,6 +2,7 @@
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/Layout.h"
+#include "platform/win32/MappingEditActions.h"
 #include "platform/win32/MappingActions.h"
 #include "platform/win32/OriginEditor.h"
 #include "platform/win32/ProfileActions.h"
@@ -63,14 +64,18 @@ bool handleMainWindowLeftClickAtPoint(
     return handleTopBarClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleViewportControlClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleDeviceToggleClick(hwnd, state, clientWidth, clientHeight, point) ||
+        handleSessionToggleClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleProfileToggleClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleMappingToggleClick(hwnd, state, clientWidth, clientHeight, point) ||
+        handleEditToggleClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleProfileSplitterClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleProfilePanelClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleMappingPanelClick(hwnd, state, clientWidth, clientHeight, point) ||
+        handleMappingEditPanelClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleOriginStepperClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleDebugResizeClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleDeviceSplitterClick(hwnd, state, clientWidth, clientHeight, point) ||
+        handleSessionListClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleMarkerListClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleDeviceListClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleDebugToggleClick(hwnd, state, clientWidth, clientHeight, point);

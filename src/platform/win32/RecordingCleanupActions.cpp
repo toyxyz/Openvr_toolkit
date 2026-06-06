@@ -3,6 +3,24 @@
 #include <system_error>
 
 namespace ovtr::win32 {
+namespace {
+
+bool canDeleteRecordingSessionFolder(
+    const std::filesystem::path& sessionFolder,
+    const std::filesystem::path& recordingsRoot
+)
+{
+    if (!isPathWithinDirectory(sessionFolder, recordingsRoot)) {
+        return false;
+    }
+    if (sessionFolder.filename().string().rfind("session_", 0) == 0) {
+        return true;
+    }
+    std::error_code error;
+    return std::filesystem::exists(sessionFolder / "manifest.json", error) && !error;
+}
+
+} // namespace
 
 bool isPathWithinDirectory(
     const std::filesystem::path& child,
@@ -52,10 +70,12 @@ bool deleteTemporarySessionFolder(
     }
 
     const std::filesystem::path sessionFolder = currentSessionFolder;
-    const std::string folderName = sessionFolder.filename().string();
-    if (folderName.rfind("session_", 0) != 0 ||
-        !isPathWithinDirectory(sessionFolder, recordingsRoot)) {
+    if (!isPathWithinDirectory(sessionFolder, recordingsRoot)) {
         message = "session cleanup skipped: folder is outside recordings";
+        return false;
+    }
+    if (!canDeleteRecordingSessionFolder(sessionFolder, recordingsRoot)) {
+        message = "session cleanup skipped: folder is not a recording session";
         return false;
     }
 
@@ -76,6 +96,46 @@ bool deleteTemporarySessionFolder(
     message = "Temporary session folder deleted: " + sessionFolder.string() +
         " (" + std::to_string(removedCount) + " entries)";
     return true;
+}
+
+bool deleteTemporarySessionFolders(
+    const std::filesystem::path& recordingsRoot,
+    std::vector<std::string>& messages
+)
+{
+    messages.clear();
+    std::error_code error;
+    if (!std::filesystem::exists(recordingsRoot, error)) {
+        return true;
+    }
+    if (!std::filesystem::is_directory(recordingsRoot, error)) {
+        messages.push_back("session cleanup skipped: recordings root is not a directory");
+        return false;
+    }
+
+    bool allSucceeded = true;
+    for (const std::filesystem::directory_entry& entry :
+         std::filesystem::directory_iterator(recordingsRoot, error)) {
+        if (error) {
+            messages.push_back("session cleanup failed: " + error.message());
+            return false;
+        }
+        if (!entry.is_directory(error)) {
+            continue;
+        }
+        std::filesystem::path folder = entry.path();
+        if (!canDeleteRecordingSessionFolder(folder, recordingsRoot)) {
+            continue;
+        }
+        std::string message;
+        if (!deleteTemporarySessionFolder(folder, recordingsRoot, message)) {
+            allSucceeded = false;
+        }
+        if (!message.empty()) {
+            messages.push_back(message);
+        }
+    }
+    return allSucceeded;
 }
 
 } // namespace ovtr::win32

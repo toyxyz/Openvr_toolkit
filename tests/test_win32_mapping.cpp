@@ -4,6 +4,8 @@
 
 #include "platform/win32/AppProfileState.h"
 #include "platform/win32/AppState.h"
+#include "platform/win32/MappingActorActions.h"
+#include "platform/win32/MappingActions.h"
 #include "platform/win32/MappingActorLayout.h"
 #include "platform/win32/MappingModel.h"
 #include "platform/win32/MappingPanelLayout.h"
@@ -34,8 +36,10 @@ void testWin32MappingModel()
     require(state.mappingDropdownSlot == -1, "mapping dropdown defaults closed");
     require(!state.mappingProfileDropdownOpen, "mapping profile dropdown defaults closed");
     require(!state.mappingPresetDropdownOpen, "mapping preset dropdown defaults closed");
-    require(state.mappingArmSoftIkStrength == ovtr::win32::kDefaultMappingSoftIkStrength, "arm soft IK default");
-    require(state.mappingLegSoftIkStrength == ovtr::win32::kDefaultMappingSoftIkStrength, "leg soft IK default");
+    require(state.mappingArmSoftIkStrength == ovtr::win32::kDefaultMappingArmSoftIkStrength, "arm soft IK default");
+    require(state.mappingLegSoftIkStrength == ovtr::win32::kDefaultMappingLegSoftIkStrength, "leg soft IK default");
+    require(ovtr::win32::kMappingSoftIkStrengthOptions.size() == 7, "soft IK option count");
+    require(ovtr::win32::kMappingSoftIkStrengthOptions[1] == 0.01f, "soft IK 1 percent option");
     for (const std::uint32_t runtimeIndex : state.mappingDeviceRuntimeIndices) {
         require(runtimeIndex == ovtr::win32::kNoSelectedRuntimeIndex, "mapping default device is empty");
     }
@@ -47,6 +51,7 @@ void testWin32MappingModel()
     preset.profile.measurements[0] = 92.0f;
     preset.profile.measurements[4] = 9.0f;
     preset.profile.measurements[13] = 4.0f;
+    preset.skeletonColor = ovtr::win32::RgbColor{12, 34, 56};
     preset.deviceSerials[0] = L"hmd_serial";
     preset.deviceSerials[10] = L"foot_serial";
     std::istringstream input(ovtr::win32::serializeMappingPreset(preset));
@@ -59,6 +64,9 @@ void testWin32MappingModel()
     require(parsed.profile.measurements[0] == 92.0f, "mapping preset profile pelvis round trip");
     require(parsed.profile.measurements[4] == 9.0f, "mapping preset profile neck round trip");
     require(parsed.profile.measurements[13] == 4.0f, "mapping preset profile toe round trip");
+    require(parsed.skeletonColor.r == 12, "mapping preset color r");
+    require(parsed.skeletonColor.g == 34, "mapping preset color g");
+    require(parsed.skeletonColor.b == 56, "mapping preset color b");
     require(parsed.deviceSerials[0] == L"hmd_serial", "mapping preset first serial");
     require(parsed.deviceSerials[10] == L"foot_serial", "mapping preset last serial");
 
@@ -68,8 +76,10 @@ void testWin32MappingModel()
     );
     require(ovtr::win32::parseMappingPreset(legacyPreset, parsed, error), "old arm_mode mapping preset parses");
     require(!parsed.hasProfile, "legacy mapping preset has no embedded profile");
+    require(parsed.skeletonColor.r == 255, "legacy mapping preset default color");
 
     ovtr::win32::MappingActor actor;
+    actor.id = 77;
     actor.calibrated = true;
     state.mappingActors.push_back(actor);
     state.mappingArmSoftIkStrength = 0.0f;
@@ -77,6 +87,32 @@ void testWin32MappingModel()
     ovtr::win32::syncMappingSoftIkStrengthsToActors(state);
     require(state.mappingActors[0].calibration.armSoftIkStrength == 0.0f, "arm soft IK live sync");
     require(state.mappingActors[0].calibration.legSoftIkStrength == 0.15f, "leg soft IK live sync");
+    require(ovtr::win32::toggleMappingActorSelectionAtIndex(state, 0), "mapping actor selects");
+    require(state.selectedMappingActorId == 77, "mapping actor selected id");
+    require(ovtr::win32::toggleMappingActorSelectionAtIndex(state, 0), "mapping actor re-click toggles");
+    require(state.selectedMappingActorId == 0, "mapping actor re-click clears selection");
+
+    ovtr::win32::AppProfileState selectionState;
+    ovtr::win32::MappingActor selectionActor;
+    selectionActor.id = 11;
+    selectionActor.profile.name = L"actor_profile";
+    selectionActor.skeletonColor = ovtr::win32::RgbColor{1, 2, 3};
+    selectionActor.mappingDeviceRuntimeIndices[0] = 123;
+    selectionState.mappingActors.push_back(selectionActor);
+    selectionState.profile.name = L"top_profile";
+    require(ovtr::win32::toggleMappingActorSelectionAtIndex(selectionState, 0), "actor selection syncs");
+    require(selectionState.profile.name == L"actor_profile", "selected actor profile reaches controls");
+    require(selectionState.mappingSkeletonColor.g == 2, "selected actor color reaches controls");
+    require(selectionState.mappingDeviceRuntimeIndices[0] == 123, "selected actor mapping reaches controls");
+    selectionState.profile.name = L"edited_profile";
+    selectionState.mappingSkeletonColor = ovtr::win32::RgbColor{4, 5, 6};
+    selectionState.mappingDeviceRuntimeIndices[0] = 456;
+    selectionState.mappingActors[0].calibrated = true;
+    ovtr::win32::syncSelectedMappingActorFromControls(selectionState);
+    require(selectionState.mappingActors[0].profile.name == L"edited_profile", "controls profile updates actor");
+    require(selectionState.mappingActors[0].skeletonColor.b == 6, "controls color updates actor");
+    require(selectionState.mappingActors[0].mappingDeviceRuntimeIndices[0] == 456, "controls mapping updates actor");
+    require(selectionState.mappingActors[0].calibrated, "source change keeps actor calibration");
 }
 
 void testWin32MappingPanelLayout()
@@ -89,14 +125,15 @@ void testWin32MappingPanelLayout()
         ovtr::win32::mappingControlsLayoutForPanel(panel);
     require(controls.valid, "mapping panel controls valid");
     require(sameRect(controls.profileBoxRect, 858, 42, 1158, 70), "mapping profile box");
-    require(sameRect(controls.nameBoxRect, 858, 78, 1158, 106), "mapping name box");
-    require(sameRect(controls.tableRect, 858, 114, 1158, 254), "mapping list box below name");
-    require(sameRect(controls.presetSaveButtonRect, 858, 262, 944, 290), "mapping preset save button");
-    require(sameRect(controls.presetValueRect, 952, 262, 1158, 290), "mapping preset dropdown");
-    require(sameRect(controls.addActorButtonRect, 858, 298, 1158, 326), "mapping add actor button");
-    require(sameRect(controls.actorListRect, 858, 334, 1158, 418), "mapping actor list");
-    require(sameRect(controls.calibrateButtonRect, 858, 426, 1158, 454), "mapping calibrate button");
-    require(sameRect(controls.filterBoxRect, 858, 462, 1158, 510), "mapping filter box");
+    require(sameRect(controls.tableRect, 858, 78, 1158, 218), "mapping list box below profile");
+    require(sameRect(controls.colorBoxRect, 858, 222, 1158, 250), "mapping color box below list");
+    require(sameRect(controls.nameBoxRect, 858, 254, 1158, 282), "mapping name box below color");
+    require(sameRect(controls.presetSaveButtonRect, 858, 286, 944, 314), "mapping preset save button");
+    require(sameRect(controls.presetValueRect, 952, 286, 1158, 314), "mapping preset dropdown");
+    require(sameRect(controls.addActorButtonRect, 858, 320, 1158, 348), "mapping add actor button");
+    require(sameRect(controls.actorListRect, 858, 356, 1158, 440), "mapping actor list");
+    require(sameRect(controls.calibrateButtonRect, 858, 446, 1158, 474), "mapping calibrate button");
+    require(sameRect(controls.filterBoxRect, 858, 482, 1158, 516), "mapping filter box");
     require(controls.visibleRowCount == 5, "mapping full visible row count");
     require(ovtr::win32::maxMappingScrollOffset(controls.visibleRowCount) == 6, "mapping full scroll");
 
@@ -167,6 +204,16 @@ void testWin32MappingPanelLayout()
         ) == 0,
         "mapping preset dropdown option hit"
     );
+
+    ovtr::win32::AppProfileState state;
+    for (int index = 0; index < 4; ++index) {
+        ovtr::win32::addMappingActorFromProfile(state, state.profile, 3);
+        require(
+            state.selectedMappingActorId == state.mappingActors.back().id,
+            "new mapping actor is selected"
+        );
+    }
+    require(state.mappingActorScrollOffset == 1, "new mapping actor is scrolled into view");
 }
 
 void testWin32MappingPanelStateLayout()

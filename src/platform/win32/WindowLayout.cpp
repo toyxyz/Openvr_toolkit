@@ -2,6 +2,7 @@
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/MappingNameEditor.h"
+#include "platform/win32/MappingOffsetPresetNameEditor.h"
 #include "platform/win32/ProfileEditor.h"
 #include "platform/win32/SessionEditor.h"
 #include "platform/win32/WindowStateAccess.h"
@@ -66,6 +67,7 @@ void layoutChildWindows(HWND hwnd)
     updateSessionEditorLayout(hwnd, *state);
     updateProfileEditorLayout(hwnd, *state);
     updateMappingNameEditorLayout(hwnd, *state);
+    updateMappingOffsetPresetNameEditorLayout(hwnd, *state);
 }
 
 } // namespace ovtr::win32

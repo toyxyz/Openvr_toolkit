@@ -4,6 +4,7 @@
 #include "platform/win32/DeviceList.h"
 #include "platform/win32/MappingActorLayout.h"
 #include "platform/win32/MappingModel.h"
+#include "platform/win32/MappingPanelColorPainter.h"
 #include "platform/win32/MappingPanelDropdownPainter.h"
 #include "platform/win32/MappingPanelLayout.h"
 #include "platform/win32/MappingSoftIkFilter.h"
@@ -127,12 +128,6 @@ std::wstring actorDisplayName(const MappingActor& actor)
     if (!actor.calibrated) {
         return actor.profile.name;
     }
-    if (actor.liveTrackingLost) {
-        return actor.profile.name + L" tracking lost";
-    }
-    if (actor.liveLimited) {
-        return actor.profile.name + L" limited";
-    }
     return actor.profile.name + L" calibrated";
 }
 
@@ -147,7 +142,7 @@ void drawNameBox(HDC drawDc, HFONT font, const AppWindowState& state, const Mapp
     SelectObjectGuard fontSelection(drawDc, font);
     SetTextColor(drawDc, RGB(168, 180, 196));
     RECT labelRect = controls.nameLabelRect;
-    DrawTextW(drawDc, L"Name", -1, &labelRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+    DrawTextW(drawDc, L"Preset name", -1, &labelRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 
     SetTextColor(drawDc, RGB(225, 231, 240));
     RECT valueRect = controls.nameValueRect;
@@ -226,8 +221,9 @@ void paintMappingPanelContent(
     SetBkMode(drawDc, TRANSPARENT);
     SelectObject(drawDc, font);
     drawProfileBox(drawDc, font, state, controls);
-    drawNameBox(drawDc, font, state, controls);
     drawTableBox(drawDc, controls.tableRect);
+    drawMappingColorRow(drawDc, font, state, controls);
+    drawNameBox(drawDc, font, state, controls);
     drawPresetControls(drawDc, font, controls);
     drawActorList(drawDc, font, state, controls);
     drawMappingSoftIkFilter(drawDc, font, state, controls);

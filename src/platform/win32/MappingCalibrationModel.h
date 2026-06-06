@@ -21,6 +21,17 @@ struct MappingVirtualTarget {
     bool valid = false;
 };
 
+enum class MappingVirtualTargetSource {
+    DirectTracker,
+    RestFallback,
+    ParentedTracker
+};
+
+struct MappingVirtualTargetBinding {
+    MappingVirtualTargetSource source = MappingVirtualTargetSource::DirectTracker;
+    int parentSlot = -1;
+};
+
 inline constexpr int kMappingPoleCount = 4;
 
 struct MappingDebugPole {
@@ -36,8 +47,9 @@ struct MappingCalibrationData {
     std::array<std::uint32_t, kMappingSlotCount> runtimeIndices =
         defaultMappingDeviceRuntimeIndices();
     std::array<MappingTransform, kMappingSlotCount> trackerToTarget{};
-    float armSoftIkStrength = kDefaultMappingSoftIkStrength;
-    float legSoftIkStrength = kDefaultMappingSoftIkStrength;
+    std::array<MappingVirtualTargetBinding, kMappingSlotCount> targetBindings{};
+    float armSoftIkStrength = kDefaultMappingArmSoftIkStrength;
+    float legSoftIkStrength = kDefaultMappingLegSoftIkStrength;
 };
 
 struct MappingCalibrationStatus {

@@ -9,6 +9,7 @@ struct AppDeviceState;
 struct AppDebugUiState;
 struct AppOriginState;
 struct AppRecordingState;
+struct AppStreamingState;
 struct AppViewportState;
 struct AppWindowState;
 
@@ -28,6 +29,12 @@ void saveRecordSettingsConfig(AppRecordingState& state, AppDebugUiState& logStat
 void loadRecordSettingsConfig(AppRecordingState& state, AppDebugUiState& logState);
 void saveRecordSettingsConfig(AppWindowState& state);
 void loadRecordSettingsConfig(AppWindowState& state);
+
+bool writeStreamingSettingsConfigFile(const AppStreamingState& state, std::string& error);
+void saveStreamingSettingsConfig(AppStreamingState& state, AppDebugUiState& logState);
+void loadStreamingSettingsConfig(AppStreamingState& state, AppDebugUiState& logState);
+void saveStreamingSettingsConfig(AppWindowState& state);
+void loadStreamingSettingsConfig(AppWindowState& state);
 
 bool writeOriginConfigFile(const AppOriginState& state, std::string& error);
 void saveOriginConfig(AppOriginState& state, AppDebugUiState& logState);

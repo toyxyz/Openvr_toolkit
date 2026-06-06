@@ -6,6 +6,8 @@
 #include "platform/win32/ImportedSceneActions.h"
 #include "platform/win32/Menus.h"
 #include "platform/win32/OriginDialog.h"
+#include "platform/win32/SessionExportActions.h"
+#include "platform/win32/SessionSaveActions.h"
 #include "platform/win32/TopMenuSettingsActions.h"
 #include "platform/win32/Win32MenuResources.h"
 
@@ -17,7 +19,10 @@ namespace {
 constexpr UINT kSettingsMenuColorId = 1101;
 constexpr UINT kSettingsMenuOriginId = 1102;
 constexpr UINT kSettingsMenuLocationId = 1103;
+constexpr UINT kSettingsMenuStreamingId = 1104;
 constexpr UINT kFileMenuImportGlbId = 1201;
+constexpr UINT kFileMenuExportSessionId = 1202;
+constexpr UINT kFileMenuSaveSessionId = 1203;
 
 void setActiveTopBarMenu(HWND hwnd, AppWindowState& state, const ActiveTopBarMenu activeMenu)
 {
@@ -58,10 +63,11 @@ void showTopSettingsMenu(HWND hwnd, AppWindowState& state, const RECT& settingRe
         return;
     }
 
-    std::array<PopupMenuItem, 3> menuItems{{
+    std::array<PopupMenuItem, 4> menuItems{{
         PopupMenuItem{kSettingsMenuColorId, L"Appearance..."},
         PopupMenuItem{kSettingsMenuOriginId, L"Origin..."},
         PopupMenuItem{kSettingsMenuLocationId, L"Record..."},
+        PopupMenuItem{kSettingsMenuStreamingId, L"Streaming..."},
     }};
     for (PopupMenuItem& item : menuItems) {
         appendPopupMenuItem(menu.get(), item);
@@ -82,6 +88,10 @@ void showTopSettingsMenu(HWND hwnd, AppWindowState& state, const RECT& settingRe
         appendDebugLog(state, L"Record settings opened");
         showExportLocationSettings(hwnd, state);
         InvalidateRect(hwnd, nullptr, FALSE);
+    } else if (command == kSettingsMenuStreamingId) {
+        appendDebugLog(state, L"Streaming settings opened");
+        showStreamingSettings(hwnd, state);
+        InvalidateRect(hwnd, nullptr, FALSE);
     }
 }
 
@@ -92,14 +102,28 @@ void showTopFileMenu(HWND hwnd, AppWindowState& state, const RECT& fileRect)
         return;
     }
 
-    PopupMenuItem importItem{kFileMenuImportGlbId, L"Import GLB..."};
+    std::array<PopupMenuItem, 3> menuItems{{
+        PopupMenuItem{kFileMenuImportGlbId, L"Import GLB..."},
+        PopupMenuItem{kFileMenuSaveSessionId, L"Save Session"},
+        PopupMenuItem{kFileMenuExportSessionId, L"Export Session"},
+    }};
+    PopupMenuItem& importItem = menuItems[0];
+    PopupMenuItem& saveSessionItem = menuItems[1];
+    PopupMenuItem& exportSessionItem = menuItems[2];
     appendPopupMenuItem(menu.get(), importItem);
+    AppendMenuW(menu.get(), MF_SEPARATOR, 0, nullptr);
+    appendPopupMenuItem(menu.get(), saveSessionItem);
+    appendPopupMenuItem(menu.get(), exportSessionItem);
 
     POINT menuPoint{fileRect.left, fileRect.bottom};
     ClientToScreen(hwnd, &menuPoint);
     const UINT command = trackTopBarMenu(hwnd, state, menu.get(), ActiveTopBarMenu::File, menuPoint);
     if (command == kFileMenuImportGlbId) {
         importGlbFromFile(hwnd, state);
+    } else if (command == kFileMenuSaveSessionId) {
+        saveLoadedSessionFolder(hwnd, state);
+    } else if (command == kFileMenuExportSessionId) {
+        exportLoadedSession(hwnd, state);
     }
 }
 

@@ -18,8 +18,10 @@ struct AppWindowState;
 
 int activeDebugMonitorHeight(const AppWindowState* state, int clientHeight);
 RECT deviceToggleButtonRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
+RECT sessionToggleButtonRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 RECT profileToggleButtonRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 RECT mappingToggleButtonRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
+RECT editToggleButtonRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 ProfilePanelLayout profilePanelLayoutForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 RECT profileSplitterRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 RECT splitterRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
@@ -44,6 +46,12 @@ OriginStepperButton originStepperButtonFromPoint(
 );
 DeviceListLayout deviceListLayoutForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 MarkerListLayout markerListLayoutForClient(const AppWindowState* state, int clientWidth, int clientHeight);
+SessionListLayout sessionListLayoutForClient(
+    const AppWindowState* state,
+    int clientWidth,
+    int clientHeight,
+    int sessionCount
+);
 RECT debugMessagesRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 RECT debugInfoRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 RECT debugResizeRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
@@ -57,6 +65,8 @@ int maxDeviceListScrollOffset(const AppWindowState& state, int visibleItemCount)
 void clampDeviceListScroll(AppWindowState& state, int visibleItemCount);
 int maxMarkerListScrollOffset(const AppWindowState& state, int visibleItemCount);
 void clampMarkerListScroll(AppWindowState& state, int visibleItemCount);
+int maxSessionListScrollOffset(int totalItemCount, int visibleItemCount) noexcept;
+void clampSessionListScroll(AppWindowState& state, int totalItemCount, int visibleItemCount);
 std::uint32_t deviceRuntimeIndexFromListPoint(
     const AppRuntimeState& runtimeState,
     const AppDeviceState& deviceState,

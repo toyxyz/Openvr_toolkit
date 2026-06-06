@@ -21,7 +21,7 @@ ViewportControlLayout viewportControlLayoutForClient(
     return viewportControlLayoutForClient(
         leftPanelWidth,
         contentBottom,
-        state->importedSceneLoaded,
+        state->importedSceneLoaded || state->loadedSessionActive,
         clientWidth,
         clientHeight,
         rightReservedWidth

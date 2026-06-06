@@ -34,7 +34,6 @@ void appendDebugMonitorRecordingLines(
     stream << L"Recording: " << recorderStateText(recorderState)
            << L"   Frames: " << frameCount
            << L"   Dropped: " << droppedFrames
-           << L"   Save: " << exportFormatDisplayText(state.recordSaveFormat)
            << L"   Resample: " << std::fixed << std::setprecision(3)
            << state.recordExportSampleRate << L"fps"
            << L"   Delay: " << std::fixed << std::setprecision(3)

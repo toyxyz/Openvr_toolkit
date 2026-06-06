@@ -18,6 +18,8 @@ public:
 
     BinarySessionReader(const BinarySessionReader&) = delete;
     BinarySessionReader& operator=(const BinarySessionReader&) = delete;
+    BinarySessionReader(BinarySessionReader&&) noexcept = default;
+    BinarySessionReader& operator=(BinarySessionReader&&) noexcept = default;
 
     bool open(const std::filesystem::path& framesPath, const std::filesystem::path& indexPath);
     void close();

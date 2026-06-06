@@ -3,6 +3,7 @@
 #include "platform/win32/AppLog.h"
 #include "platform/win32/AppState.h"
 #include "platform/win32/DeviceList.h"
+#include "platform/win32/MappingActions.h"
 #include "platform/win32/MappingModel.h"
 #include "platform/win32/ProfileStore.h"
 #include "platform/win32/Win32String.h"
@@ -76,6 +77,7 @@ bool selectMappingProfileDropdownOption(
         return true;
     }
     state.profile = std::move(loaded);
+    syncSelectedMappingActorFromControls(state);
     state.mappingProfileDropdownOpen = false;
     state.mappingPresetDropdownOpen = false;
     appendDebugLog(state, L"Mapping profile selected: " + state.profile.name);
@@ -106,6 +108,7 @@ bool selectMappingDeviceDropdownOption(
     }
     state.mappingDeviceRuntimeIndices[static_cast<std::size_t>(state.mappingDropdownSlot)] =
         option == 0 ? kNoSelectedRuntimeIndex : rows[static_cast<std::size_t>(option - 1)].runtimeIndex;
+    syncSelectedMappingActorFromControls(state);
     state.mappingDropdownSlot = -1;
     state.mappingProfileDropdownOpen = false;
     state.mappingPresetDropdownOpen = false;

@@ -4,6 +4,7 @@
 #include "platform/win32/AppState.h"
 #include "platform/win32/DialogControlHelpers.h"
 #include "platform/win32/Dialogs.h"
+#include "platform/win32/MappingActions.h"
 #include "platform/win32/ProfileEditModel.h"
 #include "platform/win32/ProfilePanelLayout.h"
 #include "platform/win32/WindowLayout.h"
@@ -54,6 +55,7 @@ bool applyProfileEditorText(HWND hwnd, AppWindowState& state)
     }
 
     appendDebugLog(state, L"Profile value updated");
+    syncSelectedMappingActorFromControls(state);
     closeProfileEditor(hwnd, state);
     refreshProfileWindows(hwnd, state);
     return true;

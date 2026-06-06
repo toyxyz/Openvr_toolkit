@@ -50,11 +50,43 @@ struct DeviceNameConfigParseResult {
     int invalidLineCount = 0;
 };
 
+enum class OutlierRepairStrength {
+    None,
+    Light,
+    Normal,
+    Strong,
+};
+
+enum class SmoothingStrength {
+    None,
+    Light,
+    Normal,
+    Strong,
+};
+
+enum class RealtimeSmoothingPreset {
+    VeryLight,
+    Light,
+    Normal,
+    Strong,
+    VeryStrong,
+};
+
 struct RecordSettingsConfig {
     std::string exportDirectoryText;
     float recordDelaySeconds = 0.0f;
     float exportSampleRate = 60.0f;
-    ExportFormat saveFormat = ExportFormat::Glb;
+    bool startRecordingOnCalibration = false;
+    bool exportAfterRecording = false;
+    bool applyNoiseFilterOnExport = false;
+    float noiseFilterCutoffHz = 8.0f;
+    OutlierRepairStrength outlierRepairStrength = OutlierRepairStrength::Light;
+    int smoothingIterations = 0;
+};
+
+struct StreamingSettingsConfig {
+    bool realtimeSmoothingEnabled = false;
+    RealtimeSmoothingPreset realtimeSmoothingPreset = RealtimeSmoothingPreset::Normal;
 };
 
 struct OriginConfig {

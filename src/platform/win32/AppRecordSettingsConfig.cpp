@@ -27,7 +27,12 @@ bool writeRecordSettingsConfigFile(const AppRecordingState& state, std::string& 
         narrow(activeExportDirectoryPath(state).wstring()),
         state.recordDelaySeconds,
         state.recordExportSampleRate,
-        state.recordSaveFormat,
+        state.startRecordingOnCalibration,
+        state.exportAfterRecording,
+        state.applyNoiseFilterOnExport,
+        state.noiseFilterCutoffHz,
+        state.outlierRepairStrength,
+        state.smoothingIterations,
         kDefaultRecordExportSampleRate
     );
     return true;
@@ -38,6 +43,8 @@ void saveRecordSettingsConfig(AppRecordingState& state, AppDebugUiState& logStat
     state.exportDirectory = activeExportDirectoryPath(state);
     state.recordDelaySeconds = sanitizedRecordDelaySeconds(state.recordDelaySeconds);
     state.recordExportSampleRate = sanitizedRecordExportSampleRate(state.recordExportSampleRate);
+    state.noiseFilterCutoffHz = sanitizedNoiseFilterCutoffHz(state.noiseFilterCutoffHz);
+    state.smoothingIterations = sanitizedSmoothingIterations(state.smoothingIterations);
     std::string error;
     if (!writeRecordSettingsConfigFile(state, error)) {
         appendDebugLog(logState, "Record settings config save failed: " + error);
@@ -59,7 +66,12 @@ void loadRecordSettingsConfig(AppRecordingState& state, AppDebugUiState& logStat
         state.exportDirectory = defaultExportDirectoryPath();
         state.recordDelaySeconds = 0.0f;
         state.recordExportSampleRate = kDefaultRecordExportSampleRate;
-        state.recordSaveFormat = ExportFormat::Glb;
+        state.startRecordingOnCalibration = false;
+        state.exportAfterRecording = false;
+        state.applyNoiseFilterOnExport = false;
+        state.noiseFilterCutoffHz = 8.0f;
+        state.outlierRepairStrength = OutlierRepairStrength::Light;
+        state.smoothingIterations = 0;
         appendDebugLog(logState, "Record settings config not found: " + path.string());
         return;
     }
@@ -69,7 +81,12 @@ void loadRecordSettingsConfig(AppRecordingState& state, AppDebugUiState& logStat
     state.exportDirectory = normalizedExportDirectoryPath(std::filesystem::path(widen(config.exportDirectoryText)));
     state.recordDelaySeconds = config.recordDelaySeconds;
     state.recordExportSampleRate = config.exportSampleRate;
-    state.recordSaveFormat = config.saveFormat;
+    state.startRecordingOnCalibration = config.startRecordingOnCalibration;
+    state.exportAfterRecording = config.exportAfterRecording;
+    state.applyNoiseFilterOnExport = config.applyNoiseFilterOnExport;
+    state.noiseFilterCutoffHz = config.noiseFilterCutoffHz;
+    state.outlierRepairStrength = config.outlierRepairStrength;
+    state.smoothingIterations = config.smoothingIterations;
     appendDebugLog(logState, "Record settings config loaded: " + path.string());
     if (path.lexically_normal() != recordSettingsConfigPath().lexically_normal()) {
         saveRecordSettingsConfig(state, logState);

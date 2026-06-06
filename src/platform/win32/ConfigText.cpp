@@ -56,6 +56,50 @@ bool parseBoolConfigValue(const std::string& value, bool& out)
     return false;
 }
 
+bool parseOutlierRepairStrengthConfigValue(const std::string& value, OutlierRepairStrength& out)
+{
+    const std::string lowered = lowerAscii(trimAscii(value));
+    if (lowered == "none") {
+        out = OutlierRepairStrength::None;
+        return true;
+    }
+    if (lowered == "light") {
+        out = OutlierRepairStrength::Light;
+        return true;
+    }
+    if (lowered == "normal") {
+        out = OutlierRepairStrength::Normal;
+        return true;
+    }
+    if (lowered == "strong") {
+        out = OutlierRepairStrength::Strong;
+        return true;
+    }
+    return false;
+}
+
+bool parseSmoothingStrengthConfigValue(const std::string& value, SmoothingStrength& out)
+{
+    const std::string lowered = lowerAscii(trimAscii(value));
+    if (lowered == "none") {
+        out = SmoothingStrength::None;
+        return true;
+    }
+    if (lowered == "light") {
+        out = SmoothingStrength::Light;
+        return true;
+    }
+    if (lowered == "normal") {
+        out = SmoothingStrength::Normal;
+        return true;
+    }
+    if (lowered == "strong") {
+        out = SmoothingStrength::Strong;
+        return true;
+    }
+    return false;
+}
+
 bool parseFloatConfigValue(const std::string& value, float& out)
 {
     std::istringstream stream(trimAscii(value));
@@ -80,9 +124,62 @@ float sanitizedExportSampleRate(const float value, const float fallback) noexcep
     return static_cast<float>(ovtr::sanitizedExportSampleRateValue(value, fallback));
 }
 
+float sanitizedNoiseFilterCutoffHz(const float value) noexcept
+{
+    constexpr float options[] = {0.5f, 1.0f, 2.0f, 4.0f, 6.0f, 8.0f, 10.0f, 15.0f, 20.0f};
+    if (!std::isfinite(value)) {
+        return 8.0f;
+    }
+    float best = options[0];
+    float bestDelta = std::fabs(value - best);
+    for (const float option : options) {
+        const float delta = std::fabs(value - option);
+        if (delta < bestDelta) {
+            best = option;
+            bestDelta = delta;
+        }
+    }
+    return best;
+}
+
+int sanitizedSmoothingIterations(const int value) noexcept
+{
+    return std::clamp(value, 0, 100);
+}
+
 const char* exportFormatConfigValue(const ExportFormat format) noexcept
 {
     return format == ExportFormat::Fbx ? "fbx" : "glb";
+}
+
+const char* outlierRepairStrengthConfigValue(const OutlierRepairStrength strength) noexcept
+{
+    switch (strength) {
+    case OutlierRepairStrength::None:
+        return "none";
+    case OutlierRepairStrength::Normal:
+        return "normal";
+    case OutlierRepairStrength::Strong:
+        return "strong";
+    case OutlierRepairStrength::Light:
+    default:
+        return "light";
+    }
+}
+
+int smoothingIterationsForStrength(const SmoothingStrength strength) noexcept
+{
+    switch (strength) {
+    case SmoothingStrength::Light:
+        return 1;
+    case SmoothingStrength::Normal:
+        return 2;
+    case SmoothingStrength::Strong:
+        return 4;
+    case SmoothingStrength::None:
+    default:
+        return 0;
+    }
 }
 
 int clampColorComponent(const int value) noexcept

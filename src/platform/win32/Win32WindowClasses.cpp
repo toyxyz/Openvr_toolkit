@@ -4,6 +4,7 @@
 #include "platform/win32/Win32AppWindow.h"
 
 #include "platform/win32/Dialogs.h"
+#include "platform/win32/ExportProgressDialog.h"
 #include "platform/win32/OriginDialog.h"
 #include "platform/win32/ViewportWindow.h"
 #include "platform/win32/Win32AppWindowInternal.h"
@@ -43,7 +44,9 @@ bool registerBootstrapWindowClasses(HINSTANCE instance)
     registerDeviceNameDialogClass(instance);
     registerOriginDialogClass(instance);
     registerRecordSettingsDialogClass(instance);
+    registerStreamingSettingsDialogClass(instance);
     registerViewportColorDialogClass(instance);
+    registerExportProgressDialogClass(instance);
 
     return mainRegistered && viewportRegistered;
 }

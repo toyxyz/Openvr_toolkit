@@ -61,6 +61,34 @@ RECT deviceToggleButtonRectForClient(
     };
 }
 
+RECT sessionToggleButtonRectForClient(
+    const int contentBottom,
+    const int clientWidth,
+    const int clientHeight
+) noexcept
+{
+    const RECT deviceRect = deviceToggleButtonRectForClient(contentBottom, clientWidth, clientHeight);
+    if (deviceRect.right <= deviceRect.left || deviceRect.bottom <= deviceRect.top) {
+        return RECT{0, 0, 0, 0};
+    }
+
+    const int top = deviceRect.bottom + 8;
+    if (contentBottom <= top + 48) {
+        return RECT{0, 0, 0, 0};
+    }
+
+    int height = kPanelSessionToggleButtonHeight;
+    const int availableHeight = contentBottom - top - 12;
+    if (height > availableHeight) {
+        height = availableHeight;
+    }
+    if (height < 48) {
+        return RECT{0, 0, 0, 0};
+    }
+
+    return RECT{deviceRect.left, top, deviceRect.right, top + height};
+}
+
 int rightProfileAreaWidthForClient(const bool profilePanelVisible, const int clientWidth) noexcept
 {
     return rightProfileAreaWidthForClient(
@@ -189,6 +217,34 @@ RECT mappingToggleButtonRectForClient(
         profileRect.right,
         top + height
     };
+}
+
+RECT editToggleButtonRectForClient(
+    const int contentBottom,
+    const int clientWidth,
+    const int clientHeight
+) noexcept
+{
+    const RECT mappingRect = mappingToggleButtonRectForClient(contentBottom, clientWidth, clientHeight);
+    if (mappingRect.right <= mappingRect.left || mappingRect.bottom <= mappingRect.top) {
+        return RECT{0, 0, 0, 0};
+    }
+
+    const int top = mappingRect.bottom + 8;
+    if (contentBottom <= top + 48) {
+        return RECT{0, 0, 0, 0};
+    }
+
+    int height = kPanelEditToggleButtonHeight;
+    const int availableHeight = contentBottom - top - 12;
+    if (height > availableHeight) {
+        height = availableHeight;
+    }
+    if (height < 48) {
+        return RECT{0, 0, 0, 0};
+    }
+
+    return RECT{mappingRect.left, top, mappingRect.right, top + height};
 }
 
 ProfilePanelLayout profilePanelLayoutForClient(

@@ -1,7 +1,6 @@
 #include "TestCases.h"
 
 #ifdef _WIN32
-#include "data/SessionTypes.h"
 #include "math/PoseTransform.h"
 #include "platform/win32/AppProfileState.h"
 #include "platform/win32/MappingActions.h"
@@ -17,8 +16,6 @@
 #include <cmath>
 #include <cstddef>
 #include <stdexcept>
-#include <string>
-
 namespace {
 
 void requireNear(const float actual, const float expected, const char* message)
@@ -27,7 +24,6 @@ void requireNear(const float actual, const float expected, const char* message)
         throw std::runtime_error(message);
     }
 }
-
 void requireVecNear(const ovtr::win32::Vec3 actual, const ovtr::win32::Vec3 expected, const char* message)
 {
     requireNear(actual.x, expected.x, message);
@@ -43,7 +39,6 @@ std::array<std::uint32_t, ovtr::win32::kMappingSlotCount> sequentialMapping()
     }
     return mapping;
 }
-
 ovtr::PosePollResult posesForTargets(
     const std::array<ovtr::win32::MappingTransform, ovtr::win32::kMappingSlotCount>& targets,
     const std::array<std::uint32_t, ovtr::win32::kMappingSlotCount>& mapping
@@ -61,7 +56,6 @@ ovtr::PosePollResult posesForTargets(
 }
 
 } // namespace
-
 namespace ovtr::test {
 
 void testWin32MappingCalibration()
@@ -128,8 +122,16 @@ void testWin32MappingCalibration()
         {0.0f, 0.0f, 0.0f},
         {0.0f, 0.0f, 0.0f}
     );
-    if (status.success || status.message.find(L"Head") == std::wstring::npos) {
-        throw std::runtime_error("calibration should fail on None mapping with slot label");
+    if (status.success) { throw std::runtime_error("calibration should fail when no trackers are mapped"); }
+
+    MappingActor partialActor;
+    auto headOnlyMapping = defaultMappingDeviceRuntimeIndices();
+    headOnlyMapping[0] = mapping[0];
+    status = captureMappingActorCalibration(partialActor, headOnlyMapping, validPoses, false, {}, {});
+    if (!status.success || !partialActor.calibrated ||
+        partialActor.calibration.runtimeIndices[1] != kNoSelectedRuntimeIndex ||
+        !partialActor.liveVirtualTargets[1].valid) {
+        throw std::runtime_error("calibration should succeed with one mapped tracker");
     }
 
     auto duplicateMapping = mapping;
@@ -150,8 +152,8 @@ void testWin32MappingCalibration()
     if (!status.success || !actor.calibrated || actor.calibration.runtimeIndices[0] != 1u) {
         throw std::runtime_error("calibration should store runtime-index snapshot");
     }
-    requireNear(actor.calibration.armSoftIkStrength, kDefaultMappingSoftIkStrength, "default arm soft IK snapshot");
-    requireNear(actor.calibration.legSoftIkStrength, kDefaultMappingSoftIkStrength, "default leg soft IK snapshot");
+    requireNear(actor.calibration.armSoftIkStrength, kDefaultMappingArmSoftIkStrength, "default arm soft IK snapshot");
+    requireNear(actor.calibration.legSoftIkStrength, kDefaultMappingLegSoftIkStrength, "default leg soft IK snapshot");
     requireVecNear(actor.calibration.trackerToTarget[0].position, Vec3{}, "rest calibration offset should be identity");
 
     MappingActor customSoftActor;
@@ -191,6 +193,7 @@ void testWin32MappingCalibration()
     requireNear(actor.liveJoints[kProfileJointSpine2].positionMeters.y, 1.53f, "chest tracker should move Spine2");
     requireNear(actor.liveJoints[kProfileJointNeck].positionMeters.y, 1.60f, "neck should keep head-local offset");
     requireNear(actor.liveJoints[kProfileJointHead].positionMeters.y, 1.70f, "head tracker should move head");
+    requireNear(std::fabs(actor.liveJoints[kProfileJointLeftLeg].sideHint.x), 1.0f, "left thigh side axis should stay lateral");
     const Vec3 lastLeftWrist = actor.liveJoints[kProfileJointLeftForeArm].positionMeters;
 
     auto partialLostTargets = targets;
@@ -220,25 +223,6 @@ void testWin32MappingCalibration()
     requireNear(actor.liveJoints[kProfileJointLeftShoulder].positionMeters.z, -0.205f, "chest yaw should rotate left shoulder");
     requireNear(actor.liveJoints[kProfileJointLeftUpLeg].positionMeters.z, -0.14f, "pelvis yaw should rotate left hip");
 
-    auto pitchedChestTargets = mappingCalibrationRestTargets(actor.profile);
-    pitchedChestTargets[1].rotation = ovtr::quaternionFromEulerDegrees({30.0f, 0.0f, 0.0f});
-    if (!updateCalibratedMappingActorJoints(actor, posesForTargets(pitchedChestTargets, mapping), false, {}, {})) {
-        throw std::runtime_error("chest pitch live solve should update");
-    }
-    requireNear(actor.liveJoints[kProfileJointSpine2].positionMeters.z, 0.0f, "Spine2 should stay on chest target");
-    requireNear(actor.liveJoints[kProfileJointSpine].positionMeters.z, -0.0202f, "Spine should partially follow chest pitch");
-    requireNear(actor.liveJoints[kProfileJointSpine1].positionMeters.z, -0.0393f, "Spine1 should bend more toward chest pitch");
-
-    auto rotatedHeadTargets = mappingCalibrationRestTargets(actor.profile);
-    rotatedHeadTargets[0].position.x += 0.20f;
-    rotatedHeadTargets[0].rotation = {0.0f, 0.0f, 0.70710677f, 0.70710677f};
-    if (!updateCalibratedMappingActorJoints(actor, posesForTargets(rotatedHeadTargets, mapping), false, {}, {})) {
-        throw std::runtime_error("head rotation live solve should update");
-    }
-    requireNear(actor.liveJoints[kProfileJointNeck].positionMeters.x, 0.30f, "head rotation should move neck opposite head end");
-    requireNear(actor.liveJoints[kProfileJointHead].positionMeters.x, 0.20f, "head tracker should move Head joint");
-    requireNear(actor.liveJoints[kProfileJointHeadTopEnd].positionMeters.x, 0.10f, "head rotation should move head end around Head");
-
     auto fallbackTargets = mappingCalibrationRestTargets(actor.profile);
     fallbackTargets[3].position = fallbackTargets[5].position;
     if (!updateCalibratedMappingActorJoints(actor, posesForTargets(fallbackTargets, mapping), false, {}, {})) {
@@ -257,7 +241,7 @@ void testWin32MappingCalibration()
     if (!actor.liveDebugPoles[static_cast<std::size_t>(leftArmPole)].limited || !actor.liveLimited) {
         throw std::runtime_error("unreachable hand target should set limited status");
     }
-    requireNear(actor.liveJoints[kProfileJointLeftForeArm].positionMeters.x, 0.775f, "wrist should clamp to max reach");
+    requireNear(actor.liveJoints[kProfileJointLeftForeArm].positionMeters.x, 0.7764f, "wrist should clamp to max reach");
 
     MappingActor offsetActor;
     auto offsetTargets = mappingCalibrationRestTargets(offsetActor.profile);

@@ -5,7 +5,7 @@
 
 namespace ovtr::win32 {
 
-inline constexpr int kProfileMeasurementCount = 14;
+inline constexpr int kProfileMeasurementCount = 16;
 
 struct ProfileMeasurementDefinition {
     const char* key = "";

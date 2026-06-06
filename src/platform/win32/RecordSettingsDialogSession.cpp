@@ -7,6 +7,35 @@
 #include "export/ExportTypes.h"
 
 namespace ovtr::win32 {
+namespace {
+
+float cutoffFromCombo(HWND combo)
+{
+    constexpr float options[] = {0.5f, 1.0f, 2.0f, 4.0f, 6.0f, 8.0f, 10.0f, 15.0f, 20.0f};
+    const LRESULT selected = SendMessageW(combo, CB_GETCURSEL, 0, 0);
+    if (selected < 0 || selected >= 9) {
+        return 8.0f;
+    }
+    return options[static_cast<int>(selected)];
+}
+
+OutlierRepairStrength outlierRepairStrengthFromCombo(HWND combo)
+{
+    const LRESULT selected = SendMessageW(combo, CB_GETCURSEL, 0, 0);
+    switch (selected) {
+    case 0:
+        return OutlierRepairStrength::None;
+    case 2:
+        return OutlierRepairStrength::Normal;
+    case 3:
+        return OutlierRepairStrength::Strong;
+    case 1:
+    default:
+        return OutlierRepairStrength::Light;
+    }
+}
+
+} // namespace
 
 void browseRecordSettingsDirectory(HWND hwnd, RecordSettingsDialogState& dialog)
 {
@@ -27,7 +56,12 @@ void finishRecordSettingsDialog(HWND hwnd, RecordSettingsDialogState& dialog, co
         if (!dialog.controls.directoryEdit ||
             !dialog.controls.delayEdit ||
             !dialog.controls.resampleFpsEdit ||
-            !dialog.controls.saveFormatCombo) {
+            !dialog.controls.startRecordingOnCalibrationCheck ||
+            !dialog.controls.exportAfterRecordingCheck ||
+            !dialog.controls.applyNoiseFilterOnExportCheck ||
+            !dialog.controls.noiseFilterCutoffCombo ||
+            !dialog.controls.outlierRepairStrengthCombo ||
+            !dialog.controls.smoothingIterationsEdit) {
             return;
         }
 
@@ -68,12 +102,46 @@ void finishRecordSettingsDialog(HWND hwnd, RecordSettingsDialogState& dialog, co
             return;
         }
 
-        const LRESULT saveFormatIndex = SendMessageW(dialog.controls.saveFormatCombo, CB_GETCURSEL, 0, 0);
+        const bool startRecordingOnCalibration = SendMessageW(
+            dialog.controls.startRecordingOnCalibrationCheck,
+            BM_GETCHECK,
+            0,
+            0
+        ) == BST_CHECKED;
+        const bool exportAfterRecording = SendMessageW(
+            dialog.controls.exportAfterRecordingCheck,
+            BM_GETCHECK,
+            0,
+            0
+        ) == BST_CHECKED;
+        const bool applyNoiseFilterOnExport = SendMessageW(
+            dialog.controls.applyNoiseFilterOnExportCheck,
+            BM_GETCHECK,
+            0,
+            0
+        ) == BST_CHECKED;
+        int smoothingIterations = 0;
+        if (!readIntegerEdit(dialog.controls.smoothingIterationsEdit, smoothingIterations) ||
+            smoothingIterations < 0 ||
+            smoothingIterations > 100) {
+            MessageBoxW(
+                hwnd,
+                L"Smoothing iterations must be from 0 to 100.",
+                L"Record Settings",
+                MB_OK | MB_ICONWARNING
+            );
+            return;
+        }
         dialog.result = sanitizedRecordSettingsDialogResult(
             directory,
             recordDelaySeconds,
             exportSampleRate,
-            saveFormatIndex == 1 ? ExportFormat::Fbx : ExportFormat::Glb,
+            startRecordingOnCalibration,
+            exportAfterRecording,
+            applyNoiseFilterOnExport,
+            cutoffFromCombo(dialog.controls.noiseFilterCutoffCombo),
+            outlierRepairStrengthFromCombo(dialog.controls.outlierRepairStrengthCombo),
+            smoothingIterations,
             dialog.input.defaultExportSampleRate
         );
     }

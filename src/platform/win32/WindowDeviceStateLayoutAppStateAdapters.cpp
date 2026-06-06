@@ -56,6 +56,23 @@ RECT mappingToggleButtonRectForClient(
     );
 }
 
+RECT editToggleButtonRectForClient(
+    const AppWindowState* state,
+    const int clientWidth,
+    const int clientHeight
+)
+{
+    if (!state || clientWidth <= 0 || clientHeight <= 0) {
+        return RECT{0, 0, 0, 0};
+    }
+
+    return editToggleButtonRectForClient(
+        leftPanelContentBottomForClient(state, clientHeight),
+        clientWidth,
+        clientHeight
+    );
+}
+
 ProfilePanelLayout profilePanelLayoutForClient(
     const AppWindowState* state,
     const int clientWidth,
@@ -67,7 +84,7 @@ ProfilePanelLayout profilePanelLayoutForClient(
     }
 
     return profilePanelLayoutForClient(
-        state->profilePanelVisible || state->mappingPanelVisible,
+        state->profilePanelVisible || state->mappingPanelVisible || state->editPanelVisible,
         state->profilePanelWidth > 0 ? state->profilePanelWidth : defaultProfilePanelWidthForClient(clientWidth),
         leftPanelContentBottomForClient(state, clientHeight),
         clientWidth,
@@ -113,11 +130,21 @@ DeviceListLayout deviceListLayoutForClient(
     const int contentBottom = leftPanelContentBottomForClient(state, clientHeight);
     const OriginPanelLayout originLayout = originPanelLayoutForClient(state, clientWidth, clientHeight);
     const MarkerListLayout markerLayout = markerListLayoutForClient(state, clientWidth, clientHeight);
+    const SessionListLayout sessionLayout = sessionListLayoutForClient(
+        state,
+        clientWidth,
+        clientHeight,
+        0
+    );
     bool lowerPanelValid = originLayout.valid;
     int lowerPanelTop = originLayout.boxRect.top;
     if (markerLayout.valid && (!lowerPanelValid || markerLayout.boxRect.top < lowerPanelTop)) {
         lowerPanelValid = true;
         lowerPanelTop = markerLayout.boxRect.top;
+    }
+    if (sessionLayout.valid && (!lowerPanelValid || sessionLayout.boxRect.top < lowerPanelTop)) {
+        lowerPanelValid = true;
+        lowerPanelTop = sessionLayout.boxRect.top;
     }
     return deviceListLayoutForClient(
         state->devicePanelVisible,
@@ -214,7 +241,7 @@ int leftPanelWidthForClient(const AppWindowState* state, const int clientWidth)
         ? state->leftPanelWidth
         : 0;
     return leftPanelWidthForClient(
-        !state || state->devicePanelVisible,
+        !state || state->devicePanelVisible || state->sessionPanelVisible,
         requestedWidth,
         clientWidth
     );
@@ -223,7 +250,7 @@ int leftPanelWidthForClient(const AppWindowState* state, const int clientWidth)
 int rightProfileAreaWidthForClient(const AppWindowState* state, const int clientWidth)
 {
     return rightProfileAreaWidthForClient(
-        state && (state->profilePanelVisible || state->mappingPanelVisible),
+        state && (state->profilePanelVisible || state->mappingPanelVisible || state->editPanelVisible),
         state && state->profilePanelWidth > 0 ? state->profilePanelWidth : defaultProfilePanelWidthForClient(clientWidth),
         clientWidth
     );

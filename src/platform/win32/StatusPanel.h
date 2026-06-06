@@ -1,7 +1,5 @@
 #pragma once
 
-#include "platform/win32/ConfigTypes.h"
-
 #include <chrono>
 #include <string>
 #include <vector>
@@ -14,8 +12,6 @@ struct AppOriginState;
 struct AppRuntimeState;
 struct AppViewportState;
 struct AppWindowState;
-
-std::wstring exportFormatDisplayText(ExportFormat format);
 
 int remainingRecordDelaySeconds(
     const AppRecordingState& state,

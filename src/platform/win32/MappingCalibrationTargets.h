@@ -8,5 +8,6 @@ namespace ovtr::win32 {
 std::array<MappingTransform, kMappingSlotCount> mappingCalibrationRestTargets(
     const BodyProfile& profile
 );
+Vec3 mappingCalibrationArmPoleTargetPosition(const ProfileSkeletonJoints& joints, bool left) noexcept;
 
 } // namespace ovtr::win32

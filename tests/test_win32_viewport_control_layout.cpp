@@ -18,6 +18,18 @@ void testWin32ViewportControlLayout()
         "viewport quad view button rect"
     );
     require(
+        sameRect(recordingControls.showTextButtonRect, 495, 717, 540, 762),
+        "viewport show text button rect"
+    );
+    require(
+        sameRect(recordingControls.showModelButtonRect, 548, 717, 593, 762),
+        "viewport show model button rect"
+    );
+    require(
+        sameRect(recordingControls.smoothButtonRect, 601, 717, 667, 762),
+        "viewport smooth button rect"
+    );
+    require(
         sameRect(recordingControls.recordButtonRect, 791, 717, 836, 762),
         "viewport record button rect"
     );

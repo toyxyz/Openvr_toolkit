@@ -4,12 +4,16 @@
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/MappingActorLayout.h"
+#include "platform/win32/MappingEditPanelLayout.h"
 #include "platform/win32/MappingNameEditor.h"
 #include "platform/win32/MappingPanelLayout.h"
 #include "platform/win32/ProfileEditor.h"
 #include "platform/win32/ProfilePanelLayout.h"
+#include "platform/win32/RecordingSessionList.h"
 #include "platform/win32/WindowLayout.h"
 #include "platform/win32/WindowStateAccess.h"
+
+#include <vector>
 
 namespace ovtr::win32 {
 
@@ -72,11 +76,42 @@ bool handleMainWindowMouseWheel(HWND hwnd, WPARAM wparam, LPARAM lparam)
         return true;
     }
 
+    const ProfilePanelLayout editPanelLayout = profilePanelLayoutForClient(state, clientWidth, clientHeight);
+    const MappingEditPanelLayout editLayout = mappingEditPanelLayoutForPanel(editPanelLayout);
+    if (state->editPanelVisible && editLayout.valid && PtInRect(&editLayout.listRect, point)) {
+        state->mappingEditOffsetScrollOffset -= wheelSteps * 3;
+        state->mappingEditOffsetScrollOffset = clampMappingEditOffsetScrollOffset(
+            state->mappingEditOffsetScrollOffset,
+            editLayout.visibleRowCount
+        );
+        InvalidateRect(hwnd, &editLayout.listRect, FALSE);
+        return true;
+    }
+
     const DeviceListLayout deviceListLayout = deviceListLayoutForClient(state, clientWidth, clientHeight);
     if (deviceListLayout.valid && PtInRect(&deviceListLayout.boxRect, point)) {
         state->deviceListScrollOffset -= wheelSteps * 3;
         clampDeviceListScroll(*state, deviceListLayout.visibleItemCount);
         InvalidateRect(hwnd, &deviceListLayout.boxRect, FALSE);
+        return true;
+    }
+
+    const std::vector<RecordingSessionListRow> sessionRows =
+        listRecordingSessionFolders(recordingSessionsRootPath());
+    const SessionListLayout sessionListLayout = sessionListLayoutForClient(
+        state,
+        clientWidth,
+        clientHeight,
+        static_cast<int>(sessionRows.size())
+    );
+    if (sessionListLayout.valid && PtInRect(&sessionListLayout.boxRect, point)) {
+        state->sessionListScrollOffset -= wheelSteps * 3;
+        clampSessionListScroll(
+            *state,
+            static_cast<int>(sessionRows.size()),
+            sessionListLayout.visibleItemCount
+        );
+        InvalidateRect(hwnd, &sessionListLayout.boxRect, FALSE);
         return true;
     }
 

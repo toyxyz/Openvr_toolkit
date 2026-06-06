@@ -3,6 +3,7 @@
 #include "platform/win32/AppLog.h"
 #include "platform/win32/AppState.h"
 #include "platform/win32/DeviceList.h"
+#include "platform/win32/MappingActions.h"
 #include "platform/win32/MappingModel.h"
 #include "platform/win32/MappingPresetStore.h"
 #include "platform/win32/Win32String.h"
@@ -56,6 +57,8 @@ void applyMappingPreset(AppWindowState& state, const MappingPreset& preset)
     if (preset.hasProfile) {
         state.profile = preset.profile;
     }
+    state.mappingSkeletonColor = preset.skeletonColor;
+    state.mappingSkeletonColorCustomized = true;
 
     const std::vector<DeviceListRow> rows = makeDeviceListRows(state);
     state.mappingDeviceRuntimeIndices = defaultMappingDeviceRuntimeIndices();
@@ -68,6 +71,7 @@ void applyMappingPreset(AppWindowState& state, const MappingPreset& preset)
             }
         }
     }
+    syncSelectedMappingActorFromControls(state);
 }
 
 } // namespace
@@ -90,6 +94,7 @@ void saveCurrentMappingPreset(HWND hwnd, AppWindowState& state)
     preset.name = stem;
     preset.hasProfile = true;
     preset.profile = state.profile;
+    preset.skeletonColor = state.mappingSkeletonColor;
     const std::vector<DeviceListRow> rows = makeDeviceListRows(state);
     for (int slot = 0; slot < kMappingSlotCount; ++slot) {
         const std::uint32_t runtimeIndex = state.mappingDeviceRuntimeIndices[static_cast<std::size_t>(slot)];

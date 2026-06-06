@@ -57,6 +57,11 @@ void drawDeviceToggleButton(HDC drawDc, HFONT font, const RECT& rect, const bool
     drawVerticalToggleButton(drawDc, font, rect, L"Device", expanded, 84);
 }
 
+void drawSessionToggleButton(HDC drawDc, HFONT font, const RECT& rect, const bool expanded)
+{
+    drawVerticalToggleButton(drawDc, font, rect, L"Session", expanded, 112);
+}
+
 void drawProfileToggleButton(HDC drawDc, HFONT font, const RECT& rect, const bool expanded)
 {
     drawVerticalToggleButton(drawDc, font, rect, L"Profile", expanded, 112);
@@ -65,6 +70,11 @@ void drawProfileToggleButton(HDC drawDc, HFONT font, const RECT& rect, const boo
 void drawMappingToggleButton(HDC drawDc, HFONT font, const RECT& rect, const bool expanded)
 {
     drawVerticalToggleButton(drawDc, font, rect, L"Mapping", expanded, 112);
+}
+
+void drawEditToggleButton(HDC drawDc, HFONT font, const RECT& rect, const bool expanded)
+{
+    drawVerticalToggleButton(drawDc, font, rect, L"Edit", expanded, 64);
 }
 
 void drawTopBarMenuButton(HDC drawDc, HFONT font, const RECT& rect, const wchar_t* label, const bool active)

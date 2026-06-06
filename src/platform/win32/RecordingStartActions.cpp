@@ -4,6 +4,7 @@
 #include "platform/win32/AppLog.h"
 #include "platform/win32/ImportedSceneActions.h"
 #include "platform/win32/RecordingStartPlan.h"
+#include "platform/win32/SessionMappingSnapshot.h"
 #include "platform/win32/SkeletonRecording.h"
 #include "platform/win32/WindowLayout.h"
 #include "recording/SamplingScheduler.h"
@@ -65,7 +66,7 @@ void startRecordingNow(HWND hwnd, AppWindowState& state)
         static_cast<const AppRuntimeState&>(state),
         static_cast<const AppDeviceState&>(state),
         std::filesystem::current_path() / "recordings",
-        "session_" + localTimestampForPath(),
+        recordingSessionIdForName(state.sessionName, localTimestampForPath()),
         utcTimestampIso(),
         kTargetViewportFps
     );
@@ -95,10 +96,16 @@ void startRecordingNow(HWND hwnd, AppWindowState& state)
     appendDebugLog(state, "Starting recording: " + plan.sessionFolder.string());
     if (recordingStarted) {
         appendDebugLog(state, L"Recording started");
-        if (state.skeletonRecording.active) {
-            appendDebugLog(state, L"Skeleton BVH capture started");
+        std::string snapshotError;
+        if (saveSessionMappingSnapshot(state, state.devices, plan.sessionFolder, snapshotError)) {
+            appendDebugLog(state, L"Session mapping snapshot saved");
         } else {
-            appendDebugLog(state, L"Skeleton BVH capture skipped: no calibrated Mapping actor");
+            appendDebugLog(state, "Session mapping snapshot save failed: " + snapshotError);
+        }
+        if (state.skeletonRecording.active) {
+            appendDebugLog(state, L"Skeleton GLB capture started");
+        } else {
+            appendDebugLog(state, L"Skeleton GLB capture skipped: no calibrated Mapping actor");
         }
         startImportedGlbPlaybackForRecording(hwnd, state);
     } else {

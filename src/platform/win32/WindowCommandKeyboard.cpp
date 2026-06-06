@@ -2,6 +2,7 @@
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/FrameUpdate.h"
+#include "platform/win32/MappingCalibrationActions.h"
 #include "platform/win32/RecordingUiActions.h"
 #include "platform/win32/RuntimeStatus.h"
 
@@ -25,6 +26,7 @@ bool handleDeviceLabelKeyDown(HWND hwnd, AppWindowState* state, const WPARAM wpa
     if (state) {
         state->deviceLabelsVisible = !state->deviceLabelsVisible;
         refreshPoseAndViewport(hwnd);
+        InvalidateRect(hwnd, nullptr, FALSE);
     }
     return true;
 }
@@ -37,6 +39,7 @@ bool handleTrackedDeviceVisibilityKeyDown(HWND hwnd, AppWindowState* state, cons
     if (state) {
         state->trackedDevicesVisible = !state->trackedDevicesVisible;
         refreshPoseAndViewport(hwnd);
+        InvalidateRect(hwnd, nullptr, FALSE);
     }
     return true;
 }
@@ -51,6 +54,15 @@ bool handleQuadViewKeyDown(HWND hwnd, AppWindowState* state, const WPARAM wparam
         refreshPoseAndViewport(hwnd);
         InvalidateRect(hwnd, nullptr, FALSE);
     }
+    return true;
+}
+
+bool handleMappingCalibrationKeyDown(HWND hwnd, AppWindowState* state, const WPARAM wparam)
+{
+    if (wparam != 'C' || !state || !state->mappingPanelVisible || state->selectedMappingActorId == 0) {
+        return false;
+    }
+    calibrateSelectedMappingActor(hwnd, *state);
     return true;
 }
 

@@ -12,8 +12,10 @@ void createRecordSettingsCaptureControls(
 )
 {
     createRecordDelayControls(hwnd, font, result, controls);
-    createRecordSaveFormatControls(hwnd, font, result, controls);
     createRecordResampleControls(hwnd, font, result, controls);
+    createStartRecordingOnCalibrationControls(hwnd, font, result, controls);
+    createExportAfterRecordingControls(hwnd, font, result, controls);
+    createNoiseFilterOnExportControls(hwnd, font, result, controls);
 }
 
 } // namespace ovtr::win32

@@ -1,28 +1,26 @@
 #include "platform/win32/MappingPanelLayout.h"
-
 #include "platform/win32/MappingModel.h"
-
 namespace ovtr::win32 {
 namespace {
-
 constexpr int kPanelPadding = 10;
 constexpr int kProfileBoxHeight = 28;
 constexpr int kProfileBoxGap = 8;
+constexpr int kColorBoxHeight = 28;
+constexpr int kColorBoxGap = 4;
 constexpr int kNameBoxHeight = 28;
-constexpr int kNameBoxGap = 8;
-constexpr int kPresetControlsGap = 8;
+constexpr int kNameBoxGap = 4;
+constexpr int kPresetControlsGap = 4;
 constexpr int kPresetControlsHeight = 28;
-constexpr int kActorButtonGap = 8;
+constexpr int kActorButtonGap = 6;
 constexpr int kActorButtonHeight = 28;
 constexpr int kActorListGap = 8;
 constexpr int kActorListHeight = 84;
 constexpr int kMinimumActorListHeight = 56;
 constexpr int kFilterBoxGap = 8;
-constexpr int kFilterBoxHeight = 48;
+constexpr int kFilterBoxHeight = 34;
 constexpr int kPreferredRowHeight = 28;
 constexpr int kMinimumRowHeight = 18;
 constexpr int kDropdownGap = 2;
-
 RECT insetRect(RECT rect, const int dx, const int dy) noexcept
 {
     rect.left += dx;
@@ -42,9 +40,7 @@ int visibleDropdownOptionCount(const int optionCount) noexcept
 {
     return optionCount <= 0 ? 1 : optionCount;
 }
-
 } // namespace
-
 MappingPanelControlsLayout mappingControlsLayoutForPanel(const ProfilePanelLayout& panelLayout) noexcept
 {
     MappingPanelControlsLayout layout;
@@ -53,9 +49,9 @@ MappingPanelControlsLayout mappingControlsLayoutForPanel(const ProfilePanelLayou
     }
 
     const RECT contentRect = insetRect(panelLayout.panelRect, kPanelPadding, kPanelPadding);
-    const int fixedWithoutActorList = kProfileBoxHeight + kProfileBoxGap + kNameBoxHeight + kNameBoxGap +
-        kPresetControlsGap + kPresetControlsHeight + kActorButtonGap + kActorButtonHeight + kActorListGap +
-        kActorButtonGap + kActorButtonHeight + kFilterBoxGap + kFilterBoxHeight;
+    const int fixedWithoutActorList = kProfileBoxHeight + kProfileBoxGap + kColorBoxHeight + kColorBoxGap +
+        kNameBoxHeight + kNameBoxGap + kPresetControlsGap + kPresetControlsHeight + kActorButtonGap +
+        kActorButtonHeight + kActorListGap + kActorButtonGap + kActorButtonHeight + kFilterBoxGap + kFilterBoxHeight;
     int actorListHeight = kActorListHeight;
     int availableTableHeight = contentRect.bottom - contentRect.top - fixedWithoutActorList - actorListHeight;
     if (availableTableHeight < kMinimumRowHeight) {
@@ -78,17 +74,23 @@ MappingPanelControlsLayout mappingControlsLayoutForPanel(const ProfilePanelLayou
     if (layout.visibleRowCount > kMappingPanelRowCount) {
         layout.visibleRowCount = kMappingPanelRowCount;
     }
-    layout.profileBoxRect = RECT{contentRect.left, contentRect.top, contentRect.right, contentRect.top + kProfileBoxHeight};
+    layout.profileBoxRect = {contentRect.left, contentRect.top, contentRect.right, contentRect.top + kProfileBoxHeight};
     const int boxWidth = layout.profileBoxRect.right - layout.profileBoxRect.left;
     const int valueLeft = layout.profileBoxRect.left + (boxWidth * 38) / 100;
     layout.profileLabelRect = {layout.profileBoxRect.left + 8, layout.profileBoxRect.top, valueLeft - 8, layout.profileBoxRect.bottom};
     layout.profileValueRect = {valueLeft + 4, layout.profileBoxRect.top + 3, layout.profileBoxRect.right - 8, layout.profileBoxRect.bottom - 3};
-    layout.nameBoxRect = {contentRect.left, layout.profileBoxRect.bottom + kProfileBoxGap, contentRect.right, layout.profileBoxRect.bottom + kProfileBoxGap + kNameBoxHeight};
+    layout.tableRect = {contentRect.left, layout.profileBoxRect.bottom + kProfileBoxGap, contentRect.right,
+                        layout.profileBoxRect.bottom + kProfileBoxGap + layout.rowHeight * layout.visibleRowCount};
+    layout.colorBoxRect = {contentRect.left, layout.tableRect.bottom + kColorBoxGap, contentRect.right,
+                           layout.tableRect.bottom + kColorBoxGap + kColorBoxHeight};
+    layout.colorLabelRect = {layout.colorBoxRect.left + 8, layout.colorBoxRect.top, valueLeft - 8, layout.colorBoxRect.bottom};
+    layout.colorPickButtonRect = {layout.colorBoxRect.right - 86, layout.colorBoxRect.top + 3, layout.colorBoxRect.right - 8, layout.colorBoxRect.bottom - 3};
+    layout.colorSwatchRect = {valueLeft + 4, layout.colorBoxRect.top + 5, layout.colorPickButtonRect.left - 8, layout.colorBoxRect.bottom - 5};
+    layout.nameBoxRect = {contentRect.left, layout.colorBoxRect.bottom + kNameBoxGap, contentRect.right,
+                          layout.colorBoxRect.bottom + kNameBoxGap + kNameBoxHeight};
     layout.nameLabelRect = {layout.nameBoxRect.left + 8, layout.nameBoxRect.top, valueLeft - 8, layout.nameBoxRect.bottom};
-    layout.nameValueRect = {valueLeft + 4, layout.nameBoxRect.top + 3, layout.nameBoxRect.right - 8,
-                            layout.nameBoxRect.bottom - 3};
-    layout.tableRect = {contentRect.left, layout.nameBoxRect.bottom + kNameBoxGap, contentRect.right, layout.nameBoxRect.bottom + kNameBoxGap + layout.rowHeight * layout.visibleRowCount};
-    const int presetTop = layout.tableRect.bottom + kPresetControlsGap;
+    layout.nameValueRect = {valueLeft + 4, layout.nameBoxRect.top + 3, layout.nameBoxRect.right - 8, layout.nameBoxRect.bottom - 3};
+    const int presetTop = layout.nameBoxRect.bottom + kPresetControlsGap;
     const int saveRight = contentRect.left + 86;
     layout.presetSaveButtonRect = {contentRect.left, presetTop, saveRight, presetTop + kPresetControlsHeight};
     layout.presetValueRect = {saveRight + 8, presetTop, contentRect.right, presetTop + kPresetControlsHeight};
@@ -295,5 +297,4 @@ int mappingPresetDropdownOptionFromPoint(const MappingPanelControlsLayout& contr
     const int visibleOptions = visibleDropdownOptionCount(optionCount);
     return option >= 0 && option < visibleOptions ? option : -1;
 }
-
 } // namespace ovtr::win32

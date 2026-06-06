@@ -15,6 +15,11 @@ void handleMainWindowCaptureChanged(HWND hwnd, LPARAM lparam)
         state->importedSceneLastUpdate = std::chrono::steady_clock::now();
         InvalidateRect(hwnd, nullptr, FALSE);
     }
+    if (state && state->loadedSessionTimelineDragging && reinterpret_cast<HWND>(lparam) != hwnd) {
+        state->loadedSessionTimelineDragging = false;
+        state->loadedSessionLastUpdate = std::chrono::steady_clock::now();
+        InvalidateRect(hwnd, nullptr, FALSE);
+    }
     if (state && state->debugResizeDragging && reinterpret_cast<HWND>(lparam) != hwnd) {
         state->debugResizeDragging = false;
         InvalidateRect(hwnd, nullptr, FALSE);

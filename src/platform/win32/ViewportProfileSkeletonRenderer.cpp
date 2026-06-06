@@ -96,14 +96,32 @@ void drawSkeletonJoints(
     const ProfileSkeletonJoints& joints,
     const float heightMeters,
     const Vec3 offset,
+    const RgbColor color,
     const std::array<MappingVirtualTarget, kMappingSlotCount>* targets = nullptr
 )
 {
     if (viewportState.viewportSettings.skeletonDisplayType == SkeletonDisplayType::Box) {
-        drawBodySkeletonBoxes3D(viewportState, joints, heightMeters, offset, targets);
+        drawBodySkeletonBoxes3D(viewportState, joints, heightMeters, offset, color, targets);
         return;
     }
-    drawSkeletonLineJoints(joints, heightMeters, offset, viewportState.viewportSettings.bodyColor);
+    drawSkeletonLineJoints(joints, heightMeters, offset, color);
+}
+
+void drawSkeletonPose(
+    AppViewportState& viewportState,
+    const ProfileSkeletonJoints& rest,
+    const ProfileSkeletonJoints& joints,
+    const SkeletonPose& pose,
+    const float heightMeters,
+    const Vec3 offset,
+    const RgbColor color
+)
+{
+    if (viewportState.viewportSettings.skeletonDisplayType == SkeletonDisplayType::Box) {
+        drawBodySkeletonBoxesFromPose3D(viewportState, rest, joints, pose, heightMeters, offset, color);
+        return;
+    }
+    drawSkeletonLineJoints(joints, heightMeters, offset, color);
 }
 
 ProfileSkeletonJoints drawSkeletonProfile(AppViewportState& viewportState, const BodyProfile& profile, const Vec3 offset)
@@ -113,7 +131,8 @@ ProfileSkeletonJoints drawSkeletonProfile(AppViewportState& viewportState, const
         viewportState,
         joints,
         computedProfileHeightCm(profile) * 0.01f,
-        offset
+        offset,
+        viewportState.viewportSettings.bodyColor
     );
     return joints;
 }
@@ -121,6 +140,24 @@ ProfileSkeletonJoints drawSkeletonProfile(AppViewportState& viewportState, const
 Vec3 actorOffset() noexcept
 {
     return Vec3{0.0f, 0.0f, 0.0f};
+}
+
+void drawIkTargetJointLine(
+    const MappingActor& actor,
+    const Vec3 offset,
+    const MappingTrackerRole targetRole,
+    const int jointIndex
+)
+{
+    const auto slot = static_cast<std::size_t>(mappingSlotForRole(targetRole));
+    const MappingVirtualTarget& target = actor.liveVirtualTargets[slot];
+    if (!target.valid) {
+        return;
+    }
+    const Vec3 targetPosition = translated(target.transform.position, offset);
+    const Vec3 jointPosition = translated(actor.liveJoints[static_cast<std::size_t>(jointIndex)].positionMeters, offset);
+    glVertex3f(targetPosition.x, targetPosition.y, targetPosition.z);
+    glVertex3f(jointPosition.x, jointPosition.y, jointPosition.z);
 }
 
 void drawMappingDebug(const MappingActor& actor, const Vec3 offset)
@@ -144,6 +181,10 @@ void drawMappingDebug(const MappingActor& actor, const Vec3 offset)
         glVertex3f(root.x, root.y, root.z);
         glVertex3f(point.x, point.y, point.z);
     }
+    drawIkTargetJointLine(actor, offset, MappingTrackerRole::LeftArm, kProfileJointLeftArm);
+    drawIkTargetJointLine(actor, offset, MappingTrackerRole::RightArm, kProfileJointRightArm);
+    drawIkTargetJointLine(actor, offset, MappingTrackerRole::LeftLeg, kProfileJointLeftLeg);
+    drawIkTargetJointLine(actor, offset, MappingTrackerRole::RightLeg, kProfileJointRightLeg);
     glEnd();
 }
 
@@ -192,15 +233,18 @@ void drawMappingActors3D(
             );
             if (actor.liveJointsValid) {
                 recordSkeletonFrameIfRecording(recordingState, actor, std::chrono::steady_clock::now());
-                drawSkeletonJoints(
+                const ProfileSkeletonJoints rest = buildProfileSkeletonJoints(actor.profile);
+                drawSkeletonPose(
                     viewportState,
+                    rest,
                     actor.liveJoints,
+                    actor.liveSkeletonPose,
                     computedProfileHeightCm(actor.profile) * 0.01f,
                     actorOffset(),
-                    &actor.liveVirtualTargets
+                    actor.skeletonColor
                 );
                 if (debugState.debugMonitorVisible) {
-                    drawSkeletonJointAxes3D(actor.liveJoints, actorOffset(), &actor.liveVirtualTargets);
+                    drawSkeletonPoseJointAxes3D(rest, actor.liveJoints, actor.liveSkeletonPose, actorOffset());
                 }
                 if (debugState.debugMonitorVisible && actor.id == profileState.selectedMappingActorId) {
                     drawMappingDebug(actor, actorOffset());
@@ -208,7 +252,14 @@ void drawMappingActors3D(
                 continue;
             }
         }
-        const ProfileSkeletonJoints joints = drawSkeletonProfile(viewportState, actor.profile, actorOffset());
+        const ProfileSkeletonJoints joints = buildProfileSkeletonJoints(actor.profile);
+        drawSkeletonJoints(
+            viewportState,
+            joints,
+            computedProfileHeightCm(actor.profile) * 0.01f,
+            actorOffset(),
+            actor.skeletonColor
+        );
         if (debugState.debugMonitorVisible) {
             drawSkeletonJointAxes3D(joints, actorOffset());
         }

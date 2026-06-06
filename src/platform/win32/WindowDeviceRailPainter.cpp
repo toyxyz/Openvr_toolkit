@@ -4,6 +4,7 @@
 #include "platform/win32/AppProfileState.h"
 #include "platform/win32/AppState.h"
 #include "platform/win32/Layout.h"
+#include "platform/win32/MappingEditPanelPainter.h"
 #include "platform/win32/MappingPanelPainter.h"
 #include "platform/win32/PaintWidgets.h"
 #include "platform/win32/ProfilePanelPainter.h"
@@ -27,7 +28,11 @@ int activeDebugMonitorHeightForState(const AppDebugUiState& state, const int cli
 int leftPanelWidthForState(const AppDebugUiState& state, const int clientWidth)
 {
     const int requestedWidth = state.leftPanelWidth > 0 ? state.leftPanelWidth : 0;
-    return leftPanelWidthForClient(state.devicePanelVisible, requestedWidth, clientWidth);
+    return leftPanelWidthForClient(
+        state.devicePanelVisible || state.sessionPanelVisible,
+        requestedWidth,
+        clientWidth
+    );
 }
 
 ProfilePanelLayout rightPanelLayoutForState(
@@ -38,7 +43,7 @@ ProfilePanelLayout rightPanelLayoutForState(
 )
 {
     return profilePanelLayoutForClient(
-        state.profilePanelVisible || state.mappingPanelVisible,
+        state.profilePanelVisible || state.mappingPanelVisible || state.editPanelVisible,
         state.profilePanelWidth > 0 ? state.profilePanelWidth : defaultProfilePanelWidthForClient(clientWidth),
         contentBottom,
         clientWidth,
@@ -124,6 +129,11 @@ void paintRightRail(
     if (mappingButtonRect.right > mappingButtonRect.left && mappingButtonRect.bottom > mappingButtonRect.top) {
         drawMappingToggleButton(drawDc, font, mappingButtonRect, state.mappingPanelVisible);
     }
+
+    const RECT editButtonRect = editToggleButtonRectForClient(contentBottom, clientWidth, clientHeight);
+    if (editButtonRect.right > editButtonRect.left && editButtonRect.bottom > editButtonRect.top) {
+        drawEditToggleButton(drawDc, font, editButtonRect, state.editPanelVisible);
+    }
 }
 
 } // namespace
@@ -158,6 +168,16 @@ void paintDeviceRailAndSplitter(
         );
     }
 
+    const RECT sessionButtonRect = sessionToggleButtonRectForClient(contentBottom, clientWidth, clientHeight);
+    if (sessionButtonRect.right > sessionButtonRect.left && sessionButtonRect.bottom > sessionButtonRect.top) {
+        drawSessionToggleButton(
+            drawDc,
+            font,
+            sessionButtonRect,
+            state.sessionPanelVisible
+        );
+    }
+
     const RECT splitterRect = splitterRectForClient(
         leftPanelWidthForState(state, clientWidth),
         activeDebugMonitorHeightForState(state, clientHeight),
@@ -181,7 +201,7 @@ void paintDeviceRailAndSplitter(
         LineTo(drawDc, splitterRect.right - 1, splitterRect.bottom);
     }
 
-    if (!state.devicePanelVisible) {
+    if (!state.devicePanelVisible && !state.sessionPanelVisible) {
         return;
     }
 
@@ -247,6 +267,8 @@ void paintProfileRailAndPanel(
             paintProfilePanelContent(drawDc, font, state, panelLayout);
         } else if (state.mappingPanelVisible) {
             paintMappingPanelContent(drawDc, font, state, panelLayout);
+        } else if (state.editPanelVisible) {
+            paintMappingEditPanelContent(drawDc, font, state, panelLayout);
         }
     }
 

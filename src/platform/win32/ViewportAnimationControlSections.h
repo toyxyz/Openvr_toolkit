@@ -10,6 +10,7 @@
 namespace ovtr::win32 {
 
 struct AppImportedSceneState;
+struct AppLoadedSessionState;
 
 void drawImportedAnimationButtons(
     HDC drawDc,
@@ -22,11 +23,22 @@ void drawImportedAnimationTimeline(
     const ViewportControlLayout& layout,
     const AppImportedSceneState& state
 );
+void drawLoadedSessionAnimationTimeline(
+    HDC drawDc,
+    const ViewportControlLayout& layout,
+    const AppLoadedSessionState& state
+);
 void drawImportedAnimationFrameText(
     HDC drawDc,
     HFONT font,
     const ViewportControlLayout& layout,
     const AppImportedSceneState& state
+);
+void drawLoadedSessionAnimationFrameText(
+    HDC drawDc,
+    HFONT font,
+    const ViewportControlLayout& layout,
+    const AppLoadedSessionState& state
 );
 
 } // namespace ovtr::win32
