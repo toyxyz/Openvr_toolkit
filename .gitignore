@@ -10,7 +10,8 @@ out/
 *.pdb
 *.ilk
 *.log
-.tmp_ovtr_core_tests/
+.tmp_msbuild/
+.tmp_ovtr_*/
 toyxyz_openvr_toolkit/
 toyxyz_vr_toolkit_v1/
 redistributable/
