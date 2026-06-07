@@ -2,6 +2,7 @@
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/SessionPlaybackFrameIndex.h"
+#include "platform/win32/VmcLegRotationContinuity.h"
 
 #include <utility>
 
@@ -30,6 +31,7 @@ bool sampleLoadedSessionFrame(AppWindowState& state)
     const std::uint64_t frameIndex = loadedSessionFrameIndexForPlayback(state);
     if (loadedSessionFrameDiscontinuous(state, frameIndex)) {
         resetMappingActorsLiveContinuity(state);
+        resetVmcLegRotationContinuity(state.vmcLegRotationContinuity);
     }
     FrameSample frame;
     if (!state.loadedSessionReader.readFrame(frameIndex, frame)) {

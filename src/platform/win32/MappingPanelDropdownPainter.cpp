@@ -49,7 +49,7 @@ std::wstring currentMappingText(const AppWindowState& state, const int slotIndex
     }
 
     const std::vector<DeviceListRow> rows = fingerSide >= 0
-        ? makeSkeletalInputRows(state, fingerSide)
+        ? makeFingerInputRows(state, fingerSide)
         : makeDeviceListRows(state);
     for (const DeviceListRow& row : rows) {
         if (row.runtimeIndex == runtimeIndex) {

@@ -1,5 +1,6 @@
 #include "platform/win32/SessionPlayback.h"
 #include "data/SkeletalSyntheticPose.h"
+#include "data/VmcSyntheticPose.h"
 #include "platform/win32/AppLoadedSessionState.h"
 #include "platform/win32/AppOriginState.h"
 #include "platform/win32/AppRuntimeState.h"
@@ -39,7 +40,7 @@ void synthesizeMissingDevices(RecordingSession& session, const FrameSample& firs
         return;
     }
     for (const PoseSample& pose : firstFrame.poses) {
-        if (!isSkeletalBoneRuntimeIndex(pose.runtimeIndex)) {
+        if (!isSkeletalBoneRuntimeIndex(pose.runtimeIndex) && !isVmcFingerRuntimeIndex(pose.runtimeIndex)) {
             session.devices.push_back(fallbackDeviceForPose(pose));
         }
     }
@@ -213,6 +214,7 @@ void setLoadedSessionPlaybackSeconds(AppLoadedSessionState& state, const double 
 {
     state.loadedSessionPlaybackSeconds = std::clamp(playbackSeconds, 0.0, loadedSessionDurationSeconds(state));
     state.loadedSessionLastUpdate = now;
+    state.loadedSessionLastSampledFrameValid = false;
 }
 
 void setLoadedSessionPlaybackSeconds(AppLoadedSessionState& state, const double playbackSeconds) noexcept

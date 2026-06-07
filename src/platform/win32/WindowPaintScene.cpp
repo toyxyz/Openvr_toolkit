@@ -10,6 +10,7 @@
 #include "platform/win32/RecordingSessionList.h"
 #include "platform/win32/SessionPanelPainter.h"
 #include "platform/win32/StatusBarPainter.h"
+#include "platform/win32/StreamingPanelPainter.h"
 #include "platform/win32/ViewportControlPainter.h"
 #include "platform/win32/WindowChromePainter.h"
 #include "platform/win32/WindowLayout.h"
@@ -49,6 +50,9 @@ void paintWindowScene(
     const SessionListLayout sessionListLayout = state
         ? sessionListLayoutForClient(state, clientWidth, clientHeight, static_cast<int>(sessionRows.size()))
         : SessionListLayout{};
+    const StreamingPanelLayout streamingPanelLayout = state
+        ? streamingPanelLayoutForClient(state, clientWidth, clientHeight)
+        : StreamingPanelLayout{};
     const MarkerListLayout markerListLayout = state
         ? markerListLayoutForClient(state, clientWidth, clientHeight)
         : MarkerListLayout{};
@@ -67,6 +71,13 @@ void paintWindowScene(
             *state,
             sessionListLayout,
             sessionRows
+        );
+        paintStreamingPanel(
+            drawDc,
+            fonts.bodyFont(),
+            fonts.statusFont(),
+            *state,
+            streamingPanelLayout
         );
         paintMarkerListPanel(drawDc, fonts.bodyFont(), fonts.statusFont(), *state, markerListLayout);
         paintOriginPanel(

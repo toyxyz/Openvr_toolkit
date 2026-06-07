@@ -49,6 +49,9 @@ int main()
         ovtr::test::testWin32DebugLayout();
         ovtr::test::testWin32DeviceList();
         ovtr::test::testWin32DeviceListLayout();
+        ovtr::test::testWin32VmcFingerInput();
+        ovtr::test::testWin32VmcFingerSolve();
+        ovtr::test::testWin32VmcArmContinuity();
         ovtr::test::testWin32ImportedSceneLifecycle();
         ovtr::test::testWin32ImportedScenePlayback();
         ovtr::test::testWin32SkeletonGltfFootFollowsToeDirection();

@@ -7,6 +7,8 @@
 #include "platform/win32/DeviceList.h"
 #include "platform/win32/MarkerList.h"
 
+#include <vector>
+
 namespace ovtr::win32 {
 
 RECT deviceToggleButtonRectForClient(
@@ -215,12 +217,17 @@ std::uint32_t deviceRuntimeIndexFromListPoint(
     const POINT point
 )
 {
-    return deviceRuntimeIndexFromListPoint(
-        static_cast<const AppRuntimeState&>(state),
-        static_cast<const AppDeviceState&>(state),
+    const std::vector<DeviceListRow> rows = makeDevicePanelRows(state);
+    const int rowIndex = deviceListRowIndexFromPoint(
         layout,
-        point
+        point,
+        static_cast<int>(rows.size()),
+        state.deviceListScrollOffset
     );
+    if (rowIndex < 0 || rowIndex >= static_cast<int>(rows.size())) {
+        return kNoSelectedRuntimeIndex;
+    }
+    return rows[static_cast<std::size_t>(rowIndex)].runtimeIndex;
 }
 
 std::uint32_t markerIdFromListPoint(
@@ -242,7 +249,7 @@ int leftPanelWidthForClient(const AppWindowState* state, const int clientWidth)
         ? state->leftPanelWidth
         : 0;
     return leftPanelWidthForClient(
-        !state || state->devicePanelVisible || state->sessionPanelVisible,
+        !state || state->devicePanelVisible || state->sessionPanelVisible || state->streamingPanelVisible,
         requestedWidth,
         clientWidth
     );

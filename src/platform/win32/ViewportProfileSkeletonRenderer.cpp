@@ -1,5 +1,6 @@
 #include "platform/win32/ViewportProfileSkeletonRenderer.h"
 
+#include "platform/win32/AppLog.h"
 #include "platform/win32/MappingCalibrationSolve.h"
 #include "platform/win32/ProfileSkeleton.h"
 #include "platform/win32/SkeletonRecording.h"
@@ -7,6 +8,7 @@
 #include "platform/win32/ViewportDrawPrimitives.h"
 #include "platform/win32/ViewportGlStateScope.h"
 #include "platform/win32/ViewportSkeletonJointAxes.h"
+#include "platform/win32/VmcStreamingPose.h"
 #include "platform/win32/Win32String.h"
 
 #include <algorithm>
@@ -14,6 +16,7 @@
 #include <cmath>
 #include <cstddef>
 #include <gl/GL.h>
+#include <string>
 
 namespace ovtr::win32 {
 namespace {
@@ -214,7 +217,8 @@ void drawMappingActors3D(
     const AppRuntimeState& runtimeState,
     const AppOriginState& originState,
     AppRecordingState& recordingState,
-    const AppDebugUiState& debugState,
+    AppStreamingState& streamingState,
+    AppDebugUiState& debugState,
     AppViewportState& viewportState
 )
 {
@@ -223,6 +227,14 @@ void drawMappingActors3D(
     }
     ScopedGlCapability lighting(GL_LIGHTING, false);
     ScopedGlCapability texture2D(GL_TEXTURE_2D, false);
+    const bool selectedCalibrated = std::any_of(
+        profileState.mappingActors.begin(),
+        profileState.mappingActors.end(),
+        [&](const MappingActor& actor) {
+            return actor.calibrated && actor.id == profileState.selectedMappingActorId;
+        }
+    );
+    bool streamedActor = false;
     for (MappingActor& actor : profileState.mappingActors) {
         if (actor.calibrated) {
             updateCalibratedMappingActorJoints(
@@ -235,6 +247,18 @@ void drawMappingActors3D(
             if (actor.liveJointsValid) {
                 recordSkeletonFrameIfRecording(recordingState, actor, std::chrono::steady_clock::now());
                 const ProfileSkeletonJoints rest = buildProfileSkeletonJoints(actor.profile);
+                const bool shouldStream = !streamedActor &&
+                    (!selectedCalibrated || actor.id == profileState.selectedMappingActorId);
+                if (shouldStream) {
+                    std::string error;
+                    if (sendMappingActorVmcPose(streamingState, actor, error)) {
+                        streamingState.vmcSendErrorLogged = false;
+                    } else if (!streamingState.vmcSendErrorLogged) {
+                        appendDebugLog(debugState, L"VMC streaming send failed: " + widen(error));
+                        streamingState.vmcSendErrorLogged = true;
+                    }
+                    streamedActor = true;
+                }
                 drawSkeletonPose(
                     viewportState,
                     rest,

@@ -88,6 +88,8 @@ struct RecordSettingsConfig {
 struct StreamingSettingsConfig {
     bool realtimeSmoothingEnabled = false;
     RealtimeSmoothingPreset realtimeSmoothingPreset = RealtimeSmoothingPreset::Normal;
+    bool vmcReceiveEnabled = false;
+    int vmcPort = 39540;
 };
 
 struct OriginConfig {

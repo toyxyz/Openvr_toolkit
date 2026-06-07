@@ -135,7 +135,8 @@ void drawScene3D(AppWindowState& state, const int paneHeight, const CameraView& 
         static_cast<const AppRuntimeState&>(state),
         static_cast<const AppOriginState&>(state),
         static_cast<AppRecordingState&>(state),
-        static_cast<const AppDebugUiState&>(state),
+        static_cast<AppStreamingState&>(state),
+        static_cast<AppDebugUiState&>(state),
         static_cast<AppViewportState&>(state)
     );
     drawTrackedDevices3D(

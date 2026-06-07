@@ -5,6 +5,7 @@
 #include "platform/win32/MappingOffsetPresetNameEditor.h"
 #include "platform/win32/ProfileEditor.h"
 #include "platform/win32/SessionEditor.h"
+#include "platform/win32/StreamingPanelEditor.h"
 #include "platform/win32/WindowStateAccess.h"
 
 namespace ovtr::win32 {
@@ -69,6 +70,10 @@ void layoutChildWindows(HWND hwnd)
     updateMappingActorNameEditorLayout(hwnd, *state);
     updateMappingNameEditorLayout(hwnd, *state);
     updateMappingOffsetPresetNameEditorLayout(hwnd, *state);
+    updateStreamingHostEditorLayout(hwnd, *state);
+    updateStreamingPortEditorLayout(hwnd, *state);
+    updateStreamingArmSpacingEditorLayout(hwnd, *state);
+    updateStreamingLegSpacingEditorLayout(hwnd, *state);
 }
 
 } // namespace ovtr::win32

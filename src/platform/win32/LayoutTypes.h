@@ -58,6 +58,31 @@ struct SessionListLayout {
     bool valid = false;
 };
 
+struct StreamingPanelLayout {
+    RECT boxRect{0, 0, 0, 0};
+    RECT headerRect{0, 0, 0, 0};
+    RECT targetBoxRect{0, 0, 0, 0};
+    RECT targetLabelRect{0, 0, 0, 0};
+    RECT targetValueRect{0, 0, 0, 0};
+    RECT targetDropdownRect{0, 0, 0, 0};
+    RECT vmcBoxRect{0, 0, 0, 0};
+    RECT vmcHeaderRect{0, 0, 0, 0};
+    RECT hostBoxRect{0, 0, 0, 0};
+    RECT hostLabelRect{0, 0, 0, 0};
+    RECT hostValueRect{0, 0, 0, 0};
+    RECT portBoxRect{0, 0, 0, 0};
+    RECT portLabelRect{0, 0, 0, 0};
+    RECT portValueRect{0, 0, 0, 0};
+    RECT armSpacingBoxRect{0, 0, 0, 0};
+    RECT armSpacingLabelRect{0, 0, 0, 0};
+    RECT armSpacingValueRect{0, 0, 0, 0};
+    RECT legSpacingBoxRect{0, 0, 0, 0};
+    RECT legSpacingLabelRect{0, 0, 0, 0};
+    RECT legSpacingValueRect{0, 0, 0, 0};
+    bool valid = false;
+    bool vmcVisible = false;
+};
+
 struct ProfilePanelLayout {
     RECT panelRect{0, 0, 0, 0};
     RECT splitterRect{0, 0, 0, 0};

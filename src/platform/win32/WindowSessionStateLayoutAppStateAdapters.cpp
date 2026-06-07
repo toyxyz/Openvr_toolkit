@@ -22,6 +22,23 @@ RECT sessionToggleButtonRectForClient(
     );
 }
 
+RECT streamingToggleButtonRectForClient(
+    const AppWindowState* state,
+    const int clientWidth,
+    const int clientHeight
+)
+{
+    if (!state || clientWidth <= 0 || clientHeight <= 0) {
+        return RECT{0, 0, 0, 0};
+    }
+
+    return streamingToggleButtonRectForClient(
+        leftPanelContentBottomForClient(state, clientHeight),
+        clientWidth,
+        clientHeight
+    );
+}
+
 SessionListLayout sessionListLayoutForClient(
     const AppWindowState* state,
     const int clientWidth,
@@ -48,6 +65,23 @@ SessionListLayout sessionListLayoutForClient(
         lowerPanelValid,
         lowerPanelTop,
         sessionCount
+    );
+}
+
+StreamingPanelLayout streamingPanelLayoutForClient(
+    const AppWindowState* state,
+    const int clientWidth,
+    const int clientHeight
+)
+{
+    if (!state) {
+        return {};
+    }
+    return streamingPanelLayoutForClient(
+        state->streamingPanelVisible,
+        state->streamingOutputTarget == StreamingOutputTarget::Vmc,
+        leftPanelWidthForClient(state, clientWidth),
+        leftPanelContentBottomForClient(state, clientHeight)
     );
 }
 

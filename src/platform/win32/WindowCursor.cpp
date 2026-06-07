@@ -87,6 +87,18 @@ bool handleMainWindowSetCursor(HWND hwnd, LPARAM lparam)
     if (PtInRect(&sessionButtonRect, point)) {
         return setHandCursor();
     }
+    const RECT streamingButtonRect = streamingToggleButtonRectForClient(state, clientWidth, clientHeight);
+    if (PtInRect(&streamingButtonRect, point)) {
+        return setHandCursor();
+    }
+    const StreamingPanelLayout streamingLayout = streamingPanelLayoutForClient(state, clientWidth, clientHeight);
+    if (state->streamingPanelVisible && streamingLayout.valid &&
+        (PtInRect(&streamingLayout.targetValueRect, point) ||
+         PtInRect(&streamingLayout.hostValueRect, point) ||
+         PtInRect(&streamingLayout.portValueRect, point) ||
+         (state->streamingTargetDropdownOpen && PtInRect(&streamingLayout.targetDropdownRect, point)))) {
+        return setHandCursor();
+    }
     const RECT profileButtonRect = profileToggleButtonRectForClient(state, clientWidth, clientHeight);
     if (PtInRect(&profileButtonRect, point)) {
         return setHandCursor();
@@ -156,7 +168,7 @@ bool handleMainWindowSetCursor(HWND hwnd, LPARAM lparam)
     }
 
     const RECT splitterRect = splitterRectForClient(state, clientWidth, clientHeight);
-    if ((state->devicePanelVisible || state->sessionPanelVisible) &&
+    if ((state->devicePanelVisible || state->sessionPanelVisible || state->streamingPanelVisible) &&
         (state->splitterDragging || PtInRect(&splitterRect, point))) {
         SetCursor(LoadCursor(nullptr, IDC_SIZEWE));
         return true;

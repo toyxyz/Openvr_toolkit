@@ -2,6 +2,7 @@
 #include "TestSupport.h"
 
 #include "data/SkeletalSyntheticPose.h"
+#include "data/VmcSyntheticPose.h"
 #include "platform/win32/AppState.h"
 #include "platform/win32/DeviceList.h"
 
@@ -105,15 +106,31 @@ void testWin32DeviceList()
     rightFingerPose.runtimeIndex = ovtr::skeletalBoneRuntimeIndex(ovtr::SkeletalHandSide::Right, 12);
     state.poses.poses.push_back(leftFingerPose);
     state.poses.poses.push_back(rightFingerPose);
+    ovtr::PoseSample leftVmcPose;
+    leftVmcPose.runtimeIndex = ovtr::vmcFingerRuntimeIndex(ovtr::SkeletalHandSide::Left, 0);
+    ovtr::PoseSample rightVmcPose;
+    rightVmcPose.runtimeIndex = ovtr::vmcFingerRuntimeIndex(ovtr::SkeletalHandSide::Right, 0);
+    state.poses.poses.push_back(leftVmcPose);
+    state.poses.poses.push_back(rightVmcPose);
 
     const std::vector<ovtr::win32::DeviceListRow> panelRows =
         ovtr::win32::makeDevicePanelRows(state);
-    require(panelRows.size() == 5, "device panel includes skeletal input summary rows");
+    require(panelRows.size() == 7, "device panel includes skeletal and VMC finger summary rows");
     require(panelRows[3].customName == L"Skeletal Input Left", "left skeletal input row label");
     require(panelRows[4].customName == L"Skeletal Input Right", "right skeletal input row label");
+    require(panelRows[5].customName == L"VMC Finger Left", "left VMC finger row label");
+    require(panelRows[6].customName == L"VMC Finger Right", "right VMC finger row label");
+    require(
+        ovtr::win32::makeFingerInputRows(state, 0).size() == 2,
+        "left finger input rows include SteamVR and VMC"
+    );
+    require(
+        ovtr::win32::makeFingerInputRows(state, 1).size() == 2,
+        "right finger input rows include SteamVR and VMC"
+    );
     require(
         ovtr::win32::makeDeviceListRows(state).size() == 3,
-        "mapping device rows keep skeletal input hidden"
+        "mapping device rows keep synthetic finger input hidden"
     );
 }
 

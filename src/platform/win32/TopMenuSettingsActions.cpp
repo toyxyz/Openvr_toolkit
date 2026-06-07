@@ -6,6 +6,7 @@
 #include "platform/win32/ConfigStore.h"
 #include "platform/win32/Dialogs.h"
 #include "platform/win32/ViewportRenderer.h"
+#include "platform/win32/Win32String.h"
 #include "platform/win32/WindowLayout.h"
 
 #include <mutex>
@@ -82,6 +83,8 @@ bool showStreamingSettings(HWND parent, AppWindowState& state)
         std::lock_guard<std::mutex> lock(state.realtimeSmoothingMutex);
         input.realtimeSmoothingEnabled = state.realtimeSmoothingEnabled;
         input.realtimeSmoothingPreset = state.realtimeSmoothingPreset;
+        input.vmcReceiveEnabled = state.vmcReceiveEnabled;
+        input.vmcPort = state.vmcPort;
     }
 
     StreamingSettingsConfig result;
@@ -95,12 +98,21 @@ bool showStreamingSettings(HWND parent, AppWindowState& state)
         state.realtimeSmoothingPreset = result.realtimeSmoothingPreset;
         state.realtimePoseSmoother.setPreset(result.realtimeSmoothingPreset);
         state.realtimePoseSmoother.reset();
+        state.vmcReceiveEnabled = result.vmcReceiveEnabled;
+        state.vmcPort = result.vmcPort;
+        std::string vmcError;
+        if (!state.vmcReceiver.configure(state.vmcReceiveEnabled, state.vmcPort, vmcError)) {
+            state.vmcReceiveEnabled = false;
+            MessageBoxW(parent, widen(vmcError).c_str(), L"VMC Receive", MB_OK | MB_ICONERROR);
+            appendDebugLog(state, "VMC receive start failed: " + vmcError);
+        }
     }
     appendDebugLog(
         state,
         std::string("Streaming settings updated: smoothing ") +
             (result.realtimeSmoothingEnabled ? "on, " : "off, ") +
-            realtimeSmoothingPresetConfigValue(result.realtimeSmoothingPreset)
+            realtimeSmoothingPresetConfigValue(result.realtimeSmoothingPreset) +
+            ", VMC receive " + (state.vmcReceiveEnabled ? "on" : "off")
     );
     saveStreamingSettingsConfig(state);
     invalidateStatusPanel(parent);

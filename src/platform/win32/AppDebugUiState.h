@@ -14,6 +14,7 @@ struct AppDebugUiState {
     int leftPanelWidth = 0;
     bool devicePanelVisible = true;
     bool sessionPanelVisible = false;
+    bool streamingPanelVisible = false;
     int sessionListScrollOffset = 0;
     std::wstring selectedSessionName;
     bool splitterDragging = false;

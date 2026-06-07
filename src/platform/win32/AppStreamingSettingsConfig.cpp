@@ -28,6 +28,8 @@ bool writeStreamingSettingsConfigFile(const AppStreamingState& state, std::strin
         std::lock_guard<std::mutex> lock(state.realtimeSmoothingMutex);
         config.realtimeSmoothingEnabled = state.realtimeSmoothingEnabled;
         config.realtimeSmoothingPreset = state.realtimeSmoothingPreset;
+        config.vmcReceiveEnabled = state.vmcReceiveEnabled;
+        config.vmcPort = state.vmcPort;
     }
     output << serializeStreamingSettingsConfig(config);
     return true;
@@ -59,6 +61,15 @@ void loadStreamingSettingsConfig(AppStreamingState& state, AppDebugUiState& logS
         state.realtimeSmoothingPreset = config.realtimeSmoothingPreset;
         state.realtimePoseSmoother.setPreset(config.realtimeSmoothingPreset);
         state.realtimePoseSmoother.reset();
+        state.vmcReceiveEnabled = config.vmcReceiveEnabled;
+        state.vmcPort = config.vmcPort;
+    }
+    if (state.vmcReceiveEnabled) {
+        std::string error;
+        if (!state.vmcReceiver.configure(true, state.vmcPort, error)) {
+            state.vmcReceiveEnabled = false;
+            appendDebugLog(logState, "VMC receive start failed: " + error);
+        }
     }
     appendDebugLog(logState, "Streaming settings config loaded: " + path.string());
 }

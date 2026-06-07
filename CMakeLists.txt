@@ -57,6 +57,7 @@ add_library(openvr_tracker_recorder_core STATIC
     src/app/Application.cpp
     src/data/SessionTypes.cpp
     src/data/SkeletalSyntheticPose.cpp
+    src/data/VmcSyntheticPose.cpp
     src/export/ExportPoseTrack.cpp
     src/export/FbxAsciiFormatting.cpp
     src/export/FbxAsciiAnimationWriter.cpp
@@ -278,6 +279,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/MappingCalibrationSolve.cpp
         src/platform/win32/MappingFingerSolve.cpp
         src/platform/win32/MappingFingerSampling.cpp
+        src/platform/win32/MappingVmcFingerSolve.cpp
         src/platform/win32/MappingLegRollHints.cpp
         src/platform/win32/MappingCalibrationTargets.cpp
         src/platform/win32/MappingPoleSolve.cpp
@@ -342,6 +344,24 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/ProfileStore.cpp
         src/platform/win32/PoseSamplingWorker.cpp
         src/platform/win32/RealtimePoseSmoothing.cpp
+        src/platform/win32/StreamingPanelEditor.cpp
+        src/platform/win32/StreamingPanelHostEditor.cpp
+        src/platform/win32/StreamingPanelLayout.cpp
+        src/platform/win32/StreamingPanelPainter.cpp
+        src/platform/win32/StreamingPanelSpacingEditor.cpp
+        src/platform/win32/VmcFingerDisplayRotation.cpp
+        src/platform/win32/VmcFingerOutputRotation.cpp
+        src/platform/win32/VmcFingerRotationFilter.cpp
+        src/platform/win32/VmcFingerState.cpp
+        src/platform/win32/VmcArmRotationContinuity.cpp
+        src/platform/win32/VmcLegRotationContinuity.cpp
+        src/platform/win32/VmcLimbSpacing.cpp
+        src/platform/win32/VmcOscWriter.cpp
+        src/platform/win32/VmcOscParser.cpp
+        src/platform/win32/VmcPoseBuilder.cpp
+        src/platform/win32/VmcReceiver.cpp
+        src/platform/win32/VmcSender.cpp
+        src/platform/win32/VmcStreamingPose.cpp
         src/platform/win32/RecordSettingsActionButtons.cpp
         src/platform/win32/RecordSettingsAutoExportControls.cpp
         src/platform/win32/RecordSettingsCaptureControls.cpp
@@ -501,6 +521,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/WindowScroll.cpp
         src/platform/win32/WindowSessionStateLayoutAppStateAdapters.cpp
         src/platform/win32/WindowStateLayout.cpp
+        src/platform/win32/WindowStreamingPanelClickActions.cpp
         src/platform/win32/WindowTopBarClickActions.cpp
         src/platform/win32/WindowViewportStateLayout.cpp
         src/platform/win32/WindowViewportClickActions.cpp
@@ -532,6 +553,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
             opengl32
             windowscodecs
             winmm
+            ws2_32
     )
 
     if(OVTR_HAS_OPENVR_SDK)
@@ -611,6 +633,7 @@ if(OVTR_BUILD_TESTS)
                 src/platform/win32/ConfigNamedPaths.cpp
                 src/platform/win32/ConfigOriginText.cpp
                 src/platform/win32/ConfigRecordSettingsText.cpp
+                src/platform/win32/ConfigStreamingSettingsText.cpp
                 src/platform/win32/ConfigText.cpp
                 src/platform/win32/ConfigViewportSettingsClamp.cpp
                 src/platform/win32/ConfigViewportSettingsSerialize.cpp
@@ -662,6 +685,7 @@ if(OVTR_BUILD_TESTS)
                 src/platform/win32/MappingCalibrationSolve.cpp
                 src/platform/win32/MappingFingerSolve.cpp
                 src/platform/win32/MappingFingerSampling.cpp
+                src/platform/win32/MappingVmcFingerSolve.cpp
                 src/platform/win32/MappingLegRollHints.cpp
                 src/platform/win32/MappingCalibrationTargets.cpp
                 src/platform/win32/MappingModel.cpp
@@ -698,6 +722,23 @@ if(OVTR_BUILD_TESTS)
                 src/platform/win32/ProfileStore.cpp
                 src/platform/win32/PoseSamplingWorker.cpp
                 src/platform/win32/RealtimePoseSmoothing.cpp
+                src/platform/win32/StreamingPanelEditor.cpp
+                src/platform/win32/StreamingPanelHostEditor.cpp
+                src/platform/win32/StreamingPanelLayout.cpp
+                src/platform/win32/StreamingPanelSpacingEditor.cpp
+                src/platform/win32/VmcFingerDisplayRotation.cpp
+                src/platform/win32/VmcFingerOutputRotation.cpp
+                src/platform/win32/VmcFingerRotationFilter.cpp
+                src/platform/win32/VmcFingerState.cpp
+                src/platform/win32/VmcArmRotationContinuity.cpp
+                src/platform/win32/VmcLegRotationContinuity.cpp
+                src/platform/win32/VmcLimbSpacing.cpp
+                src/platform/win32/VmcOscWriter.cpp
+                src/platform/win32/VmcOscParser.cpp
+                src/platform/win32/VmcPoseBuilder.cpp
+                src/platform/win32/VmcReceiver.cpp
+                src/platform/win32/VmcSender.cpp
+                src/platform/win32/VmcStreamingPose.cpp
                 src/platform/win32/RecordSettingsModel.cpp
                 src/platform/win32/RecordingCleanupActions.cpp
                 src/platform/win32/RecordingExportDispatch.cpp
@@ -796,6 +837,9 @@ if(OVTR_BUILD_TESTS)
                 tests/test_win32_viewport_gpu_mesh.cpp
                 tests/test_win32_viewport_settings_config.cpp
                 tests/test_win32_viewport_math.cpp
+                tests/test_win32_vmc_arm_continuity.cpp
+                tests/test_win32_vmc_finger_solve.cpp
+                tests/test_win32_vmc.cpp
         )
         target_link_libraries(openvr_tracker_recorder_tests
             PRIVATE
@@ -806,6 +850,7 @@ if(OVTR_BUILD_TESTS)
                 ole32
                 opengl32
                 glad_vendor
+                ws2_32
         )
     endif()
 

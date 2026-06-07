@@ -96,7 +96,8 @@ bool handleMainWindowMouseMove(HWND hwnd, LPARAM lparam)
     }
 
     const RECT splitterRect = splitterRectForClient(state, clientWidth, clientHeight);
-    if (state->devicePanelVisible && PtInRect(&splitterRect, point)) {
+    if ((state->devicePanelVisible || state->sessionPanelVisible || state->streamingPanelVisible) &&
+        PtInRect(&splitterRect, point)) {
         SetCursor(LoadCursor(nullptr, IDC_SIZEWE));
         return true;
     }

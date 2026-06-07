@@ -91,6 +91,9 @@ void testWin32ViewportControlLayout();
 void testWin32ViewportGpuMesh();
 void testWin32ViewportSettingsConfig();
 void testWin32ViewportMath();
+void testWin32VmcArmContinuity();
+void testWin32VmcFingerInput();
+void testWin32VmcFingerSolve();
 #endif
 
 } // namespace ovtr::test

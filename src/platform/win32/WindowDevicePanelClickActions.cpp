@@ -11,6 +11,7 @@
 #include "platform/win32/ProfileEditor.h"
 #include "platform/win32/RecordingSessionList.h"
 #include "platform/win32/SessionEditor.h"
+#include "platform/win32/StreamingPanelEditor.h"
 #include "platform/win32/ViewportRenderer.h"
 #include "platform/win32/WindowLayout.h"
 
@@ -35,6 +36,11 @@ bool handleDeviceToggleClick(
     state.devicePanelVisible = !state.devicePanelVisible;
     if (state.devicePanelVisible) {
         state.sessionPanelVisible = false;
+        state.streamingPanelVisible = false;
+        state.streamingTargetDropdownOpen = false;
+        closeStreamingHostEditor(hwnd, state);
+        closeStreamingPortEditor(hwnd, state);
+        closeStreamingSpacingEditors(hwnd, state);
     }
     state.splitterDragging = false;
     if (!state.devicePanelVisible && state.originEditWindow) {
@@ -67,6 +73,11 @@ bool handleSessionToggleClick(
     state.sessionPanelVisible = !state.sessionPanelVisible;
     if (state.sessionPanelVisible) {
         state.devicePanelVisible = false;
+        state.streamingPanelVisible = false;
+        state.streamingTargetDropdownOpen = false;
+        closeStreamingHostEditor(hwnd, state);
+        closeStreamingPortEditor(hwnd, state);
+        closeStreamingSpacingEditors(hwnd, state);
         if (state.originEditWindow) {
             closeOriginEditor(hwnd, state);
         }
@@ -83,6 +94,7 @@ bool handleSessionToggleClick(
     invalidateWindowLayout(hwnd);
     return true;
 }
+
 bool handleProfileToggleClick(
     HWND hwnd,
     AppWindowState& state,
@@ -201,7 +213,8 @@ bool handleDeviceSplitterClick(
 )
 {
     const RECT splitterRect = splitterRectForClient(&state, clientWidth, clientHeight);
-    if (!(state.devicePanelVisible || state.sessionPanelVisible) || !PtInRect(&splitterRect, point)) {
+    if (!(state.devicePanelVisible || state.sessionPanelVisible || state.streamingPanelVisible) ||
+        !PtInRect(&splitterRect, point)) {
         return false;
     }
 

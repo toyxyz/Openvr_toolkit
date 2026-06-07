@@ -103,6 +103,33 @@ void testWin32ConfigStore()
         serializedDisabledOrigin.find("rz=13.000000000") != std::string::npos,
         "serialize disabled origin rotation"
     );
+
+    std::istringstream legacyStreamingInput("realtime_smoothing_enabled=false\n");
+    const ovtr::win32::StreamingSettingsConfig legacyStreaming =
+        ovtr::win32::parseStreamingSettingsConfig(legacyStreamingInput);
+    require(!legacyStreaming.vmcReceiveEnabled, "legacy streaming config disables VMC receive");
+    require(legacyStreaming.vmcPort == 39540, "legacy streaming config uses default VMC port");
+
+    std::istringstream streamingInput(
+        "realtime_smoothing_enabled=true\n"
+        "vmc_receive_enabled=true\n"
+        "vmc_port=39541\n"
+    );
+    const ovtr::win32::StreamingSettingsConfig streaming =
+        ovtr::win32::parseStreamingSettingsConfig(streamingInput);
+    require(streaming.vmcReceiveEnabled, "parse VMC receive enabled");
+    require(streaming.vmcPort == 39541, "parse VMC port");
+    const std::string serializedStreaming = ovtr::win32::serializeStreamingSettingsConfig(streaming);
+    require(
+        serializedStreaming.find("vmc_receive_enabled=true") != std::string::npos,
+        "serialize VMC receive enabled"
+    );
+    require(serializedStreaming.find("vmc_port=39541") != std::string::npos, "serialize VMC port");
+
+    std::istringstream invalidStreamingInput("vmc_port=99999\n");
+    const ovtr::win32::StreamingSettingsConfig invalidStreaming =
+        ovtr::win32::parseStreamingSettingsConfig(invalidStreamingInput);
+    require(invalidStreaming.vmcPort == 39540, "invalid VMC port falls back to default");
 }
 
 } // namespace ovtr::test

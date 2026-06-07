@@ -1,6 +1,9 @@
 #include "platform/win32/DevicePanelPainter.h"
 
 #include "platform/win32/AppState.h"
+#include "platform/win32/DeviceList.h"
+
+#include <vector>
 
 namespace ovtr::win32 {
 
@@ -12,13 +15,14 @@ void paintDeviceListPanel(
     const DeviceListLayout& layout
 )
 {
-    paintDeviceListPanel(
+    const std::vector<DeviceListRow> deviceRows = makeDevicePanelRows(state);
+    paintDeviceListPanelRows(
         drawDc,
         bodyFont,
         headerFont,
-        static_cast<const AppRuntimeState&>(state),
         static_cast<AppDeviceState&>(state),
-        layout
+        layout,
+        deviceRows
     );
 }
 

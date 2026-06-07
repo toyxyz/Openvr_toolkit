@@ -7,11 +7,14 @@
 
 #include "platform/win32/LayoutTypes.h"
 
+#include <vector>
+
 namespace ovtr::win32 {
 
 struct AppDeviceState;
 struct AppRuntimeState;
 struct AppWindowState;
+struct DeviceListRow;
 
 void paintDeviceListPanel(
     HDC drawDc,
@@ -27,6 +30,14 @@ void paintDeviceListPanel(
     HFONT headerFont,
     AppWindowState& state,
     const DeviceListLayout& layout
+);
+void paintDeviceListPanelRows(
+    HDC drawDc,
+    HFONT bodyFont,
+    HFONT headerFont,
+    AppDeviceState& deviceState,
+    const DeviceListLayout& layout,
+    const std::vector<DeviceListRow>& deviceRows
 );
 
 } // namespace ovtr::win32

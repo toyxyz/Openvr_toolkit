@@ -1,10 +1,11 @@
 #include "platform/win32/MappingFingerSolve.h"
 
 #include "data/SkeletalSyntheticPose.h"
-#include "platform/win32/MappingFingerSampling.h"
 #include "math/PoseTransform.h"
+#include "platform/win32/MappingFingerSampling.h"
 #include "platform/win32/MappingHandBasis.h"
 #include "platform/win32/MappingTransformMath.h"
+#include "platform/win32/MappingVmcFingerSolve.h"
 
 #include <array>
 #include <cstddef>
@@ -12,7 +13,6 @@
 namespace ovtr::win32 {
 namespace {
 
-constexpr int kHandSideCount = 2;
 constexpr int kOpenVrWristBone = 1;
 
 struct SkeletalPoseCache {
@@ -37,15 +37,11 @@ ovtr::SkeletalHandSide skeletalSide(const ProfileSkeletonHandSide side) noexcept
 
 bool isSkeletalInputEnabledForSide(const MappingActor& actor, const ProfileSkeletonHandSide side) noexcept
 {
-    const int slot = sideSlot(side);
-    const std::uint32_t runtimeIndex =
-        actor.mappingFingerRuntimeIndices[static_cast<std::size_t>(slot)];
-    if (runtimeIndex == kNoSelectedRuntimeIndex) {
-        return false;
-    }
+    const std::uint32_t runtimeIndex = actor.mappingFingerRuntimeIndices[static_cast<std::size_t>(sideSlot(side))];
     ovtr::SkeletalHandSide selectedSide = ovtr::SkeletalHandSide::Left;
     std::uint32_t boneIndex = 0;
-    return ovtr::decodeSkeletalBoneRuntimeIndex(runtimeIndex, selectedSide, boneIndex) &&
+    return runtimeIndex != kNoSelectedRuntimeIndex &&
+        ovtr::decodeSkeletalBoneRuntimeIndex(runtimeIndex, selectedSide, boneIndex) &&
         selectedSide == skeletalSide(side);
 }
 
@@ -110,10 +106,7 @@ bool solveSkeletalHandCandidate(
             const float restDistance = mappingRestFingerDistance(rest, side, finger, segment);
             const float sourceDistance =
                 mappingSourceFingerDistanceForSegment(line, finger, restDistance, restTotal, segment);
-            const Vec3 local = alignSkeletalHandPoint(
-                alignment,
-                sampleMappingFingerPolyline(line, sourceDistance)
-            );
+            const Vec3 local = alignSkeletalHandPoint(alignment, sampleMappingFingerPolyline(line, sourceDistance));
             const int joint = profileFingerJoint(side, finger, segment);
             out[static_cast<std::size_t>(joint)].positionMeters =
                 transformMappingPoint(targetWrist, scaleMappingVec3(local, scale));
@@ -137,13 +130,11 @@ bool applySkeletalHand(
     if (middle.count < 2 || middle.length <= 0.00001f || restMiddle <= 0.00001f) {
         return false;
     }
-
     const MappingFingerAlignment alignment = makeMappingFingerAlignment(cache.transforms, cache.valid, rest, side);
     if (!alignment.valid) {
         return false;
     }
-    const float scale = restMiddle / middle.length;
-    return solveSkeletalHandCandidate(out, rest, cache, side, targetWrist, alignment, scale);
+    return solveSkeletalHandCandidate(out, rest, cache, side, targetWrist, alignment, restMiddle / middle.length);
 }
 
 } // namespace
@@ -186,20 +177,17 @@ void updateMappingActorFingerJoints(
     for (const ProfileSkeletonHandSide side : {ProfileSkeletonHandSide::Left, ProfileSkeletonHandSide::Right}) {
         const MappingTransform wristTarget = wristTargetFor(out, targets, side);
         applyRestHandFingerJoints(out, rest, wristTarget, side);
-        if (!isSkeletalInputEnabledForSide(actor, side)) {
+        const bool useSkeletal = isSkeletalInputEnabledForSide(actor, side);
+        const bool useVmc = mappingVmcFingerInputEnabledForSide(actor, side);
+        if (!useSkeletal && !useVmc) {
             actor.liveFingerJointsValid[static_cast<std::size_t>(sideSlot(side))] = false;
             continue;
         }
         SkeletalPoseCache cache;
-        const bool hasHand = collectHandPoseCache(
-            poses,
-            originEnabled,
-            originOffset,
-            originRotationDegrees,
-            side,
-            cache
-        );
-        const bool updated = hasHand && applySkeletalHand(out, rest, cache, side, wristTarget);
+        const bool updated = useVmc
+            ? applyVmcFingerHandFromPoses(out, rest, poses, originEnabled, originOffset, originRotationDegrees, side, wristTarget)
+            : collectHandPoseCache(poses, originEnabled, originOffset, originRotationDegrees, side, cache) &&
+                applySkeletalHand(out, rest, cache, side, wristTarget);
         actor.liveFingerJointsValid[static_cast<std::size_t>(sideSlot(side))] = updated;
     }
 }

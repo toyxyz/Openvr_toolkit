@@ -20,11 +20,23 @@ void paintDeviceListPanel(
     const DeviceListLayout& layout
 )
 {
+    const std::vector<DeviceListRow> deviceRows = makeDevicePanelRows(runtimeState, deviceState);
+    paintDeviceListPanelRows(drawDc, bodyFont, headerFont, deviceState, layout, deviceRows);
+}
+
+void paintDeviceListPanelRows(
+    HDC drawDc,
+    HFONT bodyFont,
+    HFONT headerFont,
+    AppDeviceState& deviceState,
+    const DeviceListLayout& layout,
+    const std::vector<DeviceListRow>& deviceRows
+)
+{
     if (!layout.valid) {
         return;
     }
 
-    const std::vector<DeviceListRow> deviceRows = makeDevicePanelRows(runtimeState, deviceState);
     deviceState.deviceListScrollOffset = clampDeviceListScrollOffset(
         deviceState.deviceListScrollOffset,
         static_cast<int>(deviceRows.size()),

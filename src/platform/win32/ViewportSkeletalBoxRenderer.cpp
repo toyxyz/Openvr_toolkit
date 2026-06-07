@@ -1,6 +1,7 @@
 #include "platform/win32/ViewportSkeletalBoxRenderer.h"
 
 #include "data/SkeletalSyntheticPose.h"
+#include "data/VmcSyntheticPose.h"
 #include "math/PoseTransform.h"
 #include "platform/win32/AppOriginState.h"
 #include "platform/win32/AppViewportState.h"
@@ -17,6 +18,7 @@ namespace ovtr::win32 {
 namespace {
 
 constexpr std::size_t kSkeletalPoseSlotCount = ovtr::kSkeletalHandBoneCount * 2u;
+constexpr std::size_t kVmcPoseSlotCount = ovtr::kVmcFingerBoneCount * 2u;
 constexpr GLfloat kSkeletalBoneLineWidth = 12.0f;
 
 struct SkeletalPoseCache {
@@ -24,9 +26,19 @@ struct SkeletalPoseCache {
     std::array<bool, kSkeletalPoseSlotCount> valid{};
 };
 
+struct VmcPoseCache {
+    std::array<ovtr::PoseSample, kVmcPoseSlotCount> poses{};
+    std::array<bool, kVmcPoseSlotCount> valid{};
+};
+
 std::size_t skeletalPoseSlot(const ovtr::SkeletalHandSide side, const std::uint32_t boneIndex) noexcept
 {
     return (side == ovtr::SkeletalHandSide::Left ? 0u : ovtr::kSkeletalHandBoneCount) + boneIndex;
+}
+
+std::size_t vmcPoseSlot(const ovtr::SkeletalHandSide side, const std::uint32_t boneIndex) noexcept
+{
+    return (side == ovtr::SkeletalHandSide::Left ? 0u : ovtr::kVmcFingerBoneCount) + boneIndex;
 }
 
 void drawBoxFaces(const float halfX, const float halfY, const float halfZ)
@@ -80,9 +92,9 @@ ovtr::PoseSample displayPoseForState(const AppOriginState& state, ovtr::PoseSamp
     );
 }
 
-void drawSkeletalBox(const ovtr::PoseSample& pose, AppViewportState& state)
+void drawFingerBox(const ovtr::PoseSample& pose, AppViewportState& state, const float edgeMeters)
 {
-    const float halfEdge = ovtr::kSkeletalBoneBoxEdgeMeters * 0.5f;
+    const float halfEdge = edgeMeters * 0.5f;
     ScopedGlMatrixStack modelView(GL_MODELVIEW);
     glTranslatef(pose.position[0], pose.position[1], pose.position[2]);
     multiplyOpenGLMatrixFromQuaternion(pose.rotation);
@@ -142,6 +154,33 @@ void drawSkeletalBoneLines(const SkeletalPoseCache& cache, const AppViewportStat
     glLineWidth(previousWidth);
 }
 
+void drawVmcBoneLines(const VmcPoseCache& cache, const AppViewportState& state)
+{
+    ScopedGlCapability lighting(GL_LIGHTING, false);
+    ScopedGlCapability texture2D(GL_TEXTURE_2D, false);
+    setGlColor(state.viewportSettings.fingerBoxColor);
+
+    GLfloat previousWidth = 1.0f;
+    glGetFloatv(GL_LINE_WIDTH, &previousWidth);
+    glLineWidth(kSkeletalBoneLineWidth);
+    glBegin(GL_LINES);
+    for (const ovtr::SkeletalHandSide side : {ovtr::SkeletalHandSide::Left, ovtr::SkeletalHandSide::Right}) {
+        for (std::uint32_t boneIndex = 0; boneIndex < ovtr::kVmcFingerBoneCount; ++boneIndex) {
+            std::uint32_t parentIndex = 0;
+            if (!ovtr::vmcFingerParentIndex(boneIndex, parentIndex)) {
+                continue;
+            }
+            const std::size_t childSlot = vmcPoseSlot(side, boneIndex);
+            const std::size_t parentSlot = vmcPoseSlot(side, parentIndex);
+            if (cache.valid[childSlot] && cache.valid[parentSlot]) {
+                drawSkeletalLine(cache.poses[parentSlot], cache.poses[childSlot]);
+            }
+        }
+    }
+    glEnd();
+    glLineWidth(previousWidth);
+}
+
 } // namespace
 
 void drawSkeletalFingerBoxes3D(
@@ -151,25 +190,34 @@ void drawSkeletalFingerBoxes3D(
 )
 {
     SkeletalPoseCache cache;
+    VmcPoseCache vmcCache;
     for (const ovtr::PoseSample& pose : poses.poses) {
-        if (!ovtr::isSkeletalBoneRuntimeIndex(pose.runtimeIndex) ||
-            (pose.flags & ovtr::PoseFlagPoseValid) == 0) {
+        if ((pose.flags & ovtr::PoseFlagPoseValid) == 0) {
             continue;
         }
         ovtr::SkeletalHandSide side = ovtr::SkeletalHandSide::Left;
         std::uint32_t boneIndex = 0;
-        if (!ovtr::decodeSkeletalBoneRuntimeIndex(pose.runtimeIndex, side, boneIndex)) {
-            continue;
+        if (ovtr::decodeSkeletalBoneRuntimeIndex(pose.runtimeIndex, side, boneIndex)) {
+            const std::size_t slot = skeletalPoseSlot(side, boneIndex);
+            cache.poses[slot] = displayPoseForState(originState, pose);
+            cache.valid[slot] = true;
+        } else if (ovtr::decodeVmcFingerRuntimeIndex(pose.runtimeIndex, side, boneIndex)) {
+            const std::size_t slot = vmcPoseSlot(side, boneIndex);
+            vmcCache.poses[slot] = displayPoseForState(originState, pose);
+            vmcCache.valid[slot] = true;
         }
-        const std::size_t slot = skeletalPoseSlot(side, boneIndex);
-        cache.poses[slot] = displayPoseForState(originState, pose);
-        cache.valid[slot] = true;
     }
 
     drawSkeletalBoneLines(cache, viewportState);
+    drawVmcBoneLines(vmcCache, viewportState);
     for (std::size_t slot = 0; slot < cache.poses.size(); ++slot) {
         if (cache.valid[slot]) {
-            drawSkeletalBox(cache.poses[slot], viewportState);
+            drawFingerBox(cache.poses[slot], viewportState, ovtr::kSkeletalBoneBoxEdgeMeters);
+        }
+    }
+    for (std::size_t slot = 0; slot < vmcCache.poses.size(); ++slot) {
+        if (vmcCache.valid[slot]) {
+            drawFingerBox(vmcCache.poses[slot], viewportState, ovtr::kVmcFingerBoneBoxEdgeMeters);
         }
     }
 }

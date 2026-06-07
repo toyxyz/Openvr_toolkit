@@ -3,6 +3,14 @@
 #include <sstream>
 
 namespace ovtr::win32 {
+namespace {
+
+int sanitizedVmcPort(const int value) noexcept
+{
+    return value >= 1 && value <= 65535 ? value : 39540;
+}
+
+} // namespace
 
 StreamingSettingsConfig parseStreamingSettingsConfig(std::istream& input)
 {
@@ -24,6 +32,13 @@ StreamingSettingsConfig parseStreamingSettingsConfig(std::istream& input)
                 assignment.value,
                 config.realtimeSmoothingPreset
             );
+        } else if (assignment.key == "vmc_receive_enabled") {
+            parseBoolConfigValue(assignment.value, config.vmcReceiveEnabled);
+        } else if (assignment.key == "vmc_port") {
+            int parsed = config.vmcPort;
+            if (parseIntConfigValue(assignment.value, parsed)) {
+                config.vmcPort = sanitizedVmcPort(parsed);
+            }
         }
     }
 
@@ -37,6 +52,9 @@ std::string serializeStreamingSettingsConfig(const StreamingSettingsConfig& conf
            << (config.realtimeSmoothingEnabled ? "true" : "false") << "\n";
     output << "realtime_smoothing_preset="
            << realtimeSmoothingPresetConfigValue(config.realtimeSmoothingPreset) << "\n";
+    output << "vmc_receive_enabled="
+           << (config.vmcReceiveEnabled ? "true" : "false") << "\n";
+    output << "vmc_port=" << sanitizedVmcPort(config.vmcPort) << "\n";
     return output.str();
 }
 

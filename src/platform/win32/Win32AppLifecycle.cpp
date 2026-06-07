@@ -10,6 +10,7 @@
 #include "platform/win32/AppState.h"
 #include "platform/win32/PoseSamplingWorker.h"
 #include "platform/win32/SessionEditor.h"
+#include "platform/win32/StreamingPanelEditor.h"
 #include "platform/win32/ViewportRenderer.h"
 #include "platform/win32/WindowStateAccess.h"
 
@@ -65,8 +66,22 @@ void destroyAppWindowState(HWND hwnd)
         if (state->sessionEditWindow) {
             closeSessionEditor(hwnd, *state);
         }
+        if (state->vmcSendHostEditWindow) {
+            closeStreamingHostEditor(hwnd, *state);
+        }
+        if (state->vmcSendPortEditWindow) {
+            closeStreamingPortEditor(hwnd, *state);
+        }
+        if (state->vmcArmSpacingEditWindow) {
+            closeStreamingArmSpacingEditor(hwnd, *state);
+        }
+        if (state->vmcLegSpacingEditWindow) {
+            closeStreamingLegSpacingEditor(hwnd, *state);
+        }
         stopExportProgressWorker(*state);
         stopPoseSamplingWorker(*state);
+        state->vmcReceiver.stop();
+        state->vmcSender.stop();
         destroyConfiguredAppIcon(*state);
         {
             std::lock_guard<std::mutex> providerLock(state->providerMutex);

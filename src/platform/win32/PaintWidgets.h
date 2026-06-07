@@ -13,6 +13,7 @@ struct AppOriginState;
 
 void drawDeviceToggleButton(HDC drawDc, HFONT font, const RECT& rect, bool expanded);
 void drawSessionToggleButton(HDC drawDc, HFONT font, const RECT& rect, bool expanded);
+void drawStreamingToggleButton(HDC drawDc, HFONT font, const RECT& rect, bool expanded);
 void drawProfileToggleButton(HDC drawDc, HFONT font, const RECT& rect, bool expanded);
 void drawMappingToggleButton(HDC drawDc, HFONT font, const RECT& rect, bool expanded);
 void drawEditToggleButton(HDC drawDc, HFONT font, const RECT& rect, bool expanded);

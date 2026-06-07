@@ -2,6 +2,7 @@
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/OriginState.h"
+#include "platform/win32/VmcPoseBuilder.h"
 
 #include <array>
 #include <cstdint>
@@ -20,6 +21,12 @@ Clock::duration poseSamplingInterval()
     return std::chrono::duration_cast<Clock::duration>(
         std::chrono::duration<double>(1.0 / kPoseSamplingTargetFps)
     );
+}
+
+std::uint64_t nowNs()
+{
+    const auto now = Clock::now().time_since_epoch();
+    return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(now).count());
 }
 
 void postStatusUpdate(HWND hwnd) noexcept
@@ -153,11 +160,18 @@ bool pollAndRecordPoseSampleOnce(
 )
 {
     ovtr::PosePollResult poses;
+    bool providerPosesAvailable = false;
     {
         std::lock_guard<std::mutex> providerLock(state.providerMutex);
-        if (!state.provider.isInitialized() || !state.provider.pollPoses(poses)) {
-            return true;
-        }
+        providerPosesAvailable = state.provider.isInitialized() && state.provider.pollPoses(poses);
+    }
+    if (!providerPosesAvailable) {
+        poses.timestampNs = nowNs();
+    }
+    appendVmcFingerPoses(state, poses);
+    if (!providerPosesAvailable && poses.poses.empty()) {
+        storeLatestPoseSnapshot(state, poses);
+        return true;
     }
     {
         std::lock_guard<std::mutex> smoothingLock(state.realtimeSmoothingMutex);

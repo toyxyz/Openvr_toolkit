@@ -156,7 +156,10 @@ std::array<float, 4> noRollFingerWorldRotation(
     const FingerBasis jointRestBasis = fingerBasisFor(rest, joint);
     const Vec3 y = normalizeMappingVec3Or(worldDelta, rotateFingerVec3(world[parent], jointRestBasis.y));
     const Vec3 parentSide = rotateFingerVec3(world[parent], parentRestBasis.x);
-    const Vec3 targetSide = handBasisForSide(target, handSideForJoint(joint)).x;
+    const Vec3 jointSide = target[static_cast<std::size_t>(joint)].sideHint;
+    const Vec3 targetSide = lengthMappingVec3(jointSide) > 0.0001f
+        ? jointSide
+        : handBasisForSide(target, handSideForJoint(joint)).x;
     const Vec3 hint = lengthMappingVec3(targetSide) > 0.0001f ? targetSide : parentSide;
     Vec3 x = subMappingVec3(hint, scaleMappingVec3(y, dotMappingVec3(hint, y)));
     x = normalizeMappingVec3Or(x, rotateFingerVec3(world[parent], jointRestBasis.x));

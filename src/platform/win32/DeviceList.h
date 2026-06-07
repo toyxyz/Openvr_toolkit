@@ -13,6 +13,7 @@ struct AppDeviceState;
 struct AppOriginState;
 struct AppRuntimeState;
 struct AppWindowState;
+struct VmcFingerSnapshot;
 
 struct DeviceListRow {
     std::uint32_t runtimeIndex = kNoSelectedRuntimeIndex;
@@ -40,6 +41,10 @@ std::vector<DeviceListRow> makeSkeletalInputRows(const AppRuntimeState& runtimeS
 std::vector<DeviceListRow> makeSkeletalInputRows(const AppRuntimeState& runtimeState, int sideIndex);
 std::vector<DeviceListRow> makeSkeletalInputRows(const AppWindowState& state);
 std::vector<DeviceListRow> makeSkeletalInputRows(const AppWindowState& state, int sideIndex);
+std::vector<DeviceListRow> makeVmcFingerInputRows(const VmcFingerSnapshot& snapshot);
+std::vector<DeviceListRow> makeVmcFingerInputRows(const VmcFingerSnapshot& snapshot, int sideIndex);
+std::vector<DeviceListRow> makeFingerInputRows(const AppRuntimeState& runtimeState, int sideIndex);
+std::vector<DeviceListRow> makeFingerInputRows(const AppWindowState& state, int sideIndex);
 std::string deviceDisplayName(const ovtr::DeviceDescriptor& device);
 std::string labelForDevice(
     const AppDeviceState& state,

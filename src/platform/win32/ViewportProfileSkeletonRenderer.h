@@ -5,6 +5,7 @@
 #include "platform/win32/AppOriginState.h"
 #include "platform/win32/AppRecordingState.h"
 #include "platform/win32/AppRuntimeState.h"
+#include "platform/win32/AppStreamingState.h"
 #include "platform/win32/AppViewportState.h"
 
 #include <gl/GL.h>
@@ -21,7 +22,8 @@ void drawMappingActors3D(
     const AppRuntimeState& runtimeState,
     const AppOriginState& originState,
     AppRecordingState& recordingState,
-    const AppDebugUiState& debugState,
+    AppStreamingState& streamingState,
+    AppDebugUiState& debugState,
     AppViewportState& viewportState
 );
 void drawMappingActorLabels3D(const AppProfileState& profileState, GLuint fontBase);

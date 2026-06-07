@@ -62,6 +62,11 @@ void drawSessionToggleButton(HDC drawDc, HFONT font, const RECT& rect, const boo
     drawVerticalToggleButton(drawDc, font, rect, L"Session", expanded, 112);
 }
 
+void drawStreamingToggleButton(HDC drawDc, HFONT font, const RECT& rect, const bool expanded)
+{
+    drawVerticalToggleButton(drawDc, font, rect, L"Stream", expanded, 128);
+}
+
 void drawProfileToggleButton(HDC drawDc, HFONT font, const RECT& rect, const bool expanded)
 {
     drawVerticalToggleButton(drawDc, font, rect, L"Profile", expanded, 112);

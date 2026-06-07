@@ -86,7 +86,7 @@ void applyMappingPreset(AppWindowState& state, const MappingPreset& preset)
     state.mappingFingerRuntimeIndices = defaultMappingFingerRuntimeIndices();
     for (int side = 0; side < kMappingFingerSourceCount; ++side) {
         const std::wstring& serial = preset.fingerSerials[static_cast<std::size_t>(side)];
-        for (const DeviceListRow& row : makeSkeletalInputRows(state, side)) {
+        for (const DeviceListRow& row : makeFingerInputRows(state, side)) {
             if (!serial.empty() && row.serial == serial) {
                 state.mappingFingerRuntimeIndices[static_cast<std::size_t>(side)] = row.runtimeIndex;
                 break;
@@ -129,7 +129,7 @@ void saveCurrentMappingPreset(HWND hwnd, AppWindowState& state)
     }
     for (int side = 0; side < kMappingFingerSourceCount; ++side) {
         preset.fingerSerials[static_cast<std::size_t>(side)] = serialForRuntimeIndex(
-            makeSkeletalInputRows(state, side),
+            makeFingerInputRows(state, side),
             state.mappingFingerRuntimeIndices[static_cast<std::size_t>(side)]
         );
     }

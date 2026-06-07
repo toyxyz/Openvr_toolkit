@@ -1,13 +1,17 @@
 #include "platform/win32/DeviceList.h"
 
 #include "data/SkeletalSyntheticPose.h"
+#include "data/VmcSyntheticPose.h"
 #include "platform/win32/AppDeviceState.h"
 #include "platform/win32/AppRuntimeState.h"
 #include "platform/win32/ConfigStore.h"
+#include "platform/win32/VmcFingerState.h"
 #include "platform/win32/Win32String.h"
 
 #include <algorithm>
+#include <chrono>
 #include <sstream>
+#include <utility>
 
 namespace ovtr::win32 {
 namespace {
@@ -48,6 +52,20 @@ void appendSkeletalInputRow(
     });
 }
 
+void appendVmcFingerInputRow(
+    std::vector<DeviceListRow>& rows,
+    const ovtr::SkeletalHandSide side
+)
+{
+    const bool isLeft = side == ovtr::SkeletalHandSide::Left;
+    rows.push_back(DeviceListRow{
+        ovtr::vmcFingerRuntimeIndex(side, 0),
+        isLeft ? L"VMC Finger Left" : L"VMC Finger Right",
+        L"VMC Finger Input",
+        isLeft ? L"VMC-FINGER-L" : L"VMC-FINGER-R",
+    });
+}
+
 std::vector<DeviceListRow> skeletalInputRowsForPoses(const ovtr::PosePollResult& poses)
 {
     std::vector<DeviceListRow> rows;
@@ -68,6 +86,53 @@ std::vector<DeviceListRow> skeletalInputRowsForPoses(const ovtr::PosePollResult&
     if (hasRight) {
         appendSkeletalInputRow(rows, ovtr::SkeletalHandSide::Right);
     }
+    return rows;
+}
+
+std::vector<DeviceListRow> vmcFingerRowsForPoses(const ovtr::PosePollResult& poses)
+{
+    std::vector<DeviceListRow> rows;
+    bool hasLeft = false;
+    bool hasRight = false;
+    for (const ovtr::PoseSample& pose : poses.poses) {
+        ovtr::SkeletalHandSide side = ovtr::SkeletalHandSide::Left;
+        std::uint32_t boneIndex = 0;
+        if (!ovtr::decodeVmcFingerRuntimeIndex(pose.runtimeIndex, side, boneIndex)) {
+            continue;
+        }
+        hasLeft = hasLeft || side == ovtr::SkeletalHandSide::Left;
+        hasRight = hasRight || side == ovtr::SkeletalHandSide::Right;
+    }
+    if (hasLeft) {
+        appendVmcFingerInputRow(rows, ovtr::SkeletalHandSide::Left);
+    }
+    if (hasRight) {
+        appendVmcFingerInputRow(rows, ovtr::SkeletalHandSide::Right);
+    }
+    return rows;
+}
+
+std::vector<DeviceListRow> filterFingerRowsBySide(std::vector<DeviceListRow> rows, const int sideIndex)
+{
+    if (sideIndex < 0 || sideIndex > 1) {
+        return rows;
+    }
+    const ovtr::SkeletalHandSide expectedSide =
+        sideIndex == 0 ? ovtr::SkeletalHandSide::Left : ovtr::SkeletalHandSide::Right;
+    rows.erase(
+        std::remove_if(
+            rows.begin(),
+            rows.end(),
+            [expectedSide](const DeviceListRow& row) {
+                ovtr::SkeletalHandSide side = ovtr::SkeletalHandSide::Left;
+                std::uint32_t boneIndex = 0;
+                const bool skeletal = ovtr::decodeSkeletalBoneRuntimeIndex(row.runtimeIndex, side, boneIndex);
+                const bool vmc = !skeletal && ovtr::decodeVmcFingerRuntimeIndex(row.runtimeIndex, side, boneIndex);
+                return (!skeletal && !vmc) || side != expectedSide;
+            }
+        ),
+        rows.end()
+    );
     return rows;
 }
 
@@ -113,6 +178,8 @@ std::vector<DeviceListRow> makeDevicePanelRows(
     std::vector<DeviceListRow> rows = makeDeviceListRows(runtimeState, deviceState);
     const std::vector<DeviceListRow> skeletalRows = makeSkeletalInputRows(runtimeState);
     rows.insert(rows.end(), skeletalRows.begin(), skeletalRows.end());
+    const std::vector<DeviceListRow> vmcRows = vmcFingerRowsForPoses(runtimeState.poses);
+    rows.insert(rows.end(), vmcRows.begin(), vmcRows.end());
     return rows;
 }
 
@@ -123,25 +190,33 @@ std::vector<DeviceListRow> makeSkeletalInputRows(const AppRuntimeState& runtimeS
 
 std::vector<DeviceListRow> makeSkeletalInputRows(const AppRuntimeState& runtimeState, const int sideIndex)
 {
-    std::vector<DeviceListRow> rows = makeSkeletalInputRows(runtimeState);
-    if (sideIndex < 0 || sideIndex > 1) {
-        return rows;
+    return filterFingerRowsBySide(makeSkeletalInputRows(runtimeState), sideIndex);
+}
+
+std::vector<DeviceListRow> makeVmcFingerInputRows(const VmcFingerSnapshot& snapshot)
+{
+    std::vector<DeviceListRow> rows;
+    const auto now = std::chrono::steady_clock::now();
+    for (const ovtr::SkeletalHandSide side : {ovtr::SkeletalHandSide::Left, ovtr::SkeletalHandSide::Right}) {
+        const VmcFingerSideState& hand = snapshot.hands[static_cast<std::size_t>(vmcSideIndex(side))];
+        if (isVmcFingerSideFresh(hand, now)) {
+            appendVmcFingerInputRow(rows, side);
+        }
     }
-    const ovtr::SkeletalHandSide expectedSide =
-        sideIndex == 0 ? ovtr::SkeletalHandSide::Left : ovtr::SkeletalHandSide::Right;
-    rows.erase(
-        std::remove_if(
-            rows.begin(),
-            rows.end(),
-            [expectedSide](const DeviceListRow& row) {
-                ovtr::SkeletalHandSide side = ovtr::SkeletalHandSide::Left;
-                std::uint32_t boneIndex = 0;
-                return !ovtr::decodeSkeletalBoneRuntimeIndex(row.runtimeIndex, side, boneIndex) ||
-                    side != expectedSide;
-            }
-        ),
-        rows.end()
-    );
+    return rows;
+}
+
+std::vector<DeviceListRow> makeVmcFingerInputRows(const VmcFingerSnapshot& snapshot, const int sideIndex)
+{
+    return filterFingerRowsBySide(makeVmcFingerInputRows(snapshot), sideIndex);
+}
+
+std::vector<DeviceListRow> makeFingerInputRows(const AppRuntimeState& runtimeState, const int sideIndex)
+{
+    std::vector<DeviceListRow> rows = makeSkeletalInputRows(runtimeState, sideIndex);
+    std::vector<DeviceListRow> vmcRows = vmcFingerRowsForPoses(runtimeState.poses);
+    vmcRows = filterFingerRowsBySide(std::move(vmcRows), sideIndex);
+    rows.insert(rows.end(), vmcRows.begin(), vmcRows.end());
     return rows;
 }
 

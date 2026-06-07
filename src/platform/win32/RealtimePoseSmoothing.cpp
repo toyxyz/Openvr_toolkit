@@ -1,6 +1,7 @@
 #include "platform/win32/RealtimePoseSmoothing.h"
 
 #include "data/SkeletalSyntheticPose.h"
+#include "data/VmcSyntheticPose.h"
 #include "platform/win32/ConfigStore.h"
 
 #include <algorithm>
@@ -23,6 +24,7 @@ bool finitePosition(const ovtr::PoseSample& pose) noexcept
 bool filterablePose(const ovtr::PoseSample& pose) noexcept
 {
     return !ovtr::isSkeletalBoneRuntimeIndex(pose.runtimeIndex) &&
+        !ovtr::isVmcFingerRuntimeIndex(pose.runtimeIndex) &&
         (pose.flags & ovtr::PoseFlagPoseValid) != 0 &&
         finitePosition(pose);
 }

@@ -1,6 +1,7 @@
 #include "platform/win32/ExportNoiseFilter.h"
 
 #include "data/SkeletalSyntheticPose.h"
+#include "data/VmcSyntheticPose.h"
 #include "platform/win32/AppConfig.h"
 #include "platform/win32/ConfigStore.h"
 #include "platform/win32/ExportLegacySmoothing.h"
@@ -42,6 +43,7 @@ bool filterablePose(const ovtr::PoseSample& pose) noexcept
 {
     return (pose.flags & ovtr::PoseFlagPoseValid) != 0 &&
         !ovtr::isSkeletalBoneRuntimeIndex(pose.runtimeIndex) &&
+        !ovtr::isVmcFingerRuntimeIndex(pose.runtimeIndex) &&
         finitePosition(pose);
 }
 
@@ -190,7 +192,8 @@ ExportNoiseFilterResult applyExportNoiseFilterToFrames(
     std::unordered_set<std::uint32_t> runtimeIndices;
     for (const ovtr::FrameSample& frame : frames) {
         for (const ovtr::PoseSample& pose : frame.poses) {
-            if (!ovtr::isSkeletalBoneRuntimeIndex(pose.runtimeIndex)) {
+            if (!ovtr::isSkeletalBoneRuntimeIndex(pose.runtimeIndex) &&
+                !ovtr::isVmcFingerRuntimeIndex(pose.runtimeIndex)) {
                 runtimeIndices.insert(pose.runtimeIndex);
             }
         }

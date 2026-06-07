@@ -2,6 +2,7 @@
 
 #include "math/PoseTransform.h"
 #include "data/SkeletalSyntheticPose.h"
+#include "data/VmcSyntheticPose.h"
 #include "platform/win32/AppDeviceState.h"
 #include "platform/win32/AppOriginState.h"
 #include "platform/win32/AppRuntimeState.h"
@@ -34,6 +35,19 @@ void drawDeviceLabel3D(
     drawLabelText3D(labelForDevice(deviceState, device, pose), fontBase);
 }
 
+void drawVmcFingerPreviewLabel3D(
+    const ovtr::PoseSample& pose,
+    const ovtr::SkeletalHandSide side,
+    const GLuint fontBase
+)
+{
+    if ((pose.flags & ovtr::PoseFlagPoseValid) == 0) {
+        return;
+    }
+    glRasterPos3f(pose.position[0], pose.position[1] + 0.06f, pose.position[2]);
+    drawLabelText3D(side == ovtr::SkeletalHandSide::Left ? "Left" : "Right", fontBase);
+}
+
 ovtr::PoseSample displayPoseForState(const AppOriginState& originState, const ovtr::PoseSample& pose)
 {
     return ovtr::applyOriginToPose(
@@ -61,7 +75,8 @@ void drawTrackedDevices3D(
     }
 
     for (const ovtr::PoseSample& pose : runtimeState.poses.poses) {
-        if (ovtr::isSkeletalBoneRuntimeIndex(pose.runtimeIndex)) {
+        if (ovtr::isSkeletalBoneRuntimeIndex(pose.runtimeIndex) ||
+            ovtr::isVmcFingerRuntimeIndex(pose.runtimeIndex)) {
             continue;
         }
         const ovtr::PoseSample displayPose = displayPoseForState(originState, pose);
@@ -95,6 +110,18 @@ void drawTrackedDeviceLabels3D(
 
     for (const ovtr::PoseSample& pose : runtimeState.poses.poses) {
         if (ovtr::isSkeletalBoneRuntimeIndex(pose.runtimeIndex)) {
+            continue;
+        }
+        ovtr::SkeletalHandSide vmcSide = ovtr::SkeletalHandSide::Left;
+        std::uint32_t vmcBoneIndex = 0;
+        if (ovtr::decodeVmcFingerRuntimeIndex(pose.runtimeIndex, vmcSide, vmcBoneIndex)) {
+            if (vmcBoneIndex == 0) {
+                drawVmcFingerPreviewLabel3D(
+                    displayPoseForState(originState, pose),
+                    vmcSide,
+                    viewportState.glLabelFontBase.get()
+                );
+            }
             continue;
         }
         const ovtr::PoseSample displayPose = displayPoseForState(originState, pose);

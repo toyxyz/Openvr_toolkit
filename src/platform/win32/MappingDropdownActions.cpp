@@ -103,7 +103,7 @@ bool selectMappingDeviceDropdownOption(
     }
     const int fingerSide = mappingFingerSideIndexForRow(state.mappingDropdownSlot);
     const std::vector<DeviceListRow> rows = fingerSide >= 0
-        ? makeSkeletalInputRows(state, fingerSide)
+        ? makeFingerInputRows(state, fingerSide)
         : makeDeviceListRows(state);
     const int option = mappingDropdownOptionFromPoint(row, panelLayout, static_cast<int>(rows.size()) + 1, point);
     if (option < 0 || option > static_cast<int>(rows.size())) {

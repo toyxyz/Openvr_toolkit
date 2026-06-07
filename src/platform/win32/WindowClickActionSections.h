@@ -13,6 +13,7 @@ bool handleTopBarClick(HWND hwnd, AppWindowState& state, int clientWidth, int cl
 bool handleViewportControlClick(HWND hwnd, AppWindowState& state, int clientWidth, int clientHeight, POINT point);
 bool handleDeviceToggleClick(HWND hwnd, AppWindowState& state, int clientWidth, int clientHeight, POINT point);
 bool handleSessionToggleClick(HWND hwnd, AppWindowState& state, int clientWidth, int clientHeight, POINT point);
+bool handleStreamingToggleClick(HWND hwnd, AppWindowState& state, int clientWidth, int clientHeight, POINT point);
 bool handleProfileToggleClick(HWND hwnd, AppWindowState& state, int clientWidth, int clientHeight, POINT point);
 bool handleMappingToggleClick(HWND hwnd, AppWindowState& state, int clientWidth, int clientHeight, POINT point);
 bool handleEditToggleClick(HWND hwnd, AppWindowState& state, int clientWidth, int clientHeight, POINT point);
@@ -24,6 +25,7 @@ bool handleOriginStepperClick(HWND hwnd, AppWindowState& state, int clientWidth,
 bool handleDebugResizeClick(HWND hwnd, AppWindowState& state, int clientWidth, int clientHeight, POINT point);
 bool handleDeviceSplitterClick(HWND hwnd, AppWindowState& state, int clientWidth, int clientHeight, POINT point);
 bool handleSessionListClick(HWND hwnd, AppWindowState& state, int clientWidth, int clientHeight, POINT point);
+bool handleStreamingPanelClick(HWND hwnd, AppWindowState& state, int clientWidth, int clientHeight, POINT point);
 bool handleDeviceListClick(HWND hwnd, AppWindowState& state, int clientWidth, int clientHeight, POINT point);
 bool handleMarkerListClick(HWND hwnd, AppWindowState& state, int clientWidth, int clientHeight, POINT point);
 bool handleDebugToggleClick(HWND hwnd, AppWindowState& state, int clientWidth, int clientHeight, POINT point);

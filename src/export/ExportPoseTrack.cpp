@@ -1,6 +1,7 @@
 #include "export/ExportPoseTrack.h"
 
 #include "data/SkeletalSyntheticPose.h"
+#include "data/VmcSyntheticPose.h"
 #include "math/QuaternionUtils.h"
 #include "recording/BinarySessionReader.h"
 #include "util/Identifier.h"
@@ -44,6 +45,9 @@ RenderModelGeometry geometryForDevice(
     if (descriptor.renderModelName == kSkeletalBoneBoxRenderModelName) {
         return makeBoxRenderModelGeometry(kSkeletalBoneBoxEdgeMeters);
     }
+    if (descriptor.renderModelName == kVmcFingerBoxRenderModelName) {
+        return makeBoxRenderModelGeometry(kVmcFingerBoneBoxEdgeMeters);
+    }
     if (options.geometryProvider) {
         return options.geometryProvider(descriptor);
     }
@@ -82,6 +86,22 @@ bool makeSkeletalPoseTrackForRuntimeIndex(
     }
     outTrack = makeRecordedPoseTrack(makeSkeletalBoneDeviceDescriptor(side, boneIndex), options);
     outTrack.nodeName = skeletalBoneNodeName(side, boneIndex);
+    return true;
+}
+
+bool makeVmcPoseTrackForRuntimeIndex(
+    const std::uint32_t runtimeIndex,
+    const ExportPoseTrackOptions& options,
+    ExportPoseTrack& outTrack
+)
+{
+    SkeletalHandSide side = SkeletalHandSide::Left;
+    std::uint32_t boneIndex = 0;
+    if (!decodeVmcFingerRuntimeIndex(runtimeIndex, side, boneIndex)) {
+        return false;
+    }
+    outTrack = makeRecordedPoseTrack(makeVmcFingerDeviceDescriptor(side, boneIndex), options);
+    outTrack.nodeName = vmcFingerNodeName(side, boneIndex);
     return true;
 }
 
@@ -140,7 +160,8 @@ bool collectExportPoseTracks(
             auto found = runtimeIndexToTrack.find(pose.runtimeIndex);
             if (found == runtimeIndexToTrack.end()) {
                 ExportPoseTrack skeletalTrack;
-                if (!makeSkeletalPoseTrackForRuntimeIndex(pose.runtimeIndex, options, skeletalTrack)) {
+                if (!makeSkeletalPoseTrackForRuntimeIndex(pose.runtimeIndex, options, skeletalTrack) &&
+                    !makeVmcPoseTrackForRuntimeIndex(pose.runtimeIndex, options, skeletalTrack)) {
                     continue;
                 }
                 const std::size_t trackIndex = tracks.size();

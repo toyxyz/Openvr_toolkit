@@ -29,7 +29,7 @@ int leftPanelWidthForState(const AppDebugUiState& state, const int clientWidth)
 {
     const int requestedWidth = state.leftPanelWidth > 0 ? state.leftPanelWidth : 0;
     return leftPanelWidthForClient(
-        state.devicePanelVisible || state.sessionPanelVisible,
+        state.devicePanelVisible || state.sessionPanelVisible || state.streamingPanelVisible,
         requestedWidth,
         clientWidth
     );
@@ -178,6 +178,12 @@ void paintDeviceRailAndSplitter(
         );
     }
 
+    const RECT streamingButtonRect = streamingToggleButtonRectForClient(contentBottom, clientWidth, clientHeight);
+    if (streamingButtonRect.right > streamingButtonRect.left &&
+        streamingButtonRect.bottom > streamingButtonRect.top) {
+        drawStreamingToggleButton(drawDc, font, streamingButtonRect, state.streamingPanelVisible);
+    }
+
     const RECT splitterRect = splitterRectForClient(
         leftPanelWidthForState(state, clientWidth),
         activeDebugMonitorHeightForState(state, clientHeight),
@@ -201,7 +207,7 @@ void paintDeviceRailAndSplitter(
         LineTo(drawDc, splitterRect.right - 1, splitterRect.bottom);
     }
 
-    if (!state.devicePanelVisible && !state.sessionPanelVisible) {
+    if (!state.devicePanelVisible && !state.sessionPanelVisible && !state.streamingPanelVisible) {
         return;
     }
 

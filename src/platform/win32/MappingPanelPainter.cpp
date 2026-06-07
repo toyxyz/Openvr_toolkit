@@ -258,12 +258,12 @@ void paintMappingPanelContent(
         if (isMappingDeviceRow(state.mappingDropdownSlot)) {
             drawMappingDeviceDropdown(drawDc, font, state, layout, makeDeviceListRows(state));
         } else if (isMappingFingerRow(state.mappingDropdownSlot)) {
-            drawMappingDeviceDropdown(
+                drawMappingDeviceDropdown(
                 drawDc,
                 font,
                 state,
                 layout,
-                makeSkeletalInputRows(state, mappingFingerSideIndexForRow(state.mappingDropdownSlot))
+                makeFingerInputRows(state, mappingFingerSideIndexForRow(state.mappingDropdownSlot))
             );
         } else if (isMappingSoftIkRow(state.mappingDropdownSlot)) {
             drawMappingSoftIkFilterDropdown(drawDc, font, state, controls);

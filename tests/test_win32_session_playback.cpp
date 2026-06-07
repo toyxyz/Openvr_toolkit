@@ -266,6 +266,9 @@ void testWin32SessionPlayback()
     require(ovtr::win32::sampleLoadedSessionFrame(state), "loaded session samples seeked frame");
     require(ovtr::win32::loadedSessionCurrentFrame(state) == 2, "loaded session current frame");
     require(state.poses.poses[0].position[0] == 2.0f, "loaded session second frame pose");
+    require(state.loadedSessionLastSampledFrameValid, "loaded session records sampled frame continuity");
+    ovtr::win32::setLoadedSessionPlaybackSeconds(state, 0.0);
+    require(!state.loadedSessionLastSampledFrameValid, "loaded session explicit seek resets continuity");
 
     require(ovtr::win32::closeLoadedSession(state), "close loaded session reports active state");
     require(!state.loadedSessionActive, "loaded session closes");

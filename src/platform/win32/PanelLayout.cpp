@@ -89,6 +89,34 @@ RECT sessionToggleButtonRectForClient(
     return RECT{deviceRect.left, top, deviceRect.right, top + height};
 }
 
+RECT streamingToggleButtonRectForClient(
+    const int contentBottom,
+    const int clientWidth,
+    const int clientHeight
+) noexcept
+{
+    const RECT sessionRect = sessionToggleButtonRectForClient(contentBottom, clientWidth, clientHeight);
+    if (sessionRect.right <= sessionRect.left || sessionRect.bottom <= sessionRect.top) {
+        return RECT{0, 0, 0, 0};
+    }
+
+    const int top = sessionRect.bottom + 8;
+    if (contentBottom <= top + 48) {
+        return RECT{0, 0, 0, 0};
+    }
+
+    int height = kPanelStreamingToggleButtonHeight;
+    const int availableHeight = contentBottom - top - 12;
+    if (height > availableHeight) {
+        height = availableHeight;
+    }
+    if (height < 48) {
+        return RECT{0, 0, 0, 0};
+    }
+
+    return RECT{sessionRect.left, top, sessionRect.right, top + height};
+}
+
 int rightProfileAreaWidthForClient(const bool profilePanelVisible, const int clientWidth) noexcept
 {
     return rightProfileAreaWidthForClient(
