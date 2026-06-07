@@ -9,6 +9,7 @@ Native C++20 desktop tool for recording SteamVR/OpenVR tracker poses, solving ma
 - CMake 3.25+
 - Ninja, for the `default` and `desktop` presets
 - OpenVR SDK under `third_party/openvr`
+- Dear ImGui docking branch under `third_party/imgui`
 - vcpkg packages from `vcpkg.json`:
   - `glfw3`
   - `glm`

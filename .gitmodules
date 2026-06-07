@@ -1,3 +1,7 @@
 [submodule "third_party/openvr"]
 	path = third_party/openvr
 	url = https://github.com/ValveSoftware/openvr.git
+[submodule "third_party/imgui"]
+	path = third_party/imgui
+	url = https://github.com/ocornut/imgui.git
+	branch = docking
