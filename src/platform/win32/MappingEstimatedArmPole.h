@@ -8,10 +8,10 @@ void applyEstimatedArmPoleTargets(
     const MappingCalibrationData& calibration,
     const ProfileSkeletonJoints& rest,
     const ProfileSkeletonJoints& solvedCore,
-    const std::array<Vec3, kMappingPoleCount>& previousPoleDirections,
-    const std::array<bool, kMappingPoleCount>& previousPoleDirectionValid,
-    const std::array<Vec3, kMappingPoleCount>& previousPoleTargets,
-    const std::array<bool, kMappingPoleCount>& previousPoleTargetValid,
+    std::array<Vec3, kMappingPoleCount>& previousPoleLocalDirections,
+    std::array<bool, kMappingPoleCount>& previousPoleLocalDirectionValid,
+    std::array<Vec3, kMappingPoleCount>& previousHandLocalPositions,
+    std::array<bool, kMappingPoleCount>& previousHandLocalPositionValid,
     std::array<MappingVirtualTarget, kMappingSlotCount>& targets
 );
 

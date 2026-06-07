@@ -51,6 +51,10 @@ struct MappingActor {
     std::array<bool, kMappingPoleCount> livePoleDirectionValid{};
     std::array<Vec3, kMappingPoleCount> livePoleTargets{};
     std::array<bool, kMappingPoleCount> livePoleTargetValid{};
+    std::array<Vec3, kMappingPoleCount> liveEstimatedArmPoleLocalDirections{};
+    std::array<bool, kMappingPoleCount> liveEstimatedArmPoleLocalDirectionValid{};
+    std::array<Vec3, kMappingPoleCount> liveEstimatedArmHandLocalPositions{};
+    std::array<bool, kMappingPoleCount> liveEstimatedArmHandLocalPositionValid{};
     std::array<bool, 2> liveFingerJointsValid{};
 };
 
@@ -139,6 +143,8 @@ inline void resetMappingActorLiveContinuity(MappingActor& actor) noexcept
     actor.liveJointsValid = false;
     actor.livePoleDirectionValid = {};
     actor.livePoleTargetValid = {};
+    actor.liveEstimatedArmPoleLocalDirectionValid = {};
+    actor.liveEstimatedArmHandLocalPositionValid = {};
     actor.liveFingerJointsValid = {};
 }
 

@@ -35,6 +35,11 @@ bool isUpperLegJoint(const int joint) noexcept
     return joint == kProfileJointLeftUpLeg || joint == kProfileJointRightUpLeg;
 }
 
+bool preservesLegRollJoint(const int joint) noexcept
+{
+    return isUpperLegJoint(joint) || joint == kProfileJointLeftFoot || joint == kProfileJointRightFoot;
+}
+
 float quaternionDot(const std::array<float, 4>& a, const std::array<float, 4>& b) noexcept
 {
     return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
@@ -237,7 +242,7 @@ std::array<std::array<float, 4>, kProfileSkeletonJointCount> makeVmcLocalRotatio
         const int parent = rest[static_cast<std::size_t>(joint)].parentIndex;
         const std::array<float, 4> parentWorld =
             parent >= 0 ? world[static_cast<std::size_t>(parent)] : std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f};
-        const std::array<float, 4> worldRotation = isUpperLegJoint(joint)
+        const std::array<float, 4> worldRotation = preservesLegRollJoint(joint)
             ? closestWorldRotation(rest, poseJoints, joint, parentWorld, continuity)
             : sameQuaternionHemisphere(
                 swingOnlyWorldRotation(rest, poseJoints, joint, parentWorld),

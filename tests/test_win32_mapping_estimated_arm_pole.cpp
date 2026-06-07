@@ -44,6 +44,11 @@ ovtr::PosePollResult posesForTargets(
     return result;
 }
 
+std::array<float, 4> yawRotation(const float radians)
+{
+    return {0.0f, std::sin(radians * 0.5f), 0.0f, std::cos(radians * 0.5f)};
+}
+
 } // namespace
 
 namespace ovtr::test {
@@ -126,9 +131,14 @@ void testWin32MappingEstimatedArmPole()
     if (!updateCalibratedMappingActorJoints(actor, posesForTargets(movedTargets, fullMapping), false, {}, {})) {
         throw std::runtime_error("arm solve should work with estimated elbow pole");
     }
-    if (!actor.livePoleTargetValid[leftPole] ||
-        distanceMappingVec3(actor.livePoleTargets[leftPole], movedTargets[static_cast<std::size_t>(leftHand)].position) > 0.0001f) {
-        throw std::runtime_error("estimated arm pole should remember the previous hand target");
+    const MappingTransform chestTarget = actor.liveVirtualTargets[static_cast<std::size_t>(chest)].transform;
+    const Vec3 handLocal = transformMappingPoint(
+        inverseMappingTransform(chestTarget),
+        movedTargets[static_cast<std::size_t>(leftHand)].position
+    );
+    if (!actor.liveEstimatedArmHandLocalPositionValid[leftPole] ||
+        distanceMappingVec3(actor.liveEstimatedArmHandLocalPositions[leftPole], handLocal) > 0.0001f) {
+        throw std::runtime_error("estimated arm pole should remember the previous chest-local hand target");
     }
     const Vec3 shoulder = actor.liveJoints[kProfileJointLeftShoulder].positionMeters;
     const Vec3 wrist = actor.liveVirtualTargets[static_cast<std::size_t>(leftHand)].transform.position;
@@ -193,6 +203,40 @@ void testWin32MappingEstimatedArmPole()
     );
     if (dotMappingVec3(halfFoldPoleA, halfFoldPoleB) < 0.60f) {
         throw std::runtime_error("half-fold estimated arm pole should not clatter on fast hand motion");
+    }
+
+    MappingActor rotatingActor;
+    auto rotatingMapping = defaultMappingDeviceRuntimeIndices();
+    rotatingMapping[static_cast<std::size_t>(chest)] = fullMapping[static_cast<std::size_t>(chest)];
+    rotatingMapping[static_cast<std::size_t>(leftHand)] = fullMapping[static_cast<std::size_t>(leftHand)];
+    if (!captureMappingActorCalibration(
+            rotatingActor,
+            rotatingMapping,
+            posesForTargets(restTargets, fullMapping),
+            false,
+            {},
+            {}
+        ).success) {
+        throw std::runtime_error("chest/hand calibration should succeed without arm tracker");
+    }
+    auto rotateTargets = restTargets;
+    const Vec3 localHand{0.26f, -0.12f, 0.12f};
+    rotateTargets[static_cast<std::size_t>(chest)].rotation = yawRotation(0.0f);
+    rotateTargets[static_cast<std::size_t>(leftHand)].position =
+        transformMappingPoint(rotateTargets[static_cast<std::size_t>(chest)], localHand);
+    if (!updateCalibratedMappingActorJoints(rotatingActor, posesForTargets(rotateTargets, fullMapping), false, {}, {})) {
+        throw std::runtime_error("rotating torso arm solve should work before rotation");
+    }
+    const Vec3 localPoleBefore = rotatingActor.liveEstimatedArmPoleLocalDirections[leftPole];
+    rotateTargets[static_cast<std::size_t>(chest)].rotation = yawRotation(1.57079632679f);
+    rotateTargets[static_cast<std::size_t>(leftHand)].position =
+        transformMappingPoint(rotateTargets[static_cast<std::size_t>(chest)], localHand);
+    if (!updateCalibratedMappingActorJoints(rotatingActor, posesForTargets(rotateTargets, fullMapping), false, {}, {})) {
+        throw std::runtime_error("rotating torso arm solve should work after rotation");
+    }
+    const Vec3 localPoleAfter = rotatingActor.liveEstimatedArmPoleLocalDirections[leftPole];
+    if (dotMappingVec3(localPoleBefore, localPoleAfter) < 0.90f) {
+        throw std::runtime_error("estimated arm pole should stay stable in chest-local space during torso rotation");
     }
 }
 

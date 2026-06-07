@@ -82,6 +82,8 @@ inline void resetMappingActorCalibration(MappingActor& actor) noexcept
     actor.livePoleDirectionValid = {};
     actor.livePoleTargets = {};
     actor.livePoleTargetValid = {};
+    actor.liveEstimatedArmPoleLocalDirectionValid = {};
+    actor.liveEstimatedArmHandLocalPositionValid = {};
     actor.liveFingerJointsValid = {};
 }
 

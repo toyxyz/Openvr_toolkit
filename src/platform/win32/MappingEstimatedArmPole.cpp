@@ -159,10 +159,10 @@ MappingTransform makePoleTarget(
     const Vec3 wrist,
     const float poleDistance,
     const bool left,
-    const Vec3 previousPoleDirection,
-    const bool previousPoleDirectionValid,
-    const Vec3 previousPoleTarget,
-    const bool previousPoleTargetValid
+    const Vec3 previousPoleLocalDirection,
+    const bool previousPoleLocalDirectionValid,
+    const Vec3 previousHandLocalPosition,
+    const bool previousHandLocalPositionValid
 ) noexcept {
     const Vec3 chestForward = rotateMappingVector(chest, Vec3{0.0f, 0.0f, 1.0f});
     const Vec3 chestSide = rotateMappingVector(chest, Vec3{1.0f, 0.0f, 0.0f});
@@ -175,7 +175,10 @@ MappingTransform makePoleTarget(
         ? saturate(lengthMappingVec3(armVector) / poleDistance)
         : 1.0f;
     const float nearChest = saturate(1.0f - distanceMappingVec3(wrist, chest.position) / kAntiTorsoDistance);
-    const float wristStep = previousPoleTargetValid ? distanceMappingVec3(wrist, previousPoleTarget) : 0.0f;
+    const MappingTransform chestInverse = inverseMappingTransform(chest);
+    const Vec3 wristLocal = transformMappingPoint(chestInverse, wrist);
+    const float wristStep = previousHandLocalPositionValid ? distanceMappingVec3(wristLocal, previousHandLocalPosition) : 0.0f;
+    const Vec3 previousPoleDirection = previousPoleLocalDirectionValid ? rotateMappingVector(chest, previousPoleLocalDirection) : Vec3{};
     const Vec3 preferred = sampleElbowPosePreferredDirection(chest, wrist, left);
     const Vec3 antiTorso = normalizeMappingVec3Or(
         addMappingVec3(
@@ -202,7 +205,7 @@ MappingTransform makePoleTarget(
         armAxis,
         fallback,
         previousPoleDirection,
-        previousPoleDirectionValid,
+        previousPoleLocalDirectionValid,
         nearChest,
         extension,
         wristStep,
@@ -213,55 +216,61 @@ MappingTransform makePoleTarget(
         chest.rotation
     };
 }
-
 void applyOneArm(
     const MappingCalibrationData& calibration,
     const ProfileSkeletonJoints& rest,
     const ProfileSkeletonJoints& solvedCore,
     std::array<MappingVirtualTarget, kMappingSlotCount>& targets,
-    const std::array<Vec3, kMappingPoleCount>& previousPoleDirections,
-    const std::array<bool, kMappingPoleCount>& previousPoleDirectionValid,
-    const std::array<Vec3, kMappingPoleCount>& previousPoleTargets,
-    const std::array<bool, kMappingPoleCount>& previousPoleTargetValid,
+    std::array<Vec3, kMappingPoleCount>& previousPoleLocalDirections,
+    std::array<bool, kMappingPoleCount>& previousPoleLocalDirectionValid,
+    std::array<Vec3, kMappingPoleCount>& previousHandLocalPositions,
+    std::array<bool, kMappingPoleCount>& previousHandLocalPositionValid,
     const bool left
 ) {
     const MappingTrackerRole armRole = left ? MappingTrackerRole::LeftArm : MappingTrackerRole::RightArm;
     const MappingTrackerRole handRole = left ? MappingTrackerRole::LeftHand : MappingTrackerRole::RightHand;
-    if (!isRestFallback(calibration, armRole) ||
-        !hasDrivenTarget(calibration, targets, handRole) ||
+    const int poleIndex = mappingPoleIndex(left ? MappingPoleKind::LeftArm : MappingPoleKind::RightArm);
+    if (!isRestFallback(calibration, armRole) || !hasDrivenTarget(calibration, targets, handRole) ||
         !hasTarget(targets, MappingTrackerRole::Chest)) {
+        previousPoleLocalDirectionValid[static_cast<std::size_t>(poleIndex)] = false;
+        previousHandLocalPositionValid[static_cast<std::size_t>(poleIndex)] = false;
         return;
     }
     const int shoulder = left ? kProfileJointLeftShoulder : kProfileJointRightShoulder;
     const int elbow = left ? kProfileJointLeftArm : kProfileJointRightArm;
     const int wrist = left ? kProfileJointLeftForeArm : kProfileJointRightForeArm;
-    const int poleIndex = mappingPoleIndex(left ? MappingPoleKind::LeftArm : MappingPoleKind::RightArm);
     const float distance = restDistance(rest, elbow, shoulder) + restDistance(rest, wrist, elbow);
+    const MappingTransform chest = targets[static_cast<std::size_t>(slotIndex(MappingTrackerRole::Chest))].transform;
+    const Vec3 wristPosition = targets[static_cast<std::size_t>(slotIndex(handRole))].transform.position;
     const MappingTransform pole = makePoleTarget(
-        targets[static_cast<std::size_t>(slotIndex(MappingTrackerRole::Chest))].transform,
+        chest,
         solvedCore[shoulder].positionMeters,
-        targets[static_cast<std::size_t>(slotIndex(handRole))].transform.position,
+        wristPosition,
         distance,
         left,
-        previousPoleDirections[static_cast<std::size_t>(poleIndex)],
-        previousPoleDirectionValid[static_cast<std::size_t>(poleIndex)],
-        previousPoleTargets[static_cast<std::size_t>(poleIndex)],
-        previousPoleTargetValid[static_cast<std::size_t>(poleIndex)]
+        previousPoleLocalDirections[static_cast<std::size_t>(poleIndex)],
+        previousPoleLocalDirectionValid[static_cast<std::size_t>(poleIndex)],
+        previousHandLocalPositions[static_cast<std::size_t>(poleIndex)],
+        previousHandLocalPositionValid[static_cast<std::size_t>(poleIndex)]
     );
+    const MappingTransform chestInverse = inverseMappingTransform(chest);
+    const Vec3 poleDirection = normalizeMappingVec3Or(subMappingVec3(pole.position, solvedCore[shoulder].positionMeters), Vec3{0.0f, 0.0f, -1.0f});
+    previousPoleLocalDirections[static_cast<std::size_t>(poleIndex)] = rotateMappingVector(chestInverse, poleDirection);
+    previousPoleLocalDirectionValid[static_cast<std::size_t>(poleIndex)] = true;
+    previousHandLocalPositions[static_cast<std::size_t>(poleIndex)] = transformMappingPoint(chestInverse, wristPosition);
+    previousHandLocalPositionValid[static_cast<std::size_t>(poleIndex)] = true;
     const std::size_t armIndex = static_cast<std::size_t>(slotIndex(armRole));
     targets[armIndex] = MappingVirtualTarget{armRole, pole, pole, true};
 }
-
 } // namespace
-
 void applyEstimatedArmPoleTargets(
     const MappingCalibrationData& calibration,
     const ProfileSkeletonJoints& rest,
     const ProfileSkeletonJoints& solvedCore,
-    const std::array<Vec3, kMappingPoleCount>& previousPoleDirections,
-    const std::array<bool, kMappingPoleCount>& previousPoleDirectionValid,
-    const std::array<Vec3, kMappingPoleCount>& previousPoleTargets,
-    const std::array<bool, kMappingPoleCount>& previousPoleTargetValid,
+    std::array<Vec3, kMappingPoleCount>& previousPoleLocalDirections,
+    std::array<bool, kMappingPoleCount>& previousPoleLocalDirectionValid,
+    std::array<Vec3, kMappingPoleCount>& previousHandLocalPositions,
+    std::array<bool, kMappingPoleCount>& previousHandLocalPositionValid,
     std::array<MappingVirtualTarget, kMappingSlotCount>& targets
 ) {
     applyOneArm(
@@ -269,10 +278,10 @@ void applyEstimatedArmPoleTargets(
         rest,
         solvedCore,
         targets,
-        previousPoleDirections,
-        previousPoleDirectionValid,
-        previousPoleTargets,
-        previousPoleTargetValid,
+        previousPoleLocalDirections,
+        previousPoleLocalDirectionValid,
+        previousHandLocalPositions,
+        previousHandLocalPositionValid,
         true
     );
     applyOneArm(
@@ -280,10 +289,10 @@ void applyEstimatedArmPoleTargets(
         rest,
         solvedCore,
         targets,
-        previousPoleDirections,
-        previousPoleDirectionValid,
-        previousPoleTargets,
-        previousPoleTargetValid,
+        previousPoleLocalDirections,
+        previousPoleLocalDirectionValid,
+        previousHandLocalPositions,
+        previousHandLocalPositionValid,
         false
     );
 }

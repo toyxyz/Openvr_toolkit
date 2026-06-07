@@ -25,45 +25,6 @@ MappingTransform targetFor(
     return targets[static_cast<std::size_t>(mappingSlotForRole(role))].transform;
 }
 
-bool hasDrivenTarget(
-    const MappingCalibrationData& calibration,
-    const std::array<MappingVirtualTarget, kMappingSlotCount>& targets,
-    const MappingTrackerRole role
-) noexcept {
-    const std::size_t index = static_cast<std::size_t>(mappingSlotForRole(role));
-    return calibration.targetBindings[index].source != MappingVirtualTargetSource::RestFallback &&
-        targets[index].valid;
-}
-
-void updateArmPoleTargetHistoryOne(
-    MappingActor& actor,
-    const std::array<MappingVirtualTarget, kMappingSlotCount>& targets,
-    const bool left
-) noexcept {
-    const MappingTrackerRole armRole = left ? MappingTrackerRole::LeftArm : MappingTrackerRole::RightArm;
-    const MappingTrackerRole handRole = left ? MappingTrackerRole::LeftHand : MappingTrackerRole::RightHand;
-    const std::size_t poleIndex = static_cast<std::size_t>(mappingPoleIndex(
-        left ? MappingPoleKind::LeftArm : MappingPoleKind::RightArm
-    ));
-    const bool estimatedArm = actor.calibration.targetBindings[
-        static_cast<std::size_t>(mappingSlotForRole(armRole))
-    ].source == MappingVirtualTargetSource::RestFallback;
-    if (estimatedArm && hasDrivenTarget(actor.calibration, targets, handRole)) {
-        actor.livePoleTargets[poleIndex] = targetFor(targets, handRole).position;
-        actor.livePoleTargetValid[poleIndex] = true;
-        return;
-    }
-    actor.livePoleTargetValid[poleIndex] = false;
-}
-
-void updateArmPoleTargetHistory(
-    MappingActor& actor,
-    const std::array<MappingVirtualTarget, kMappingSlotCount>& targets
-) noexcept {
-    updateArmPoleTargetHistoryOne(actor, targets, true);
-    updateArmPoleTargetHistoryOne(actor, targets, false);
-}
-
 Vec3 restDelta(const ProfileSkeletonJoints& joints, const int child, const int parent) noexcept
 {
     return subMappingVec3(joints[child].positionMeters, joints[parent].positionMeters);
@@ -243,6 +204,8 @@ bool updateCalibratedMappingActorJoints(
     if (!targetResult.success) {
         actor.liveTrackingLost = true;
         actor.livePoleTargetValid = {};
+        actor.liveEstimatedArmPoleLocalDirectionValid = {};
+        actor.liveEstimatedArmHandLocalPositionValid = {};
         return false;
     }
 
@@ -262,14 +225,13 @@ bool updateCalibratedMappingActorJoints(
         actor.calibration,
         rest,
         out,
-        actor.livePoleDirections,
-        actor.livePoleDirectionValid,
-        actor.livePoleTargets,
-        actor.livePoleTargetValid,
+        actor.liveEstimatedArmPoleLocalDirections,
+        actor.liveEstimatedArmPoleLocalDirectionValid,
+        actor.liveEstimatedArmHandLocalPositions,
+        actor.liveEstimatedArmHandLocalPositionValid,
         targets
     );
     actor.liveVirtualTargets = targets;
-    updateArmPoleTargetHistory(actor, targets);
     solveArm(actor, out, rest, targets, true);
     solveArm(actor, out, rest, targets, false);
     solveLeg(actor, out, rest, targets, true);

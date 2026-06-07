@@ -182,6 +182,8 @@ MappingCalibrationStatus captureMappingActorCalibration(
     actor.livePoleDirectionValid = {};
     actor.livePoleTargets = {};
     actor.livePoleTargetValid = {};
+    actor.liveEstimatedArmPoleLocalDirectionValid = {};
+    actor.liveEstimatedArmHandLocalPositionValid = {};
     actor.liveFingerJointsValid = {};
     return MappingCalibrationStatus{true, L"Calibration complete."};
 }

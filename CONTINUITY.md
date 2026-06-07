@@ -60,6 +60,14 @@
   - Rationale: user observed slow elbow clatter when the bent arm is stretched behind the body and the hand moves vertically; sequential pose-prior anchor blending can change direction too sharply in that region.
   - Consequences: `MappingElbowPosePrior` now computes outside/up/front components from smooth scalar influences and normalizes once, with regression coverage for slow behind-body vertical hand motion.
   - Supersedes: sequential normalized anchor blends inside `sampleCanonicalPreferred`.
+- D113 ACTIVE 2026-06-08 [CODE] Arm-None elbow pole history is stored in Chest-local space.
+  - Rationale: user reported folded side-raised arms rotating with the torso made elbow pole tips unstable; world-space hand/pole history misread torso rigid motion as fast wrist movement.
+  - Consequences: estimated Arm poles store previous hand local position and pole local direction relative to the current Chest target, including Head+Pelvis estimated Chest; common IK pole history remains world-space.
+  - Supersedes: world-space previous hand target distance for Arm-None wrist-step stabilization.
+- D114 ACTIVE 2026-06-08 [CODE] VMC Foot output preserves roll instead of using swing-only rotation.
+  - Rationale: user reported that tilting the leg and foot sideways about 90 degrees did not show the ankle/foot tilt in the VMC receiver; swing-only Foot output discarded the foot roll component.
+  - Consequences: outbound `LeftFoot`/`RightFoot` now use the same roll-preserving VMC leg rotation path as UpperLeg, while LowerLeg and omitted ToeBase remain on the swing-only/no-Toes path from the prior toe-twist mitigation.
+  - Supersedes: swing-only VMC Foot output.
 - D075 SUPERSEDED 2026-06-06 [USER] Direct upper-arm trackers can drive bounded clavicle/shoulder motion when Chest and same-side Hand are tracked.
   - Rationale: user requested 11-point upper-arm+hand+chest tracking to move the clavicle/shoulder joint, following VRChat-style upper-arm shoulder estimation.
   - Consequences: `MappingShoulderSolve` runs after core Chest solve and before Arm-None pole estimation/arm IK; only direct Chest+Arm+Hand targets activate it, shoulder direction is clamped/blended in Chest local space, and existing Arm pole-target calibration semantics are preserved through the rest pole-to-shoulder offset.
@@ -734,3 +742,7 @@
 - 2026-06-07 [TOOL] Rebuilt Debug `openvr_tracker_recorder_tests` and `OpenVRTrackerRecorderDesktop`; first app link hit transient `LNK1168`, second app build succeeded after the lock cleared.
 - 2026-06-07 [USER] User requested removing temporary test CSV log export.
 - 2026-06-07 [TOOL] Removed skeleton export VMC arm/leg CSV debug log generation and dropped temporary VMC CSV log source files from the build; Debug `openvr_tracker_recorder_tests` and `OpenVRTrackerRecorderDesktop` built successfully, and `git diff --check` passed with CRLF warnings only.
+- 2026-06-08 [USER] User requested fixing Arm-None elbow instability when a folded side-raised arm rotates with the torso, including Chest-None cases.
+- 2026-06-08 [TOOL] Added Arm-None Chest-local hand/pole history, reset it with Mapping continuity/calibration resets, and added a torso-rotation regression; Debug `openvr_tracker_recorder_tests` built, `OpenVRTrackerRecorderDesktop` built after retrying a parallel-build PDB conflict, full test still stops at existing `mapping edit layout valid`, and `git diff --check` passed with CRLF warnings only.
+- 2026-06-08 [USER] User reported VMC receiver does not reflect ankle/foot tilt when the leg and foot are tilted sideways about 90 degrees.
+- 2026-06-08 [TOOL] Diagnosed VMC Foot roll loss from `swingOnlyWorldRotation` and changed `LeftFoot`/`RightFoot` to the roll-preserving VMC leg rotation path; Debug `openvr_tracker_recorder_tests` and `OpenVRTrackerRecorderDesktop` built, full test still stops at existing `mapping edit layout valid`, `git diff --check` passed with CRLF warnings only, and `VmcLegRotationContinuity.cpp` is 266 LOC.
