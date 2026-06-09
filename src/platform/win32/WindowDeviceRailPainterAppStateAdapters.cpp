@@ -13,6 +13,9 @@ void paintDeviceRailAndSplitter(
     const int contentBottom
 )
 {
+    if (state.sideMenusHiddenByShortcut) {
+        return;
+    }
     paintDeviceRailAndSplitter(
         drawDc,
         font,

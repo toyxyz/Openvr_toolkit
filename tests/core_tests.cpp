@@ -57,6 +57,7 @@ int main()
         ovtr::test::testWin32SkeletonGltfFootFollowsToeDirection();
         ovtr::test::testWin32SkeletonGltfHandRollFollowsForearm();
         ovtr::test::testWin32SkeletonGltfLegChainKeepsRestAndAnimates();
+        ovtr::test::testWin32SideMenuVisibility();
         ovtr::test::testWin32Layout();
         ovtr::test::testWin32MappingModel();
         ovtr::test::testWin32MappingCalibration();

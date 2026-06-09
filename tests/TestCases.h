@@ -77,6 +77,7 @@ void testWin32RecordingActions();
 void testWin32RecordingCleanup();
 void testWin32RuntimeStatus();
 void testWin32SessionPlayback();
+void testWin32SideMenuVisibility();
 void testWin32SkeletonConnectorRollStabilization();
 void testWin32SkeletonLowerBoneIgnoresEndEffectorRotation();
 void testWin32SkeletonPoseRestWorldJoints();

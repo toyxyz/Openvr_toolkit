@@ -261,6 +261,9 @@ void paintProfileRailAndPanel(
     const int contentBottom
 )
 {
+    if (state.sideMenusHiddenByShortcut) {
+        return;
+    }
     if (clientWidth <= 0 || contentBottom <= kTopBarHeight) {
         return;
     }

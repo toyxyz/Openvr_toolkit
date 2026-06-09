@@ -413,6 +413,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/SessionSaveActions.cpp
         src/platform/win32/SessionSkeletonExportBatch.cpp
         src/platform/win32/SessionSkeletonExportClip.cpp
+        src/platform/win32/SideMenuVisibility.cpp
         src/platform/win32/StreamingSettingsDialog.cpp
         src/platform/win32/StatusBarPainter.cpp
         src/platform/win32/StatusBarPainterAppStateAdapters.cpp
@@ -521,6 +522,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/WindowPanelClickActions.cpp
         src/platform/win32/WindowScroll.cpp
         src/platform/win32/WindowSessionStateLayoutAppStateAdapters.cpp
+        src/platform/win32/WindowSideMenuKeyboard.cpp
         src/platform/win32/WindowStateLayout.cpp
         src/platform/win32/WindowStreamingPanelClickActions.cpp
         src/platform/win32/WindowTopBarClickActions.cpp
@@ -773,6 +775,7 @@ if(OVTR_BUILD_TESTS)
                 src/platform/win32/SessionSkeletonExportClip.cpp
                 src/platform/win32/SessionPlayback.cpp
                 src/platform/win32/SessionPlaybackSampling.cpp
+                src/platform/win32/SideMenuVisibility.cpp
                 src/platform/win32/StatusPanel.cpp
                 src/platform/win32/StatusPanelAppStateAdapters.cpp
                 src/platform/win32/StatusBarText.cpp
@@ -831,6 +834,7 @@ if(OVTR_BUILD_TESTS)
                 tests/test_win32_recording_cleanup.cpp
                 tests/test_win32_runtime_status.cpp
                 tests/test_win32_session_playback.cpp
+                tests/test_win32_side_menu_visibility.cpp
                 tests/test_win32_skeleton_gltf.cpp
                 tests/test_win32_skeleton_gltf_hand_roll.cpp
                 tests/test_win32_skeleton_gltf_leg_roll.cpp

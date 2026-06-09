@@ -13,6 +13,7 @@
 #include "platform/win32/AppRecordingState.h"
 #include "platform/win32/AppRuntimeState.h"
 #include "platform/win32/AppSessionState.h"
+#include "platform/win32/AppSideMenuState.h"
 #include "platform/win32/AppStreamingState.h"
 #include "platform/win32/AppTopBarState.h"
 #include "platform/win32/AppViewportState.h"
@@ -32,6 +33,7 @@ struct AppWindowState
     , AppMarkerState
     , AppProfileState
     , AppDeviceState
+    , AppSideMenuState
     , AppExportProgressState
     , AppIconState
     , AppTopBarState

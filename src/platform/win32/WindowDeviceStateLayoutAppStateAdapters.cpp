@@ -17,7 +17,7 @@ RECT deviceToggleButtonRectForClient(
     const int clientHeight
 )
 {
-    if (!state || clientWidth <= 0 || clientHeight <= 0) {
+    if (!state || state->sideMenusHiddenByShortcut || clientWidth <= 0 || clientHeight <= 0) {
         return RECT{0, 0, 0, 0};
     }
 
@@ -31,7 +31,7 @@ RECT profileToggleButtonRectForClient(
     const int clientHeight
 )
 {
-    if (!state || clientWidth <= 0 || clientHeight <= 0) {
+    if (!state || state->sideMenusHiddenByShortcut || clientWidth <= 0 || clientHeight <= 0) {
         return RECT{0, 0, 0, 0};
     }
 
@@ -48,7 +48,7 @@ RECT mappingToggleButtonRectForClient(
     const int clientHeight
 )
 {
-    if (!state || clientWidth <= 0 || clientHeight <= 0) {
+    if (!state || state->sideMenusHiddenByShortcut || clientWidth <= 0 || clientHeight <= 0) {
         return RECT{0, 0, 0, 0};
     }
 
@@ -65,7 +65,7 @@ RECT editToggleButtonRectForClient(
     const int clientHeight
 )
 {
-    if (!state || clientWidth <= 0 || clientHeight <= 0) {
+    if (!state || state->sideMenusHiddenByShortcut || clientWidth <= 0 || clientHeight <= 0) {
         return RECT{0, 0, 0, 0};
     }
 
@@ -85,6 +85,9 @@ ProfilePanelLayout profilePanelLayoutForClient(
     if (!state) {
         return {};
     }
+    if (state->sideMenusHiddenByShortcut) {
+        return {};
+    }
 
     return profilePanelLayoutForClient(
         state->profilePanelVisible || state->mappingPanelVisible || state->editPanelVisible,
@@ -101,6 +104,9 @@ RECT profileSplitterRectForClient(
     const int clientHeight
 )
 {
+    if (state && state->sideMenusHiddenByShortcut) {
+        return RECT{0, 0, 0, 0};
+    }
     const ProfilePanelLayout layout = profilePanelLayoutForClient(state, clientWidth, clientHeight);
     return layout.valid ? layout.splitterRect : RECT{0, 0, 0, 0};
 }
@@ -111,6 +117,9 @@ RECT splitterRectForClient(
     const int clientHeight
 )
 {
+    if (state && state->sideMenusHiddenByShortcut) {
+        return RECT{0, 0, 0, 0};
+    }
     const int leftPanelWidth = leftPanelWidthForClient(state, clientWidth);
     return splitterRectForClient(
         leftPanelWidth,
@@ -245,6 +254,9 @@ std::uint32_t markerIdFromListPoint(
 
 int leftPanelWidthForClient(const AppWindowState* state, const int clientWidth)
 {
+    if (state && state->sideMenusHiddenByShortcut) {
+        return 0;
+    }
     const int requestedWidth = state && state->leftPanelWidth > 0
         ? state->leftPanelWidth
         : 0;
@@ -257,6 +269,9 @@ int leftPanelWidthForClient(const AppWindowState* state, const int clientWidth)
 
 int rightProfileAreaWidthForClient(const AppWindowState* state, const int clientWidth)
 {
+    if (state && state->sideMenusHiddenByShortcut) {
+        return 0;
+    }
     return rightProfileAreaWidthForClient(
         state && (state->profilePanelVisible || state->mappingPanelVisible || state->editPanelVisible),
         state && state->profilePanelWidth > 0 ? state->profilePanelWidth : defaultProfilePanelWidthForClient(clientWidth),
