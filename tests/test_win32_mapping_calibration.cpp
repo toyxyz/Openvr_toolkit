@@ -241,7 +241,18 @@ void testWin32MappingCalibration()
     if (!actor.liveDebugPoles[static_cast<std::size_t>(leftArmPole)].limited || !actor.liveLimited) {
         throw std::runtime_error("unreachable hand target should set limited status");
     }
-    requireNear(actor.liveJoints[kProfileJointLeftForeArm].positionMeters.x, 0.7764f, "wrist should clamp to max reach");
+    requireNear(
+        actor.liveJoints[kProfileJointLeftForeArm].positionMeters.x,
+        limitedTargets[5].position.x,
+        "pinned wrist should stay on unreachable target"
+    );
+    actor.calibration.pinHandTargets = false;
+    resetMappingActorLiveContinuity(actor);
+    if (!updateCalibratedMappingActorJoints(actor, posesForTargets(limitedTargets, mapping), false, {}, {})) {
+        throw std::runtime_error("unpinned reach-limited live solve should update");
+    }
+    requireNear(actor.liveJoints[kProfileJointLeftForeArm].positionMeters.x, 0.7764f, "unpinned wrist should clamp to max reach");
+    actor.calibration.pinHandTargets = true;
 
     MappingActor offsetActor;
     auto offsetTargets = mappingCalibrationRestTargets(offsetActor.profile);

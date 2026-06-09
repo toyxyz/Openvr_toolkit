@@ -77,7 +77,9 @@ void calibrateSelectedMappingActor(HWND hwnd, AppWindowState& state)
         state.originOffset,
         state.originRotationDegrees,
         state.mappingArmSoftIkStrength,
-        state.mappingLegSoftIkStrength
+        state.mappingLegSoftIkStrength,
+        state.mappingPinHandTargets,
+        state.mappingPinFootTargets
     );
     if (!status.success) {
         MessageBoxW(hwnd, status.message.c_str(), L"Mapping", MB_OK | MB_ICONWARNING);

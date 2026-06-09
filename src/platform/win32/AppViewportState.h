@@ -17,6 +17,8 @@
 #include "platform/win32/Win32GlTextureResource.h"
 #include "platform/win32/Win32UniqueWindowDcResource.h"
 
+#include <array>
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -45,6 +47,10 @@ struct AppViewportState {
     float cameraPanX = kDefaultCameraPanX;
     float cameraPanY = kDefaultCameraPanY;
     float cameraPanZ = kDefaultCameraPanZ;
+    bool cameraDeviceLockEnabled = false;
+    bool cameraDeviceLockHasPosition = false;
+    std::uint32_t cameraDeviceLockRuntimeIndex = 0;
+    std::array<float, 3> cameraDeviceLockLastPosition{};
     bool deviceLabelsVisible = true;
     bool quadViewEnabled = false;
     ViewportPaneKind activeDragPane = ViewportPaneKind::None;
@@ -70,6 +76,13 @@ struct AppViewportState {
     ViewportGpuCapabilities gpuCapabilities;
     ViewportMatcapShaderState matcapShader;
 };
+
+inline void resetCameraDeviceLockAnchor(AppViewportState& state) noexcept
+{
+    state.cameraDeviceLockHasPosition = false;
+    state.cameraDeviceLockRuntimeIndex = 0;
+    state.cameraDeviceLockLastPosition = {};
+}
 
 inline void toggleQuadView(AppViewportState& state) noexcept
 {

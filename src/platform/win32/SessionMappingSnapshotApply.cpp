@@ -42,6 +42,26 @@ float selectedLegSoftIk(const SessionMappingSnapshot& snapshot) noexcept
         : snapshot.actors.front().calibration.legSoftIkStrength;
 }
 
+bool selectedPinHand(const SessionMappingSnapshot& snapshot) noexcept
+{
+    for (const MappingActor& actor : snapshot.actors) {
+        if (actor.id == snapshot.selectedActorId) {
+            return actor.calibration.pinHandTargets;
+        }
+    }
+    return snapshot.actors.empty() ? true : snapshot.actors.front().calibration.pinHandTargets;
+}
+
+bool selectedPinFoot(const SessionMappingSnapshot& snapshot) noexcept
+{
+    for (const MappingActor& actor : snapshot.actors) {
+        if (actor.id == snapshot.selectedActorId) {
+            return actor.calibration.pinFootTargets;
+        }
+    }
+    return snapshot.actors.empty() ? true : snapshot.actors.front().calibration.pinFootTargets;
+}
+
 std::wstring activeActorName(const AppProfileState& profileState)
 {
     for (const MappingActor& actor : profileState.mappingActors) {
@@ -69,6 +89,8 @@ void backupLiveMappingForLoadedSession(AppLoadedSessionState& loadedState, const
     loadedState.loadedSessionLiveSelectedMappingActorId = profileState.selectedMappingActorId;
     loadedState.loadedSessionLiveArmSoftIkStrength = profileState.mappingArmSoftIkStrength;
     loadedState.loadedSessionLiveLegSoftIkStrength = profileState.mappingLegSoftIkStrength;
+    loadedState.loadedSessionLivePinHandTargets = profileState.mappingPinHandTargets;
+    loadedState.loadedSessionLivePinFootTargets = profileState.mappingPinFootTargets;
     loadedState.loadedSessionLiveMappingBackupValid = true;
 }
 
@@ -88,6 +110,8 @@ void restoreLiveMappingAfterLoadedSession(AppLoadedSessionState& loadedState, Ap
     profileState.selectedMappingActorId = loadedState.loadedSessionLiveSelectedMappingActorId;
     profileState.mappingArmSoftIkStrength = loadedState.loadedSessionLiveArmSoftIkStrength;
     profileState.mappingLegSoftIkStrength = loadedState.loadedSessionLiveLegSoftIkStrength;
+    profileState.mappingPinHandTargets = loadedState.loadedSessionLivePinHandTargets;
+    profileState.mappingPinFootTargets = loadedState.loadedSessionLivePinFootTargets;
     loadedState.loadedSessionLiveMappingBackupValid = false;
 }
 
@@ -95,6 +119,8 @@ void applySessionMappingSnapshotToLiveMapping(AppProfileState& profileState, Ses
 {
     const float armSoftIk = selectedArmSoftIk(snapshot);
     const float legSoftIk = selectedLegSoftIk(snapshot);
+    const bool pinHand = selectedPinHand(snapshot);
+    const bool pinFoot = selectedPinFoot(snapshot);
     profileState.profile = std::move(snapshot.profile);
     profileState.mappingSkeletonColor = snapshot.mappingSkeletonColor;
     profileState.mappingSkeletonColorCustomized = true;
@@ -106,6 +132,8 @@ void applySessionMappingSnapshotToLiveMapping(AppProfileState& profileState, Ses
     profileState.nextMappingActorId = nextActorIdAfter(profileState.mappingActors);
     profileState.mappingArmSoftIkStrength = armSoftIk;
     profileState.mappingLegSoftIkStrength = legSoftIk;
+    profileState.mappingPinHandTargets = pinHand;
+    profileState.mappingPinFootTargets = pinFoot;
 }
 
 } // namespace ovtr::win32

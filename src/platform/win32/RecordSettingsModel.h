@@ -16,7 +16,7 @@ struct RecordSettingsDialogInput {
     bool initialApplyNoiseFilterOnExport = false;
     float initialNoiseFilterCutoffHz = 8.0f;
     OutlierRepairStrength initialOutlierRepairStrength = OutlierRepairStrength::Light;
-    int initialSmoothingIterations = 0;
+    int initialSmoothingIterations = kDefaultSmoothingIterations;
     float defaultExportSampleRate = 60.0f;
 };
 
@@ -30,7 +30,7 @@ struct RecordSettingsDialogResult {
     bool applyNoiseFilterOnExport = false;
     float noiseFilterCutoffHz = 8.0f;
     OutlierRepairStrength outlierRepairStrength = OutlierRepairStrength::Light;
-    int smoothingIterations = 0;
+    int smoothingIterations = kDefaultSmoothingIterations;
 };
 
 RecordSettingsDialogResult initialRecordSettingsDialogResult(

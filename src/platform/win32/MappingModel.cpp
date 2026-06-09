@@ -72,6 +72,16 @@ bool isMappingArmSoftIkRow(const int rowIndex) noexcept
     return rowIndex == kMappingArmSoftIkSlot;
 }
 
+bool isMappingPinRow(const int rowIndex) noexcept
+{
+    return rowIndex == kMappingPinHandSlot || rowIndex == kMappingPinFootSlot;
+}
+
+bool isMappingPinHandRow(const int rowIndex) noexcept
+{
+    return rowIndex == kMappingPinHandSlot;
+}
+
 const wchar_t* mappingPanelRowLabel(const int rowIndex) noexcept
 {
     if (isMappingDeviceRow(rowIndex)) {
@@ -88,6 +98,12 @@ const wchar_t* mappingPanelRowLabel(const int rowIndex) noexcept
     }
     if (isMappingSoftIkRow(rowIndex)) {
         return L"Leg Soft IK";
+    }
+    if (isMappingPinHandRow(rowIndex)) {
+        return L"Pin Hand";
+    }
+    if (isMappingPinRow(rowIndex)) {
+        return L"Pin Foot";
     }
     return L"";
 }

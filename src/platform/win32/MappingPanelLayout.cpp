@@ -17,7 +17,7 @@ constexpr int kActorListGap = 8;
 constexpr int kActorListHeight = 84;
 constexpr int kMinimumActorListHeight = 56;
 constexpr int kFilterBoxGap = 8;
-constexpr int kFilterBoxHeight = 34;
+constexpr int kFilterBoxHeight = 68;
 constexpr int kPreferredRowHeight = 28;
 constexpr int kMinimumRowHeight = 18;
 constexpr int kDropdownGap = 2;
@@ -44,14 +44,11 @@ int visibleDropdownOptionCount(const int optionCount) noexcept
 MappingPanelControlsLayout mappingControlsLayoutForPanel(const ProfilePanelLayout& panelLayout) noexcept
 {
     MappingPanelControlsLayout layout;
-    if (!panelLayout.valid || panelLayout.panelRect.right <= panelLayout.panelRect.left) {
-        return layout;
-    }
+    if (!panelLayout.valid || panelLayout.panelRect.right <= panelLayout.panelRect.left) { return layout; }
 
     const RECT contentRect = insetRect(panelLayout.panelRect, kPanelPadding, kPanelPadding);
-    const int fixedWithoutActorList = kProfileBoxHeight + kProfileBoxGap + kColorBoxHeight + kColorBoxGap +
-        kNameBoxHeight + kNameBoxGap + kNameBoxHeight + kNameBoxGap +
-        kPresetControlsGap + kPresetControlsHeight + kActorButtonGap +
+    const int fixedWithoutActorList = kProfileBoxHeight + kProfileBoxGap + kColorBoxHeight + kColorBoxGap + kNameBoxHeight +
+        kNameBoxGap + kNameBoxHeight + kNameBoxGap + kPresetControlsGap + kPresetControlsHeight + kActorButtonGap +
         kActorButtonHeight + kActorListGap + kActorButtonGap + kActorButtonHeight + kFilterBoxGap + kFilterBoxHeight;
     int actorListHeight = kActorListHeight;
     int availableTableHeight = contentRect.bottom - contentRect.top - fixedWithoutActorList - actorListHeight;
@@ -63,36 +60,26 @@ MappingPanelControlsLayout mappingControlsLayoutForPanel(const ProfilePanelLayou
         actorListHeight = 0;
         availableTableHeight = contentRect.bottom - contentRect.top - fixedWithoutActorList;
     }
-    if (availableTableHeight < kMinimumRowHeight) {
-        return layout;
-    }
+    if (availableTableHeight < kMinimumRowHeight) { return layout; }
 
     layout.rowHeight = availableTableHeight < kPreferredRowHeight ? availableTableHeight : kPreferredRowHeight;
     layout.visibleRowCount = availableTableHeight / layout.rowHeight;
-    if (layout.visibleRowCount < 1) {
-        layout.visibleRowCount = 1;
-    }
-    if (layout.visibleRowCount > kMappingPanelRowCount) {
-        layout.visibleRowCount = kMappingPanelRowCount;
-    }
+    if (layout.visibleRowCount < 1) { layout.visibleRowCount = 1; }
+    if (layout.visibleRowCount > kMappingPanelRowCount) { layout.visibleRowCount = kMappingPanelRowCount; }
     layout.profileBoxRect = {contentRect.left, contentRect.top, contentRect.right, contentRect.top + kProfileBoxHeight};
     const int boxWidth = layout.profileBoxRect.right - layout.profileBoxRect.left;
     const int valueLeft = layout.profileBoxRect.left + (boxWidth * 38) / 100;
     layout.profileLabelRect = {layout.profileBoxRect.left + 8, layout.profileBoxRect.top, valueLeft - 8, layout.profileBoxRect.bottom};
     layout.profileValueRect = {valueLeft + 4, layout.profileBoxRect.top + 3, layout.profileBoxRect.right - 8, layout.profileBoxRect.bottom - 3};
-    layout.tableRect = {contentRect.left, layout.profileBoxRect.bottom + kProfileBoxGap, contentRect.right,
-                        layout.profileBoxRect.bottom + kProfileBoxGap + layout.rowHeight * layout.visibleRowCount};
-    layout.colorBoxRect = {contentRect.left, layout.tableRect.bottom + kColorBoxGap, contentRect.right,
-                           layout.tableRect.bottom + kColorBoxGap + kColorBoxHeight};
+    layout.tableRect = {contentRect.left, layout.profileBoxRect.bottom + kProfileBoxGap, contentRect.right, layout.profileBoxRect.bottom + kProfileBoxGap + layout.rowHeight * layout.visibleRowCount};
+    layout.colorBoxRect = {contentRect.left, layout.tableRect.bottom + kColorBoxGap, contentRect.right, layout.tableRect.bottom + kColorBoxGap + kColorBoxHeight};
     layout.colorLabelRect = {layout.colorBoxRect.left + 8, layout.colorBoxRect.top, valueLeft - 8, layout.colorBoxRect.bottom};
     layout.colorPickButtonRect = {layout.colorBoxRect.right - 86, layout.colorBoxRect.top + 3, layout.colorBoxRect.right - 8, layout.colorBoxRect.bottom - 3};
     layout.colorSwatchRect = {valueLeft + 4, layout.colorBoxRect.top + 5, layout.colorPickButtonRect.left - 8, layout.colorBoxRect.bottom - 5};
-    layout.actorNameBoxRect = {contentRect.left, layout.colorBoxRect.bottom + kNameBoxGap, contentRect.right,
-                               layout.colorBoxRect.bottom + kNameBoxGap + kNameBoxHeight};
+    layout.actorNameBoxRect = {contentRect.left, layout.colorBoxRect.bottom + kNameBoxGap, contentRect.right, layout.colorBoxRect.bottom + kNameBoxGap + kNameBoxHeight};
     layout.actorNameLabelRect = {layout.actorNameBoxRect.left + 8, layout.actorNameBoxRect.top, valueLeft - 8, layout.actorNameBoxRect.bottom};
     layout.actorNameValueRect = {valueLeft + 4, layout.actorNameBoxRect.top + 3, layout.actorNameBoxRect.right - 8, layout.actorNameBoxRect.bottom - 3};
-    layout.nameBoxRect = {contentRect.left, layout.actorNameBoxRect.bottom + kNameBoxGap, contentRect.right,
-                          layout.actorNameBoxRect.bottom + kNameBoxGap + kNameBoxHeight};
+    layout.nameBoxRect = {contentRect.left, layout.actorNameBoxRect.bottom + kNameBoxGap, contentRect.right, layout.actorNameBoxRect.bottom + kNameBoxGap + kNameBoxHeight};
     layout.nameLabelRect = {layout.nameBoxRect.left + 8, layout.nameBoxRect.top, valueLeft - 8, layout.nameBoxRect.bottom};
     layout.nameValueRect = {valueLeft + 4, layout.nameBoxRect.top + 3, layout.nameBoxRect.right - 8, layout.nameBoxRect.bottom - 3};
     const int presetTop = layout.nameBoxRect.bottom + kPresetControlsGap;
@@ -109,11 +96,16 @@ MappingPanelControlsLayout mappingControlsLayoutForPanel(const ProfilePanelLayou
     layout.filterBoxRect = {contentRect.left, filterTop, contentRect.right, filterTop + kFilterBoxHeight};
     const int filterWidth = layout.filterBoxRect.right - layout.filterBoxRect.left;
     const int filterValueLeft = layout.filterBoxRect.left + (filterWidth * 48) / 100;
-    const int filterMidY = layout.filterBoxRect.top + kFilterBoxHeight / 2;
-    layout.filterArmLabelRect = {layout.filterBoxRect.left + 8, layout.filterBoxRect.top, filterValueLeft - 8, filterMidY};
-    layout.filterArmValueRect = {filterValueLeft + 4, layout.filterBoxRect.top + 3, layout.filterBoxRect.right - 8, filterMidY - 3};
-    layout.filterLegLabelRect = {layout.filterBoxRect.left + 8, filterMidY, filterValueLeft - 8, layout.filterBoxRect.bottom};
-    layout.filterLegValueRect = {filterValueLeft + 4, filterMidY + 3, layout.filterBoxRect.right - 8, layout.filterBoxRect.bottom - 3};
+    const int rowHeight = kFilterBoxHeight / 4, row0 = layout.filterBoxRect.top;
+    const int row1 = row0 + rowHeight, row2 = row1 + rowHeight, row3 = row2 + rowHeight;
+    layout.filterArmLabelRect = {layout.filterBoxRect.left + 8, row0, filterValueLeft - 8, row1};
+    layout.filterArmValueRect = {filterValueLeft + 4, row0 + 3, layout.filterBoxRect.right - 8, row1 - 3};
+    layout.filterLegLabelRect = {layout.filterBoxRect.left + 8, row1, filterValueLeft - 8, row2};
+    layout.filterLegValueRect = {filterValueLeft + 4, row1 + 3, layout.filterBoxRect.right - 8, row2 - 3};
+    layout.filterPinHandLabelRect = {layout.filterBoxRect.left + 8, row2, filterValueLeft - 8, row3};
+    layout.filterPinHandValueRect = {filterValueLeft + 4, row2 + 3, layout.filterBoxRect.right - 8, row3 - 3};
+    layout.filterPinFootLabelRect = {layout.filterBoxRect.left + 8, row3, filterValueLeft - 8, layout.filterBoxRect.bottom};
+    layout.filterPinFootValueRect = {filterValueLeft + 4, row3 + 3, layout.filterBoxRect.right - 8, layout.filterBoxRect.bottom - 3};
     layout.valid = true;
     return layout;
 }

@@ -87,6 +87,8 @@ void writeActor(
     writeColor(out, prefix.c_str(), actor.skeletonColor);
     out << prefix << "arm_soft_ik=" << actor.calibration.armSoftIkStrength << "\n";
     out << prefix << "leg_soft_ik=" << actor.calibration.legSoftIkStrength << "\n";
+    out << prefix << "pin_hand=" << (actor.calibration.pinHandTargets ? 1 : 0) << "\n";
+    out << prefix << "pin_foot=" << (actor.calibration.pinFootTargets ? 1 : 0) << "\n";
     out << prefix << "left_finger_runtime_index=" << actor.mappingFingerRuntimeIndices[0] << "\n";
     out << prefix << "right_finger_runtime_index=" << actor.mappingFingerRuntimeIndices[1] << "\n";
     for (int slot = 0; slot < kMappingSlotCount; ++slot) {

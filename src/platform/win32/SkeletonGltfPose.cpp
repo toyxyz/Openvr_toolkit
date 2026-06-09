@@ -38,11 +38,7 @@ bool isHandJoint(const int joint) noexcept
 
 Vec3 crossVec(const Vec3 a, const Vec3 b) noexcept
 {
-    return {
-        a.y * b.z - a.z * b.y,
-        a.z * b.x - a.x * b.z,
-        a.x * b.y - a.y * b.x
-    };
+    return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
 }
 
 int firstChildIndex(const ProfileSkeletonJoints& joints, const int parent) noexcept
@@ -53,6 +49,12 @@ int firstChildIndex(const ProfileSkeletonJoints& joints, const int parent) noexc
         }
     }
     return -1;
+}
+
+int legAimRollHintIndex(const ProfileSkeletonJoints& joints, const int joint) noexcept
+{
+    const int child = firstChildIndex(joints, joint);
+    return (joint == kProfileJointLeftLeg || joint == kProfileJointRightLeg || child < 0) ? joint : child;
 }
 
 Vec3 fingerBoneDirection(const ProfileSkeletonJoints& joints, const int joint) noexcept
@@ -71,10 +73,7 @@ Vec3 fingerBoneDirection(const ProfileSkeletonJoints& joints, const int joint) n
 
 Vec3 rotatedAxis(const std::array<float, 4>& rotation, const Vec3 axis) noexcept
 {
-    const std::array<float, 3> out = ovtr::rotatePositionByQuaternion(
-        rotation,
-        {axis.x, axis.y, axis.z}
-    );
+    const std::array<float, 3> out = ovtr::rotatePositionByQuaternion(rotation, {axis.x, axis.y, axis.z});
     return Vec3{out[0], out[1], out[2]};
 }
 
@@ -189,11 +188,10 @@ SkeletonPose makeSkeletonGltfExportPoseInternal(
             continue;
         }
         if (isLegAimJoint(joint)) {
-            const int sideIndex = firstChildIndex(worldJoints, joint);
             SkeletonGltfBasis legBasis = skeletonGltfExportBasisFor(posedExportJoints, joint);
             legBasis = skeletonGltfBasisFromYAndXHint(
                 normalizeMappingVec3Or(skeletonGltfPrimaryBoneDirection(posedExportJoints, joint), legBasis.y),
-                sourceSideAxes[static_cast<std::size_t>(sideIndex >= 0 ? sideIndex : joint)],
+                sourceSideAxes[static_cast<std::size_t>(legAimRollHintIndex(worldJoints, joint))],
                 legBasis
             );
             worldRotations[index] = previousWorld != nullptr ? closestSkeletonGltfRoll(legBasis, (*previousWorld)[index]) : skeletonGltfQuaternionFromBasis(legBasis);

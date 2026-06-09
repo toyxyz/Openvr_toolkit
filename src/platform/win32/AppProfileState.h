@@ -95,6 +95,8 @@ struct AppProfileState {
     WNDPROC mappingEditOffsetPresetNameEditOriginalProc = nullptr;
     float mappingArmSoftIkStrength = kDefaultMappingArmSoftIkStrength;
     float mappingLegSoftIkStrength = kDefaultMappingLegSoftIkStrength;
+    bool mappingPinHandTargets = true;
+    bool mappingPinFootTargets = true;
     std::array<std::uint32_t, kMappingSlotCount> mappingDeviceRuntimeIndices =
         defaultMappingDeviceRuntimeIndices();
     std::array<std::uint32_t, kMappingFingerSourceCount> mappingFingerRuntimeIndices =
@@ -135,6 +137,8 @@ inline void syncMappingSoftIkStrengthsToActors(AppProfileState& state) noexcept
         }
         actor.calibration.armSoftIkStrength = state.mappingArmSoftIkStrength;
         actor.calibration.legSoftIkStrength = state.mappingLegSoftIkStrength;
+        actor.calibration.pinHandTargets = state.mappingPinHandTargets;
+        actor.calibration.pinFootTargets = state.mappingPinFootTargets;
     }
 }
 

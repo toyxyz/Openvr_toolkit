@@ -20,7 +20,7 @@ struct SessionSkeletonClipRequest {
     bool applyNoiseFilterOnExport = false;
     float noiseFilterCutoffHz = 8.0f;
     OutlierRepairStrength outlierRepairStrength = OutlierRepairStrength::Light;
-    int smoothingIterations = 0;
+    int smoothingIterations = kDefaultSmoothingIterations;
 };
 
 bool buildSessionSkeletonClipFromRequest(

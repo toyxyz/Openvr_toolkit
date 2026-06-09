@@ -74,7 +74,7 @@ void loadRecordSettingsConfig(AppRecordingState& state, AppDebugUiState& logStat
         state.applyNoiseFilterOnExport = false;
         state.noiseFilterCutoffHz = 8.0f;
         state.outlierRepairStrength = OutlierRepairStrength::Light;
-        state.smoothingIterations = 0;
+        state.smoothingIterations = kDefaultSmoothingIterations;
         appendDebugLog(logState, "Record settings config not found: " + path.string());
         return;
     }

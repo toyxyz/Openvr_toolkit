@@ -50,6 +50,8 @@ struct MappingCalibrationData {
     std::array<MappingVirtualTargetBinding, kMappingSlotCount> targetBindings{};
     float armSoftIkStrength = kDefaultMappingArmSoftIkStrength;
     float legSoftIkStrength = kDefaultMappingLegSoftIkStrength;
+    bool pinHandTargets = true;
+    bool pinFootTargets = true;
 };
 
 struct MappingCalibrationStatus {

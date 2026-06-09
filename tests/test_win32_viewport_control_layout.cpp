@@ -30,6 +30,10 @@ void testWin32ViewportControlLayout()
         "viewport smooth button rect"
     );
     require(
+        sameRect(recordingControls.lockButtonRect, 675, 717, 727, 762),
+        "viewport lock button rect"
+    );
+    require(
         sameRect(recordingControls.recordButtonRect, 791, 717, 836, 762),
         "viewport record button rect"
     );

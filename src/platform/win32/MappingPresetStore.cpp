@@ -47,6 +47,24 @@ int parsedColorComponent(
     return result.ec == std::errc{} ? std::clamp(value, 0, 255) : fallback;
 }
 
+bool parsedBool(
+    const std::unordered_map<std::string, std::string>& values,
+    const char* key,
+    const bool fallback
+) noexcept {
+    const auto found = values.find(key);
+    if (found == values.end()) {
+        return fallback;
+    }
+    if (found->second == "1" || found->second == "true" || found->second == "enabled") {
+        return true;
+    }
+    if (found->second == "0" || found->second == "false" || found->second == "disabled") {
+        return false;
+    }
+    return fallback;
+}
+
 bool parseEmbeddedProfile(
     const std::unordered_map<std::string, std::string>& values,
     MappingPreset& preset,
@@ -153,6 +171,8 @@ std::string serializeMappingPreset(const MappingPreset& preset)
     output << "color_r=" << preset.skeletonColor.r << "\n";
     output << "color_g=" << preset.skeletonColor.g << "\n";
     output << "color_b=" << preset.skeletonColor.b << "\n";
+    output << "pin_hand=" << (preset.pinHandTargets ? 1 : 0) << "\n";
+    output << "pin_foot=" << (preset.pinFootTargets ? 1 : 0) << "\n";
     if (preset.hasProfile) {
         output << "profile_name=" << narrow(preset.profile.name) << "\n";
         output << std::setprecision(9);
@@ -199,6 +219,8 @@ bool parseMappingPreset(std::istream& input, MappingPreset& outPreset, std::stri
         parsedColorComponent(values, "color_g", preset.skeletonColor.g),
         parsedColorComponent(values, "color_b", preset.skeletonColor.b)
     };
+    preset.pinHandTargets = parsedBool(values, "pin_hand", preset.pinHandTargets);
+    preset.pinFootTargets = parsedBool(values, "pin_foot", preset.pinFootTargets);
     for (int i = 0; i < kMappingSlotCount; ++i) {
         const auto found = values.find(slotKey(i));
         if (found == values.end()) {

@@ -44,12 +44,23 @@ ovtr::RecordingSession loadedExportSession(AppWindowState& state)
     return session;
 }
 
-void warnNoLoadedSession(HWND hwnd, AppWindowState& state)
+void warnNoLoadedSession(HWND hwnd, AppWindowState& state, const wchar_t* title)
 {
-    MessageBoxW(hwnd, L"Load a session before exporting it.", L"Export Session", MB_OK | MB_ICONWARNING);
+    MessageBoxW(hwnd, L"Load a session before exporting it.", title, MB_OK | MB_ICONWARNING);
     state.exportStatusMessage = "load a session before exporting";
     appendDebugLog(state, "Export session blocked: no loaded session");
     invalidateStatusPanel(hwnd);
+}
+
+bool blockExportIfBusy(HWND hwnd, AppWindowState& state)
+{
+    if (!isExportProgressActive(state)) {
+        return false;
+    }
+    state.exportStatusMessage = "export already in progress";
+    appendDebugLog(state, "Export blocked: export already in progress");
+    invalidateStatusPanel(hwnd);
+    return true;
 }
 
 SessionSkeletonClipRequest loadedSkeletonClipRequest(
@@ -62,14 +73,13 @@ SessionSkeletonClipRequest loadedSkeletonClipRequest(
     return request;
 }
 
-ExportProgressResult loadedSessionExportWork(
+ExportProgressResult loadedDeviceExportWork(
     const ovtr::RecordingSession& session,
     const std::filesystem::path& exportDirectory,
     const double exportSampleRate,
-    const std::vector<SessionSkeletonClipRequest>& skeletonRequests,
     const ExportProgressReporter& reporter
 ) {
-    reporter.update(0.10f, "Writing session GLB");
+    reporter.update(0.10f, "Writing device GLB");
     const ovtr::ExportResult result =
         exportRecordingSession(session, exportDirectory, exportSampleRate, {});
     if (!result.success) {
@@ -78,19 +88,33 @@ ExportProgressResult loadedSessionExportWork(
 
     RecordingExportUiMessages messages =
         recordingExportSuccessUiMessages(result.outputPath, true, {});
+    reporter.update(1.0f, "Export complete");
+    return progressResult(std::move(messages));
+}
+
+ExportProgressResult loadedPoseExportWork(
+    const std::vector<SessionSkeletonClipRequest>& skeletonRequests,
+    const std::filesystem::path& exportDirectory,
+    const std::string& sessionStem,
+    const ExportProgressReporter& reporter
+) {
+    RecordingExportUiMessages messages;
     if (skeletonRequests.empty()) {
-        messages.logMessages.push_back("Skeleton GLB export skipped: no calibrated Mapping actor");
-        reporter.update(1.0f, "Export complete");
+        messages.statusMessage = "Skeleton GLB export skipped: no calibrated Mapping actor";
+        messages.logMessages.push_back(messages.statusMessage);
+        reporter.update(1.0f, "Export skipped");
         return progressResult(std::move(messages));
     }
-
     exportSkeletonGlbsForActors(
         skeletonRequests,
         exportDirectory,
-        result.outputPath.stem().string(),
+        sessionStem,
         reporter,
         messages
     );
+    if (messages.statusMessage.empty()) {
+        messages.statusMessage = "Skeleton GLB export complete";
+    }
     reporter.update(1.0f, "Export complete");
     return progressResult(std::move(messages));
 }
@@ -160,10 +184,14 @@ bool buildLoadedSessionSkeletonClip(
     return buildSessionSkeletonClipFromRequest(request, clip, error);
 }
 
-void exportLoadedSession(HWND hwnd, AppWindowState& state)
+void exportLoadedDevice(HWND hwnd, AppWindowState& state)
 {
     if (!state.loadedSessionActive) {
-        warnNoLoadedSession(hwnd, state);
+        warnNoLoadedSession(hwnd, state, L"Export Device");
+        return;
+    }
+
+    if (blockExportIfBusy(hwnd, state)) {
         return;
     }
 
@@ -172,31 +200,49 @@ void exportLoadedSession(HWND hwnd, AppWindowState& state)
     const double exportSampleRate = static_cast<double>(
         sanitizedExportSampleRate(state.recordExportSampleRate, kDefaultRecordExportSampleRate)
     );
-    const std::vector<SessionSkeletonClipRequest> skeletonRequests =
-        sessionSkeletonClipRequests(state, session);
-
-    if (isExportProgressActive(state)) {
-        state.exportStatusMessage = "export already in progress";
-        appendDebugLog(state, "Export blocked: export already in progress");
-        invalidateStatusPanel(hwnd);
-        return;
-    }
-    appendDebugLog(state, "Export session started: GLB");
+    appendDebugLog(state, "Export device started: GLB");
     beginExportProgress(
         hwnd,
         state,
-        "Exporting Session",
+        "Exporting Device",
         [session = std::move(session),
          exportDirectory = std::move(exportDirectory),
-         exportSampleRate,
-         skeletonRequests](const ExportProgressReporter& reporter) {
-            return loadedSessionExportWork(
+         exportSampleRate](const ExportProgressReporter& reporter) {
+            return loadedDeviceExportWork(
                 session,
                 exportDirectory,
                 exportSampleRate,
-                skeletonRequests,
                 reporter
             );
+        }
+    );
+}
+
+void exportLoadedPose(HWND hwnd, AppWindowState& state)
+{
+    if (!state.loadedSessionActive) {
+        warnNoLoadedSession(hwnd, state, L"Export Pose");
+        return;
+    }
+
+    if (blockExportIfBusy(hwnd, state)) {
+        return;
+    }
+
+    ovtr::RecordingSession session = loadedExportSession(state);
+    std::vector<SessionSkeletonClipRequest> skeletonRequests =
+        sessionSkeletonClipRequests(state, session);
+    std::filesystem::path exportDirectory = loadedSessionExportDirectory(state);
+    std::string sessionStem = session.sessionId;
+    appendDebugLog(state, "Export pose started: skeleton GLB");
+    beginExportProgress(
+        hwnd,
+        state,
+        "Exporting Pose",
+        [skeletonRequests = std::move(skeletonRequests),
+         exportDirectory = std::move(exportDirectory),
+         sessionStem = std::move(sessionStem)](const ExportProgressReporter& reporter) {
+            return loadedPoseExportWork(skeletonRequests, exportDirectory, sessionStem, reporter);
         }
     );
 }

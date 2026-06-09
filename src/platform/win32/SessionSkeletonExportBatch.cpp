@@ -22,7 +22,11 @@ std::string actorFileStem(const SessionSkeletonClipRequest& request)
 void appendSkeletonFailure(RecordingExportUiMessages& messages, const std::string& error)
 {
     messages.logMessages.push_back("Skeleton GLB export failed: " + error);
-    messages.statusMessage += " Skeleton GLB export failed.";
+    if (messages.statusMessage.empty()) {
+        messages.statusMessage = "Skeleton GLB export failed.";
+    } else {
+        messages.statusMessage += " Skeleton GLB export failed.";
+    }
 }
 
 } // namespace

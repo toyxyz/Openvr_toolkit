@@ -13,7 +13,9 @@ MappingCalibrationStatus captureMappingActorCalibration(
     const std::array<float, 3>& originOffset,
     const std::array<float, 3>& originRotationDegrees,
     float armSoftIkStrength = kDefaultMappingArmSoftIkStrength,
-    float legSoftIkStrength = kDefaultMappingLegSoftIkStrength
+    float legSoftIkStrength = kDefaultMappingLegSoftIkStrength,
+    bool pinHandTargets = true,
+    bool pinFootTargets = true
 );
 
 } // namespace ovtr::win32

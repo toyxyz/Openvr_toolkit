@@ -15,6 +15,8 @@ inline constexpr int kMappingRightFingerSlot = kMappingSlotCount + 1;
 inline constexpr int kMappingPanelRowCount = kMappingSlotCount + kMappingFingerSourceCount;
 inline constexpr int kMappingArmSoftIkSlot = kMappingPanelRowCount;
 inline constexpr int kMappingLegSoftIkSlot = kMappingPanelRowCount + 1;
+inline constexpr int kMappingPinHandSlot = kMappingPanelRowCount + 2;
+inline constexpr int kMappingPinFootSlot = kMappingPanelRowCount + 3;
 inline constexpr const wchar_t* kMappingNoDeviceLabel = L"None";
 inline constexpr float kDefaultMappingArmSoftIkStrength = 0.06f;
 inline constexpr float kDefaultMappingLegSoftIkStrength = 0.03f;
@@ -81,6 +83,8 @@ bool isMappingFingerRow(int rowIndex) noexcept;
 int mappingFingerSideIndexForRow(int rowIndex) noexcept;
 bool isMappingSoftIkRow(int rowIndex) noexcept;
 bool isMappingArmSoftIkRow(int rowIndex) noexcept;
+bool isMappingPinRow(int rowIndex) noexcept;
+bool isMappingPinHandRow(int rowIndex) noexcept;
 const wchar_t* mappingPanelRowLabel(int rowIndex) noexcept;
 
 } // namespace ovtr::win32

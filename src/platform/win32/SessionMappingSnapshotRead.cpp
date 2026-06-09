@@ -81,6 +81,13 @@ void parseOptionalFloat(const ValueMap& values, const std::string& key, float& o
     }
 }
 
+void parseOptionalBool(const ValueMap& values, const std::string& key, bool& out) noexcept
+{
+    const auto found = values.find(key);
+    if (found != values.end() && (found->second == "1" || found->second == "true" || found->second == "enabled")) { out = true; }
+    else if (found != values.end() && (found->second == "0" || found->second == "false" || found->second == "disabled")) { out = false; }
+}
+
 std::uint32_t parseUInt(const ValueMap& values, const std::string& key, const std::uint32_t fallback)
 {
     const auto found = values.find(key);
@@ -224,6 +231,8 @@ bool readActor(
     actor.calibration.legSoftIkStrength = kDefaultMappingLegSoftIkStrength;
     parseOptionalFloat(values, prefix + "arm_soft_ik", actor.calibration.armSoftIkStrength);
     parseOptionalFloat(values, prefix + "leg_soft_ik", actor.calibration.legSoftIkStrength);
+    parseOptionalBool(values, prefix + "pin_hand", actor.calibration.pinHandTargets);
+    parseOptionalBool(values, prefix + "pin_foot", actor.calibration.pinFootTargets);
     for (int slot = 0; slot < kMappingSlotCount; ++slot) {
         const auto index = static_cast<std::size_t>(slot);
         const std::string slotPrefix = prefix + "slot_" + std::to_string(slot);

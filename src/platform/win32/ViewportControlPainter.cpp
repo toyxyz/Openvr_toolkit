@@ -109,6 +109,18 @@ void drawViewportSmoothButton(HDC drawDc, HFONT font, const RECT& rect, const bo
     DrawTextW(drawDc, L"Smooth", -1, &textRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 }
 
+void drawViewportLockButton(HDC drawDc, HFONT font, const RECT& rect, const bool active)
+{
+    drawViewportIconButton(drawDc, rect, active);
+    if (font) {
+        SelectObject(drawDc, font);
+    }
+    SetBkMode(drawDc, TRANSPARENT);
+    SetTextColor(drawDc, active ? RGB(88, 128, 255) : RGB(154, 166, 188));
+    RECT textRect = rect;
+    DrawTextW(drawDc, L"Lock", -1, &textRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+}
+
 void drawViewportSessionBox(HDC drawDc, HFONT font, const ViewportControlLayout& layout, const AppSessionState& state)
 {
     if (layout.sessionBoxRect.right <= layout.sessionBoxRect.left) {
@@ -198,6 +210,7 @@ void drawViewportControlBar(
     drawViewportShowTextButton(drawDc, font, layout.showTextButtonRect, viewportState.deviceLabelsVisible);
     drawViewportShowModelButton(drawDc, layout.showModelButtonRect, trackedDevicesVisible);
     drawViewportSmoothButton(drawDc, font, layout.smoothButtonRect, streamingState.realtimeSmoothingEnabled);
+    drawViewportLockButton(drawDc, font, layout.lockButtonRect, viewportState.cameraDeviceLockEnabled);
     drawViewportRecordButton(drawDc, layout.recordButtonRect, isRecordingControlActive(recordingState));
     drawViewportSessionBox(drawDc, font, layout, sessionState);
 

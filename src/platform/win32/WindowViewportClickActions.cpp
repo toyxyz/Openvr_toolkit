@@ -108,6 +108,15 @@ bool handleViewportControlClick(
         }
         return true;
     }
+    if (viewportControls.valid && PtInRect(&viewportControls.lockButtonRect, point)) {
+        state.cameraDeviceLockEnabled = !state.cameraDeviceLockEnabled;
+        resetCameraDeviceLockAnchor(state);
+        InvalidateRect(hwnd, &viewportControls.barRect, FALSE);
+        if (state.glWindow) {
+            InvalidateRect(state.glWindow, nullptr, FALSE);
+        }
+        return true;
+    }
     if (viewportControls.valid && PtInRect(&viewportControls.recordButtonRect, point)) {
         toggleRecording(hwnd);
         InvalidateRect(hwnd, &viewportControls.barRect, FALSE);

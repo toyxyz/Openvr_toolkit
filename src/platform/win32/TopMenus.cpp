@@ -21,8 +21,9 @@ constexpr UINT kSettingsMenuOriginId = 1102;
 constexpr UINT kSettingsMenuLocationId = 1103;
 constexpr UINT kSettingsMenuStreamingId = 1104;
 constexpr UINT kFileMenuImportGlbId = 1201;
-constexpr UINT kFileMenuExportSessionId = 1202;
-constexpr UINT kFileMenuSaveSessionId = 1203;
+constexpr UINT kFileMenuSaveSessionId = 1202;
+constexpr UINT kFileMenuExportDeviceId = 1203;
+constexpr UINT kFileMenuExportPoseId = 1204;
 
 void setActiveTopBarMenu(HWND hwnd, AppWindowState& state, const ActiveTopBarMenu activeMenu)
 {
@@ -102,18 +103,21 @@ void showTopFileMenu(HWND hwnd, AppWindowState& state, const RECT& fileRect)
         return;
     }
 
-    std::array<PopupMenuItem, 3> menuItems{{
+    std::array<PopupMenuItem, 4> menuItems{{
         PopupMenuItem{kFileMenuImportGlbId, L"Import GLB..."},
         PopupMenuItem{kFileMenuSaveSessionId, L"Save Session"},
-        PopupMenuItem{kFileMenuExportSessionId, L"Export Session"},
+        PopupMenuItem{kFileMenuExportDeviceId, L"Export Device"},
+        PopupMenuItem{kFileMenuExportPoseId, L"Export Pose"},
     }};
     PopupMenuItem& importItem = menuItems[0];
     PopupMenuItem& saveSessionItem = menuItems[1];
-    PopupMenuItem& exportSessionItem = menuItems[2];
+    PopupMenuItem& exportDeviceItem = menuItems[2];
+    PopupMenuItem& exportPoseItem = menuItems[3];
     appendPopupMenuItem(menu.get(), importItem);
     AppendMenuW(menu.get(), MF_SEPARATOR, 0, nullptr);
     appendPopupMenuItem(menu.get(), saveSessionItem);
-    appendPopupMenuItem(menu.get(), exportSessionItem);
+    appendPopupMenuItem(menu.get(), exportDeviceItem);
+    appendPopupMenuItem(menu.get(), exportPoseItem);
 
     POINT menuPoint{fileRect.left, fileRect.bottom};
     ClientToScreen(hwnd, &menuPoint);
@@ -122,8 +126,10 @@ void showTopFileMenu(HWND hwnd, AppWindowState& state, const RECT& fileRect)
         importGlbFromFile(hwnd, state);
     } else if (command == kFileMenuSaveSessionId) {
         saveLoadedSessionFolder(hwnd, state);
-    } else if (command == kFileMenuExportSessionId) {
-        exportLoadedSession(hwnd, state);
+    } else if (command == kFileMenuExportDeviceId) {
+        exportLoadedDevice(hwnd, state);
+    } else if (command == kFileMenuExportPoseId) {
+        exportLoadedPose(hwnd, state);
     }
 }
 

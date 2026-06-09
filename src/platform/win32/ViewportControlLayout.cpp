@@ -9,6 +9,7 @@ namespace {
 constexpr int kViewportControlBarSidePadding = 14;
 constexpr int kViewportControlButtonGap = 8;
 constexpr int kViewportSmoothButtonWidth = 66;
+constexpr int kViewportLockButtonWidth = 52;
 
 } // namespace
 
@@ -86,6 +87,12 @@ ViewportControlLayout viewportControlLayoutForClient(
         layout.showModelButtonRect.right + kViewportControlButtonGap,
         buttonY,
         layout.showModelButtonRect.right + kViewportControlButtonGap + kViewportSmoothButtonWidth,
+        buttonY + kViewportControlButtonSize
+    };
+    layout.lockButtonRect = RECT{
+        layout.smoothButtonRect.right + kViewportControlButtonGap,
+        buttonY,
+        layout.smoothButtonRect.right + kViewportControlButtonGap + kViewportLockButtonWidth,
         buttonY + kViewportControlButtonSize
     };
     layout.recordButtonRect = RECT{

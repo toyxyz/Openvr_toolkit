@@ -31,7 +31,7 @@ struct AppRecordingState {
     bool applyNoiseFilterOnExport = false;
     float noiseFilterCutoffHz = 8.0f;
     OutlierRepairStrength outlierRepairStrength = OutlierRepairStrength::Light;
-    int smoothingIterations = 0;
+    int smoothingIterations = kDefaultSmoothingIterations;
     SkeletonRecordingClip skeletonRecording;
     bool recordingDelayActive = false;
     std::chrono::steady_clock::time_point recordingDelayDeadline{};

@@ -18,6 +18,11 @@ std::wstring softIkText(const float strength)
     return std::to_wstring(static_cast<int>(std::lround(strength * 100.0f))) + L"%";
 }
 
+const wchar_t* enabledText(const bool enabled) noexcept
+{
+    return enabled ? L"Enabled" : L"Disabled";
+}
+
 void drawBox(HDC drawDc, const RECT& rect)
 {
     UniqueBrush brush(CreateSolidBrush(RGB(18, 22, 28)));
@@ -44,6 +49,12 @@ RECT valueRectForSlot(const MappingPanelControlsLayout& controls, const int slot
     }
     if (slot == kMappingLegSoftIkSlot) {
         return controls.filterLegValueRect;
+    }
+    if (slot == kMappingPinHandSlot) {
+        return controls.filterPinHandValueRect;
+    }
+    if (slot == kMappingPinFootSlot) {
+        return controls.filterPinFootValueRect;
     }
     return RECT{0, 0, 0, 0};
 }
@@ -80,21 +91,33 @@ void drawMappingSoftIkFilter(HDC drawDc, HFONT font, const AppWindowState& state
     LineTo(drawDc, controls.filterArmLabelRect.right + 8, controls.filterBoxRect.bottom);
     MoveToEx(drawDc, controls.filterBoxRect.left, controls.filterLegLabelRect.top, nullptr);
     LineTo(drawDc, controls.filterBoxRect.right, controls.filterLegLabelRect.top);
+    MoveToEx(drawDc, controls.filterBoxRect.left, controls.filterPinHandLabelRect.top, nullptr);
+    LineTo(drawDc, controls.filterBoxRect.right, controls.filterPinHandLabelRect.top);
+    MoveToEx(drawDc, controls.filterBoxRect.left, controls.filterPinFootLabelRect.top, nullptr);
+    LineTo(drawDc, controls.filterBoxRect.right, controls.filterPinFootLabelRect.top);
 
     SelectObjectGuard fontSelection(drawDc, font);
     SetTextColor(drawDc, RGB(168, 180, 196));
     RECT armLabel = controls.filterArmLabelRect;
     RECT legLabel = controls.filterLegLabelRect;
+    RECT pinHandLabel = controls.filterPinHandLabelRect;
+    RECT pinFootLabel = controls.filterPinFootLabelRect;
     DrawTextW(drawDc, L"Arm Soft IK", -1, &armLabel, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
     DrawTextW(drawDc, L"Leg Soft IK", -1, &legLabel, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+    DrawTextW(drawDc, L"Pin Hand", -1, &pinHandLabel, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+    DrawTextW(drawDc, L"Pin Foot", -1, &pinFootLabel, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 
     SetTextColor(drawDc, RGB(225, 231, 240));
     RECT armValue = controls.filterArmValueRect;
     RECT legValue = controls.filterLegValueRect;
+    RECT pinHandValue = controls.filterPinHandValueRect;
+    RECT pinFootValue = controls.filterPinFootValueRect;
     armValue.right -= 18;
     legValue.right -= 18;
     DrawTextW(drawDc, softIkText(state.mappingArmSoftIkStrength).c_str(), -1, &armValue, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     DrawTextW(drawDc, softIkText(state.mappingLegSoftIkStrength).c_str(), -1, &legValue, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+    DrawTextW(drawDc, enabledText(state.mappingPinHandTargets), -1, &pinHandValue, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+    DrawTextW(drawDc, enabledText(state.mappingPinFootTargets), -1, &pinFootValue, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     drawGlyph(drawDc, controls.filterArmValueRect);
     drawGlyph(drawDc, controls.filterLegValueRect);
 }
@@ -161,6 +184,20 @@ bool toggleMappingSoftIkFilterDropdown(HWND hwnd, AppWindowState& state, const M
         slot = kMappingArmSoftIkSlot;
     } else if (PtInRect(&controls.filterLegValueRect, point)) {
         slot = kMappingLegSoftIkSlot;
+    } else if (PtInRect(&controls.filterPinHandValueRect, point)) {
+        state.mappingPinHandTargets = !state.mappingPinHandTargets;
+        syncMappingSoftIkStrengthsToActors(state);
+        state.mappingDropdownSlot = -1;
+        appendDebugLog(state, L"Mapping Pin Hand toggled");
+        refreshFilter(hwnd, state);
+        return true;
+    } else if (PtInRect(&controls.filterPinFootValueRect, point)) {
+        state.mappingPinFootTargets = !state.mappingPinFootTargets;
+        syncMappingSoftIkStrengthsToActors(state);
+        state.mappingDropdownSlot = -1;
+        appendDebugLog(state, L"Mapping Pin Foot toggled");
+        refreshFilter(hwnd, state);
+        return true;
     } else {
         return false;
     }

@@ -151,6 +151,17 @@ Vec3 segmentSideHint(
     }
 }
 
+int poseAxisBasisIndex(const int jointIndex, const int segmentIndex) noexcept
+{
+    if (jointIndex == kProfileJointLeftLeg && segmentIndex == kProfileJointLeftFoot) {
+        return kProfileJointLeftLeg;
+    }
+    if (jointIndex == kProfileJointRightLeg && segmentIndex == kProfileJointRightFoot) {
+        return kProfileJointRightLeg;
+    }
+    return segmentIndex;
+}
+
 void drawAxisLine(const Vec3 origin, const Vec3 axis, const RgbColor color)
 {
     const Vec3 end = add(origin, scale(axis, kAxisLength));
@@ -187,10 +198,11 @@ void drawPoseJointAxis(
     const int child = firstChildIndex(joints, index);
     const int segmentIndex = child >= 0 ? child : index;
     const Vec3 yAxis = jointMainAxis(joints, index);
-    Vec3 xAxis = sideAxes[static_cast<std::size_t>(segmentIndex)];
+    const int basisIndex = poseAxisBasisIndex(index, segmentIndex);
+    Vec3 xAxis = sideAxes[static_cast<std::size_t>(basisIndex)];
     xAxis = normalizeVec3(sub(xAxis, scale(yAxis, dot(xAxis, yAxis))));
     if (!hasVector(xAxis)) {
-        xAxis = normalizeVec3(cross(yAxis, forwardAxes[static_cast<std::size_t>(segmentIndex)]));
+        xAxis = normalizeVec3(cross(yAxis, forwardAxes[static_cast<std::size_t>(basisIndex)]));
     }
     const Vec3 zAxis = normalizeVec3(cross(xAxis, yAxis));
     drawAxisLine(origin, xAxis, RgbColor{255, 64, 64});

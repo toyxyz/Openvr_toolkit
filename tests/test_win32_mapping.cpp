@@ -148,31 +148,31 @@ void testWin32MappingPanelLayout()
         ovtr::win32::mappingControlsLayoutForPanel(panel);
     require(controls.valid, "mapping panel controls valid");
     require(sameRect(controls.profileBoxRect, 858, 42, 1158, 70), "mapping profile box");
-    require(sameRect(controls.tableRect, 858, 78, 1158, 190), "mapping list box below profile");
-    require(sameRect(controls.colorBoxRect, 858, 194, 1158, 222), "mapping color box below list");
-    require(sameRect(controls.actorNameBoxRect, 858, 226, 1158, 254), "mapping actor name box below color");
-    require(sameRect(controls.nameBoxRect, 858, 258, 1158, 286), "mapping preset name box below actor name");
-    require(sameRect(controls.presetSaveButtonRect, 858, 290, 944, 318), "mapping preset save button");
-    require(sameRect(controls.presetValueRect, 952, 290, 1158, 318), "mapping preset dropdown");
-    require(sameRect(controls.addActorButtonRect, 858, 324, 1158, 352), "mapping add actor button");
-    require(sameRect(controls.actorListRect, 858, 360, 1158, 444), "mapping actor list");
-    require(sameRect(controls.calibrateButtonRect, 858, 450, 1158, 478), "mapping calibrate button");
-    require(sameRect(controls.filterBoxRect, 858, 486, 1158, 520), "mapping filter box");
-    require(controls.visibleRowCount == 4, "mapping full visible row count");
-    require(ovtr::win32::maxMappingScrollOffset(controls.visibleRowCount) == 9, "mapping full scroll");
+    require(sameRect(controls.tableRect, 858, 78, 1158, 162), "mapping list box below profile");
+    require(sameRect(controls.colorBoxRect, 858, 166, 1158, 194), "mapping color box below list");
+    require(sameRect(controls.actorNameBoxRect, 858, 198, 1158, 226), "mapping actor name box below color");
+    require(sameRect(controls.nameBoxRect, 858, 230, 1158, 258), "mapping preset name box below actor name");
+    require(sameRect(controls.presetSaveButtonRect, 858, 262, 944, 290), "mapping preset save button");
+    require(sameRect(controls.presetValueRect, 952, 262, 1158, 290), "mapping preset dropdown");
+    require(sameRect(controls.addActorButtonRect, 858, 296, 1158, 324), "mapping add actor button");
+    require(sameRect(controls.actorListRect, 858, 332, 1158, 416), "mapping actor list");
+    require(sameRect(controls.calibrateButtonRect, 858, 422, 1158, 450), "mapping calibrate button");
+    require(sameRect(controls.filterBoxRect, 858, 458, 1158, 526), "mapping filter box");
+    require(controls.visibleRowCount == 3, "mapping full visible row count");
+    require(ovtr::win32::maxMappingScrollOffset(controls.visibleRowCount) == 10, "mapping full scroll");
 
     const std::vector<ovtr::win32::MappingPanelRowLayout> rows =
         ovtr::win32::mappingRowLayoutsForPanel(panel);
-    require(rows.size() == 4, "mapping row count");
+    require(rows.size() == 3, "mapping row count");
     require(rows.front().slotIndex == 0, "mapping first row is first device slot");
-    require(rows.back().slotIndex == 3, "mapping last visible row slot");
+    require(rows.back().slotIndex == 2, "mapping last visible row slot");
     const std::vector<ovtr::win32::MappingActorRowLayout> actorRows =
         ovtr::win32::mappingActorRowLayouts(controls, 4, 1);
     require(actorRows.size() == 3, "mapping actor row count");
     require(actorRows.front().actorIndex == 1, "mapping scrolled first actor row");
     require(ovtr::win32::maxMappingActorScrollOffset(4, 3) == 1, "mapping actor max scroll");
 
-    panel.panelRect = RECT{848, 32, 1168, 352};
+    panel.panelRect = RECT{848, 32, 1168, 390};
     const ovtr::win32::MappingPanelControlsLayout smallControls =
         ovtr::win32::mappingControlsLayoutForPanel(panel);
     require(smallControls.valid, "small mapping panel controls valid");

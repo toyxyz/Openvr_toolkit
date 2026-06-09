@@ -57,6 +57,7 @@ bool handleMainWindowSetCursor(HWND hwnd, LPARAM lparam)
          PtInRect(&viewportControls.showTextButtonRect, point) ||
          PtInRect(&viewportControls.showModelButtonRect, point) ||
          PtInRect(&viewportControls.smoothButtonRect, point) ||
+         PtInRect(&viewportControls.lockButtonRect, point) ||
          PtInRect(&viewportControls.recordButtonRect, point))) {
         return setHandCursor();
     }
@@ -129,7 +130,12 @@ bool handleMainWindowSetCursor(HWND hwnd, LPARAM lparam)
     }
     const MappingPanelControlsLayout mappingControls =
         mappingControlsLayoutForPanel(profilePanelLayoutForClient(state, clientWidth, clientHeight));
-    if (state->mappingPanelVisible && mappingControls.valid && PtInRect(&mappingControls.profileValueRect, point)) {
+    if (state->mappingPanelVisible && mappingControls.valid &&
+        (PtInRect(&mappingControls.profileValueRect, point) ||
+         PtInRect(&mappingControls.filterArmValueRect, point) ||
+         PtInRect(&mappingControls.filterLegValueRect, point) ||
+         PtInRect(&mappingControls.filterPinHandValueRect, point) ||
+         PtInRect(&mappingControls.filterPinFootValueRect, point))) {
         return setHandCursor();
     }
     const ProfilePanelLayout rightPanel = profilePanelLayoutForClient(state, clientWidth, clientHeight);

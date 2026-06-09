@@ -92,7 +92,7 @@ void testWin32RecordSettingsConfig()
         "legacy record defaults outlier repair strength"
     );
     require(
-        legacyRecord.smoothingIterations == 0,
+        legacyRecord.smoothingIterations == ovtr::win32::kDefaultSmoothingIterations,
         "legacy record defaults smoothing iterations"
     );
 

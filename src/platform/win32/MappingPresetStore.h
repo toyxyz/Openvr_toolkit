@@ -18,6 +18,8 @@ struct MappingPreset {
     bool hasProfile = false;
     BodyProfile profile;
     RgbColor skeletonColor{255, 255, 255};
+    bool pinHandTargets = true;
+    bool pinFootTargets = true;
     std::array<std::wstring, kMappingSlotCount> deviceSerials{};
     std::array<std::wstring, kMappingFingerSourceCount> fingerSerials{};
 };

@@ -66,6 +66,7 @@ int main()
         ovtr::test::testWin32MappingEstimatedChest();
         ovtr::test::testWin32MappingLegParentFallback();
         ovtr::test::testWin32MappingPelvisRotation();
+        ovtr::test::testWin32MappingPinnedTargets();
         ovtr::test::testWin32MappingFingerSolve();
         ovtr::test::testWin32MappingPanelLayout();
         ovtr::test::testWin32MappingPanelStateLayout();

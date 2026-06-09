@@ -282,6 +282,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/MappingVmcFingerSolve.cpp
         src/platform/win32/MappingLegRollHints.cpp
         src/platform/win32/MappingCalibrationTargets.cpp
+        src/platform/win32/MappingPinnedTargets.cpp
         src/platform/win32/MappingPoleSolve.cpp
         src/platform/win32/MappingTransformMath.cpp
         src/platform/win32/MappingVirtualTargets.cpp
@@ -688,6 +689,7 @@ if(OVTR_BUILD_TESTS)
                 src/platform/win32/MappingVmcFingerSolve.cpp
                 src/platform/win32/MappingLegRollHints.cpp
                 src/platform/win32/MappingCalibrationTargets.cpp
+                src/platform/win32/MappingPinnedTargets.cpp
                 src/platform/win32/MappingModel.cpp
                 src/platform/win32/MappingPoleSolve.cpp
                 src/platform/win32/MappingTransformMath.cpp
@@ -814,6 +816,7 @@ if(OVTR_BUILD_TESTS)
                 tests/test_win32_mapping_estimated_chest.cpp
                 tests/test_win32_mapping_leg_parent_fallback.cpp
                 tests/test_win32_mapping_pelvis.cpp
+                tests/test_win32_mapping_pin_targets.cpp
                 tests/test_win32_mapping_fingers.cpp
                 tests/test_win32_marker_state.cpp
         tests/test_win32_origin_formatting.cpp

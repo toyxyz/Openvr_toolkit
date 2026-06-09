@@ -19,6 +19,7 @@ struct ViewportControlLayout {
     RECT showTextButtonRect{0, 0, 0, 0};
     RECT showModelButtonRect{0, 0, 0, 0};
     RECT smoothButtonRect{0, 0, 0, 0};
+    RECT lockButtonRect{0, 0, 0, 0};
     RECT recordButtonRect{0, 0, 0, 0};
     RECT sessionBoxRect{0, 0, 0, 0};
     RECT sessionLabelRect{0, 0, 0, 0};

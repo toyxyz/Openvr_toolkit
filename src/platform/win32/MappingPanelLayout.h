@@ -44,6 +44,10 @@ struct MappingPanelControlsLayout {
     RECT filterArmValueRect{0, 0, 0, 0};
     RECT filterLegLabelRect{0, 0, 0, 0};
     RECT filterLegValueRect{0, 0, 0, 0};
+    RECT filterPinHandLabelRect{0, 0, 0, 0};
+    RECT filterPinHandValueRect{0, 0, 0, 0};
+    RECT filterPinFootLabelRect{0, 0, 0, 0};
+    RECT filterPinFootValueRect{0, 0, 0, 0};
     int rowHeight = 0;
     int visibleRowCount = 0;
     bool valid = false;

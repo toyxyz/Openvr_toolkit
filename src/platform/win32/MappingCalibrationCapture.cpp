@@ -84,7 +84,9 @@ MappingCalibrationStatus captureMappingActorCalibration(
     const std::array<float, 3>& originOffset,
     const std::array<float, 3>& originRotationDegrees,
     const float armSoftIkStrength,
-    const float legSoftIkStrength
+    const float legSoftIkStrength,
+    const bool pinHandTargets,
+    const bool pinFootTargets
 ) {
     std::set<std::uint32_t> usedRuntimeIndices;
     bool hasMappedSlot = false;
@@ -171,6 +173,8 @@ MappingCalibrationStatus captureMappingActorCalibration(
     actor.calibration.targetBindings = bindings;
     actor.calibration.armSoftIkStrength = armSoftIkStrength;
     actor.calibration.legSoftIkStrength = legSoftIkStrength;
+    actor.calibration.pinHandTargets = pinHandTargets;
+    actor.calibration.pinFootTargets = pinFootTargets;
     actor.liveJoints = buildProfileSkeletonJoints(actor.profile);
     actor.liveSkeletonPose = makeRestSkeletonPose(actor.liveJoints);
     actor.liveJointsValid = true;

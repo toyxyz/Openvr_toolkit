@@ -238,6 +238,21 @@ void testWin32SkeletonGltfLegChainKeepsRestAndAnimates()
         yawExported.back().bones[kProfileJointRightFoot].localRotation,
         "right foot should not add local roll during whole-body yaw"
     );
+
+    SkeletonPose footRolled = restPose;
+    footRolled.bones[kProfileJointLeftFoot].localRotation = axisAngle(0.0f, 1.0f, 0.0f, 70.0f);
+    footRolled.bones[kProfileJointRightFoot].localRotation = axisAngle(0.0f, 1.0f, 0.0f, -70.0f);
+    const std::vector<SkeletonPose> footRollExported = makeSkeletonGltfExportPoses(rest, {restPose, footRolled});
+    requireSameRotation(
+        footRollExported.front().bones[kProfileJointLeftLeg].localRotation,
+        footRollExported.back().bones[kProfileJointLeftLeg].localRotation,
+        "left lower leg should ignore foot roll"
+    );
+    requireSameRotation(
+        footRollExported.front().bones[kProfileJointRightLeg].localRotation,
+        footRollExported.back().bones[kProfileJointRightLeg].localRotation,
+        "right lower leg should ignore foot roll"
+    );
 }
 
 } // namespace ovtr::test

@@ -72,6 +72,8 @@ enum class RealtimeSmoothingPreset {
     VeryStrong,
 };
 
+inline constexpr int kDefaultSmoothingIterations = 4;
+
 struct RecordSettingsConfig {
     std::string exportDirectoryText;
     std::string sessionDirectoryText;
@@ -82,7 +84,7 @@ struct RecordSettingsConfig {
     bool applyNoiseFilterOnExport = false;
     float noiseFilterCutoffHz = 8.0f;
     OutlierRepairStrength outlierRepairStrength = OutlierRepairStrength::Light;
-    int smoothingIterations = 0;
+    int smoothingIterations = kDefaultSmoothingIterations;
 };
 
 struct StreamingSettingsConfig {

@@ -54,6 +54,7 @@ void testWin32MappingEstimatedArmPole();
 void testWin32MappingEstimatedChest();
 void testWin32MappingLegParentFallback();
 void testWin32MappingPelvisRotation();
+void testWin32MappingPinnedTargets();
 void testWin32MappingFingerSolve();
 void testWin32MappingPanelLayout();
 void testWin32MappingPanelStateLayout();

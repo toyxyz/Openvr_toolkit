@@ -6,6 +6,7 @@
 #include "platform/win32/MappingEstimatedChest.h"
 #include "platform/win32/MappingFingerSolve.h"
 #include "platform/win32/MappingLegRollHints.h"
+#include "platform/win32/MappingPinnedTargets.h"
 #include "platform/win32/MappingPoleSolve.h"
 #include "platform/win32/MappingTransformMath.h"
 #include "platform/win32/MappingVirtualTargets.h"
@@ -106,7 +107,7 @@ void solveArm(
         actor.calibration.armSoftIkStrength
     );
     out[elbow].positionMeters = ik.mid;
-    out[wrist].positionMeters = ik.end;
+    out[wrist].positionMeters = actor.calibration.pinHandTargets ? wristTarget.position : ik.end;
 }
 
 void solveLeg(
@@ -144,14 +145,12 @@ void solveLeg(
         actor.calibration.legSoftIkStrength
     );
     out[knee].positionMeters = ik.mid;
-    out[ankle].positionMeters = ik.end;
+    out[ankle].positionMeters = actor.calibration.pinFootTargets ? ankleTarget.position : ik.end;
     out[toe].positionMeters = transformMappingPoint(ankleTarget, restDelta(rest, toe, ankle));
 }
 
 Vec3 targetSide(const std::array<MappingVirtualTarget, kMappingSlotCount>& targets, const MappingTrackerRole role) noexcept { return rotateMappingVector(targetFor(targets, role), Vec3{1.0f, 0.0f, 0.0f}); }
-
 Vec3 targetUp(const std::array<MappingVirtualTarget, kMappingSlotCount>& targets, const MappingTrackerRole role) noexcept { return rotateMappingVector(targetFor(targets, role), Vec3{0.0f, 1.0f, 0.0f}); }
-
 Vec3 targetForward(const std::array<MappingVirtualTarget, kMappingSlotCount>& targets, const MappingTrackerRole role) noexcept { return rotateMappingVector(targetFor(targets, role), Vec3{0.0f, 0.0f, 1.0f}); }
 
 void applyStableRollHints(
@@ -250,6 +249,7 @@ bool updateCalibratedMappingActorJoints(
     actor.liveSkeletonPose = makeSkeletonPoseFromWorldJoints(rest, out);
     stabilizeSkeletonConnectorRolls(rest, actor.liveSkeletonPose);
     stabilizeSkeletonFingerRolls(rest, actor.liveSkeletonPose);
+    applyPinnedMappingTargets(actor.calibration, rest, targets, actor.liveSkeletonPose);
     actor.liveJoints = computeSkeletonPoseWorldJoints(rest, actor.liveSkeletonPose);
     actor.liveJointsValid = true;
     // Temporary CSV diagnostics remain in MappingCalibrationPoseDebugLog.* for future reuse.

@@ -71,6 +71,8 @@ void applyMappingPreset(AppWindowState& state, const MappingPreset& preset)
     state.mappingActorName = preset.actorName.empty() ? state.profile.name : preset.actorName;
     state.mappingSkeletonColor = preset.skeletonColor;
     state.mappingSkeletonColorCustomized = true;
+    state.mappingPinHandTargets = preset.pinHandTargets;
+    state.mappingPinFootTargets = preset.pinFootTargets;
 
     const std::vector<DeviceListRow> rows = makeDeviceListRows(state);
     state.mappingDeviceRuntimeIndices = defaultMappingDeviceRuntimeIndices();
@@ -122,6 +124,8 @@ void saveCurrentMappingPreset(HWND hwnd, AppWindowState& state)
     preset.hasProfile = true;
     preset.profile = state.profile;
     preset.skeletonColor = state.mappingSkeletonColor;
+    preset.pinHandTargets = state.mappingPinHandTargets;
+    preset.pinFootTargets = state.mappingPinFootTargets;
     const std::vector<DeviceListRow> rows = makeDeviceListRows(state);
     for (int slot = 0; slot < kMappingSlotCount; ++slot) {
         const std::uint32_t runtimeIndex = state.mappingDeviceRuntimeIndices[static_cast<std::size_t>(slot)];

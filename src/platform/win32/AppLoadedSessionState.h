@@ -46,6 +46,8 @@ struct AppLoadedSessionState {
     std::uint32_t loadedSessionLiveSelectedMappingActorId = 0;
     float loadedSessionLiveArmSoftIkStrength = kDefaultMappingArmSoftIkStrength;
     float loadedSessionLiveLegSoftIkStrength = kDefaultMappingLegSoftIkStrength;
+    bool loadedSessionLivePinHandTargets = true;
+    bool loadedSessionLivePinFootTargets = true;
     std::chrono::steady_clock::time_point loadedSessionLastUpdate{};
 };
 
