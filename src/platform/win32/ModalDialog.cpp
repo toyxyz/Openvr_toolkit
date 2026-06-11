@@ -48,6 +48,9 @@ HWND ModalDialogHost::create(const ModalDialogDescriptor& descriptor, void* crea
     if (!dialogWindow) {
         return nullptr;
     }
+    if (descriptor.title) {
+        SetWindowTextW(dialogWindow, descriptor.title);
+    }
 
     ShowWindow(dialogWindow, SW_SHOW);
     UpdateWindow(dialogWindow);
