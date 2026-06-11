@@ -61,16 +61,16 @@ float selectedStepMeters(const AppWindowState& state) noexcept
     return kMappingEditOffsetStepOptionsMeters.front();
 }
 
+bool confirmOffsetPresetSave(HWND hwnd, const std::wstring& name)
+{
+    const std::wstring message = L"Save offset preset \"" + name + L"\"?";
+    return MessageBoxW(hwnd, message.c_str(), L"Offset", MB_OKCANCEL | MB_ICONQUESTION | MB_DEFBUTTON1) == IDOK;
+}
+
 void updateActorJoints(AppWindowState& state, MappingActor& actor)
 {
     std::lock_guard<std::mutex> lock(state.poseMutex);
-    updateCalibratedMappingActorJoints(
-        actor,
-        state.latestPoseSnapshot,
-        state.originEnabled,
-        state.originOffset,
-        state.originRotationDegrees
-    );
+    updateCalibratedMappingActorJoints(actor, state.latestPoseSnapshot, state.originEnabled, state.originOffset, state.originRotationDegrees);
 }
 
 void nudgeOffset(HWND hwnd, AppWindowState& state, MappingActor& actor, const MappingEditAxisButton& button)
@@ -114,6 +114,10 @@ void saveSelectedOffsetPreset(HWND hwnd, AppWindowState& state, const MappingAct
     const std::wstring name = trimWide(state.mappingEditOffsetPresetName);
     if (name.empty()) {
         MessageBoxW(hwnd, L"Enter an offset preset name first.", L"Offset", MB_OK | MB_ICONWARNING);
+        return;
+    }
+    if (!confirmOffsetPresetSave(hwnd, name)) {
+        appendDebugLog(state, L"Offset preset save canceled");
         return;
     }
     std::string error;
@@ -184,13 +188,7 @@ bool selectOffsetPresetDropdownOption(HWND hwnd, AppWindowState& state, const Pr
 
 } // namespace
 
-bool handleMappingEditPanelClick(
-    HWND hwnd,
-    AppWindowState& state,
-    const int clientWidth,
-    const int clientHeight,
-    const POINT point
-)
+bool handleMappingEditPanelClick(HWND hwnd, AppWindowState& state, const int clientWidth, const int clientHeight, const POINT point)
 {
     if (!state.editPanelVisible) {
         return false;
