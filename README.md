@@ -2,6 +2,12 @@
 
 Native C++20 desktop tool for recording SteamVR/OpenVR tracker poses, solving mapping actors, and exporting sessions/skeleton motion.
 
+
+https://github.com/user-attachments/assets/5aafaa3e-3346-44ea-9441-c2d7087ac1f5
+
+
+
+
 ## Dependencies
 
 - Windows 10/11
