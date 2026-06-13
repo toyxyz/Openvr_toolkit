@@ -123,9 +123,8 @@ Vec3 boneSideHint(
     case kProfileJointHeadTopEnd:
         return targetSide(targets, MappingTrackerRole::Head);
     case kProfileJointLeftUpLeg:
-        return targetSide(targets, MappingTrackerRole::Pelvis);
     case kProfileJointRightUpLeg:
-        return targetSide(targets, MappingTrackerRole::Pelvis);
+        return targetForward(targets, MappingTrackerRole::Pelvis);
     case kProfileJointLeftArm:
     case kProfileJointLeftForeArm:
         return storedHint;

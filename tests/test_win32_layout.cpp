@@ -11,12 +11,56 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <string>
 #include <thread>
 
 namespace ovtr::test {
+namespace {
+
+void testSessionListMetadataRows()
+{
+    const std::filesystem::path sessionRoot =
+        std::filesystem::current_path() / ".tmp_ovtr_session_list_order";
+    std::error_code cleanupError;
+    std::filesystem::remove_all(sessionRoot, cleanupError);
+    require(std::filesystem::create_directories(sessionRoot), "session list test root");
+    const auto makeSessionFolder = [&](const std::wstring& name, const std::string& manifestText) {
+            const std::filesystem::path folder = sessionRoot / name;
+            require(std::filesystem::create_directories(folder), "session folder created");
+            std::ofstream manifest(folder / "manifest.json");
+            manifest << manifestText;
+            manifest.close();
+        };
+    makeSessionFolder(L"session_2026_06_01_010000", "{}");
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    makeSessionFolder(L"session_2026_06_01_020000", "{}");
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    makeSessionFolder(L"Alpha_2026_06_01_030000", R"({
+  "sessionId": "Alpha_2026_06_01_030000",
+  "sessionName": "Alpha Take",
+  "createdAtUtc": "2026-06-01T03:00:00Z",
+  "stats": {"frameCount": 2646, "durationSeconds": 29.4, "droppedFrames": 0},
+  "finalized": true
+})");
+    const std::vector<ovtr::win32::RecordingSessionListRow> sessionRows =
+        ovtr::win32::listRecordingSessionFolders(sessionRoot);
+    require(sessionRows.size() == 3, "session list includes manifest folders");
+    require(sessionRows[0].name == L"Alpha_2026_06_01_030000", "newest session folder is first");
+    require(sessionRows[0].displayName == L"Alpha Take", "session list reads manifest display name");
+    require(sessionRows[0].createdLabel == L"2026-06-01 03:00", "session list reads creation date");
+    require(sessionRows[0].frameCountKnown, "session list reads known frame count");
+    require(sessionRows[0].frameCount == 2646, "session list reads frame count");
+    require(sessionRows[1].name == L"session_2026_06_01_020000", "second newest session folder is second");
+    require(sessionRows[2].name == L"session_2026_06_01_010000", "oldest session folder is last");
+    std::filesystem::remove_all(sessionRoot, cleanupError);
+}
+
+} // namespace
 
 void testWin32Layout()
 {
+    testSessionListMetadataRows();
+
     require(
         sameRect(ovtr::win32::topBarFileRectForClient(180, 32), 8, 4, 76, 28),
         "file menu rect"
@@ -215,30 +259,6 @@ void testWin32Layout()
         "device toggle rejects short content"
     );
 
-    const std::filesystem::path sessionRoot =
-        std::filesystem::current_path() / ".tmp_ovtr_session_list_order";
-    std::error_code cleanupError;
-    std::filesystem::remove_all(sessionRoot, cleanupError);
-    require(std::filesystem::create_directories(sessionRoot), "session list test root");
-    const auto makeSessionFolder = [&](const std::wstring& name) {
-            const std::filesystem::path folder = sessionRoot / name;
-            require(std::filesystem::create_directories(folder), "session folder created");
-            std::ofstream manifest(folder / "manifest.json");
-            manifest << "{}";
-            manifest.close();
-        };
-    makeSessionFolder(L"session_2026_06_01_010000");
-    std::this_thread::sleep_for(std::chrono::milliseconds(20));
-    makeSessionFolder(L"session_2026_06_01_020000");
-    std::this_thread::sleep_for(std::chrono::milliseconds(20));
-    makeSessionFolder(L"Alpha_2026_06_01_030000");
-    const std::vector<ovtr::win32::RecordingSessionListRow> sessionRows =
-        ovtr::win32::listRecordingSessionFolders(sessionRoot);
-    require(sessionRows.size() == 3, "session list includes manifest folders");
-    require(sessionRows[0].name == L"Alpha_2026_06_01_030000", "newest session folder is first");
-    require(sessionRows[1].name == L"session_2026_06_01_020000", "second newest session folder is second");
-    require(sessionRows[2].name == L"session_2026_06_01_010000", "oldest session folder is last");
-    std::filesystem::remove_all(sessionRoot, cleanupError);
 }
 
 } // namespace ovtr::test

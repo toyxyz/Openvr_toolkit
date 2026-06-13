@@ -129,8 +129,8 @@ bool showDeviceContextMenu(HWND hwnd, AppWindowState& state, const DeviceListLay
 
 bool showSessionContextMenu(HWND hwnd, AppWindowState& state, const POINT point, const int width, const int height)
 {
-    const std::vector<RecordingSessionListRow> rows =
-        listRecordingSessionFolders(activeSessionDirectoryPath(state));
+    const std::vector<RecordingSessionListRow>& rows =
+        cachedRecordingSessionFolders(state, activeSessionDirectoryPath(state));
     const SessionListLayout layout = sessionListLayoutForClient(
         &state,
         width,

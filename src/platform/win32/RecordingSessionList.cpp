@@ -1,11 +1,14 @@
 #include "platform/win32/RecordingSessionList.h"
 
+#include "platform/win32/AppDebugUiState.h"
 #include "platform/win32/ConfigStore.h"
 #include "platform/win32/DeviceListLayoutMetrics.h"
 #include "platform/win32/Layout.h"
 #include "platform/win32/Win32String.h"
+#include "recording/SessionManifest.h"
 
 #include <algorithm>
+#include <cwchar>
 #include <cstdint>
 #include <system_error>
 
@@ -45,6 +48,75 @@ std::uint64_t sessionFolderCreationTime(const std::filesystem::path& folder)
     return fileTimeTicks(attributes.ftCreationTime);
 }
 
+std::wstring formatSystemTimeMinute(const SYSTEMTIME& time)
+{
+    wchar_t buffer[24]{};
+    std::swprintf(
+        buffer,
+        24,
+        L"%04u-%02u-%02u %02u:%02u",
+        static_cast<unsigned>(time.wYear),
+        static_cast<unsigned>(time.wMonth),
+        static_cast<unsigned>(time.wDay),
+        static_cast<unsigned>(time.wHour),
+        static_cast<unsigned>(time.wMinute)
+    );
+    return buffer;
+}
+
+std::wstring formatFolderCreationLabel(const std::filesystem::path& folder)
+{
+    WIN32_FILE_ATTRIBUTE_DATA attributes{};
+    if (!GetFileAttributesExW(folder.wstring().c_str(), GetFileExInfoStandard, &attributes)) {
+        return {};
+    }
+    FILETIME localTime{};
+    SYSTEMTIME systemTime{};
+    if (!FileTimeToLocalFileTime(&attributes.ftCreationTime, &localTime) ||
+        !FileTimeToSystemTime(&localTime, &systemTime)) {
+        return {};
+    }
+    return formatSystemTimeMinute(systemTime);
+}
+
+std::wstring formatCreatedAtUtcLabel(const std::string& value)
+{
+    if (value.size() >= 16 && value[4] == '-' && value[7] == '-' &&
+        (value[10] == 'T' || value[10] == ' ') && value[13] == ':') {
+        return widen(value.substr(0, 10) + " " + value.substr(11, 5));
+    }
+    return widen(value);
+}
+
+void enrichSessionListRow(const std::filesystem::path& folder, RecordingSessionListRow& row)
+{
+    RecordingSession session;
+    SessionManifestStats stats;
+    std::string error;
+    if (readManifestJson(folder / "manifest.json", session, stats, error)) {
+        if (!session.sessionName.empty()) {
+            row.displayName = widen(session.sessionName);
+        }
+        if (!session.createdAtUtc.empty()) {
+            row.createdLabel = formatCreatedAtUtcLabel(session.createdAtUtc);
+        }
+        if (stats.frameCount > 0 || stats.finalized || stats.durationSeconds > 0.0) {
+            row.frameCount = stats.frameCount;
+            row.frameCountKnown = true;
+        }
+    }
+}
+
+RecordingSessionListRow makeSessionListRow(const std::filesystem::directory_entry& entry)
+{
+    const std::string name = entry.path().filename().string();
+    RecordingSessionListRow row{widen(name), entry.path()};
+    row.displayName = row.name;
+    row.createdLabel = formatFolderCreationLabel(entry.path());
+    enrichSessionListRow(entry.path(), row);
+    return row;
+}
+
 struct SessionFolderListCandidate {
     RecordingSessionListRow row;
     std::uint64_t creationTime = 0;
@@ -80,9 +152,8 @@ std::vector<RecordingSessionListRow> listRecordingSessionFolders(
         if (!looksLikeRecordingSessionFolder(entry.path())) {
             continue;
         }
-        const std::string name = entry.path().filename().string();
         candidates.push_back(SessionFolderListCandidate{
-            RecordingSessionListRow{widen(name), entry.path()},
+            makeSessionListRow(entry),
             sessionFolderCreationTime(entry.path()),
             sessionFolderWriteTime(entry)
         });
@@ -103,6 +174,25 @@ std::vector<RecordingSessionListRow> listRecordingSessionFolders(
         rows.push_back(candidate.row);
     }
     return rows;
+}
+
+const std::vector<RecordingSessionListRow>& cachedRecordingSessionFolders(
+    AppDebugUiState& state,
+    const std::filesystem::path& recordingsRoot
+) {
+    const std::filesystem::path normalizedRoot = recordingsRoot.lexically_normal();
+    if (!state.sessionListCacheValid || state.sessionListCacheRoot != normalizedRoot) {
+        state.sessionListCacheRows = listRecordingSessionFolders(recordingsRoot);
+        state.sessionListCacheRoot = normalizedRoot;
+        state.sessionListCacheValid = true;
+    }
+    return state.sessionListCacheRows;
+}
+
+void invalidateRecordingSessionListCache(AppDebugUiState& state)
+{
+    state.sessionListCacheValid = false;
+    state.sessionListCacheRows.clear();
 }
 
 int maxSessionListScrollOffset(const int totalItemCount, const int visibleItemCount) noexcept
@@ -142,7 +232,7 @@ int sessionListRowIndexFromPoint(
     if (point.x >= sessionListItemTextRight(layout, totalItemCount)) {
         return -1;
     }
-    const int visibleRowIndex = (point.y - layout.contentRect.top) / kDeviceListItemHeight;
+    const int visibleRowIndex = (point.y - layout.contentRect.top) / kSessionListItemHeight;
     if (visibleRowIndex < 0 || visibleRowIndex >= layout.visibleItemCount) {
         return -1;
     }

@@ -4,6 +4,7 @@
 #include "platform/win32/AppLog.h"
 #include "platform/win32/ConfigStore.h"
 #include "platform/win32/Dialogs.h"
+#include "platform/win32/RecordingSessionList.h"
 #include "platform/win32/RecordingStartActions.h"
 #include "platform/win32/SkeletonRecording.h"
 #include "platform/win32/WindowLayout.h"
@@ -89,6 +90,7 @@ void toggleRecording(HWND hwnd)
             stream << L"Recording stopped: frames " << stoppedFrameCount
                    << L", dropped " << stoppedDroppedFrames;
             appendDebugLog(*state, stream.str());
+            invalidateRecordingSessionListCache(*state);
             if (state->exportAfterRecording) {
                 exportCurrentSession(hwnd);
             } else {

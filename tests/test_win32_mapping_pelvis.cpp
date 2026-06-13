@@ -51,6 +51,19 @@ void requireNear(const float actual, const float expected, const char* message)
     }
 }
 
+void requireVecNear(const ovtr::win32::Vec3 actual, const ovtr::win32::Vec3 expected, const char* message)
+{
+    if (std::fabs(actual.x - expected.x) > 0.001f) {
+        throw std::runtime_error(std::string(message) + " x");
+    }
+    if (std::fabs(actual.y - expected.y) > 0.001f) {
+        throw std::runtime_error(std::string(message) + " y");
+    }
+    if (std::fabs(actual.z - expected.z) > 0.001f) {
+        throw std::runtime_error(std::string(message) + " z");
+    }
+}
+
 void requireAxisNear(ovtr::win32::Vec3 actual, ovtr::win32::Vec3 expected, const char* message)
 {
     using namespace ovtr::win32;
@@ -94,10 +107,22 @@ void testWin32MappingPelvisRotation()
     requireAxisNear(hipsUp, rotateMappingVector(targets[pelvisSlot], {0.0f, 1.0f, 0.0f}), "Hips up should follow pelvis pitch/roll");
     requireAxisNear(hipsSide, rotateMappingVector(targets[pelvisSlot], {1.0f, 0.0f, 0.0f}), "Hips side should follow pelvis rotation");
 
+    const auto sideAxes = computeSkeletonPoseWorldSideAxes(rest, actor.liveSkeletonPose);
+    requireAxisNear(
+        sideAxes[kProfileJointSpine],
+        rotateMappingVector(targets[pelvisSlot], {1.0f, 0.0f, 0.0f}),
+        "Spine side should follow pelvis rotation"
+    );
+
     const Vec3 expectedLeftHip =
         transformMappingPoint(targets[pelvisSlot], subMappingVec3(rest[kProfileJointLeftUpLeg].positionMeters, rest[kProfileJointHips].positionMeters));
-    requireNear(actor.liveJoints[kProfileJointLeftUpLeg].positionMeters.y, expectedLeftHip.y, "left hip y should use full pelvis rotation");
-    requireNear(actor.liveJoints[kProfileJointLeftUpLeg].positionMeters.z, expectedLeftHip.z, "left hip z should use full pelvis rotation");
+    const Vec3 expectedRightHip =
+        transformMappingPoint(targets[pelvisSlot], subMappingVec3(rest[kProfileJointRightUpLeg].positionMeters, rest[kProfileJointHips].positionMeters));
+    const Vec3 expectedSpine =
+        transformMappingPoint(targets[pelvisSlot], subMappingVec3(rest[kProfileJointSpine].positionMeters, rest[kProfileJointHips].positionMeters));
+    requireVecNear(actor.liveJoints[kProfileJointLeftUpLeg].positionMeters, expectedLeftHip, "left hip should use full pelvis rotation");
+    requireVecNear(actor.liveJoints[kProfileJointRightUpLeg].positionMeters, expectedRightHip, "right hip should use full pelvis rotation");
+    requireVecNear(actor.liveJoints[kProfileJointSpine].positionMeters, expectedSpine, "Spine should use full pelvis rotation");
 }
 
 } // namespace ovtr::test

@@ -9,6 +9,9 @@
 
 namespace ovtr::win32 {
 
+// Disabled by default; flip this when exporter/viewport pose diagnostics are needed again.
+inline constexpr bool kSkeletonGltfPoseCompareCsvLogEnabled = false;
+
 bool writeSkeletonGltfPoseCompareLog(
     const SkeletonRecordingClip& clip,
     const ProfileSkeletonJoints& rest,

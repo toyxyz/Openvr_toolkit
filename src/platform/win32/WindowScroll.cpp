@@ -98,8 +98,8 @@ bool handleMainWindowMouseWheel(HWND hwnd, WPARAM wparam, LPARAM lparam)
         return true;
     }
 
-    const std::vector<RecordingSessionListRow> sessionRows =
-        listRecordingSessionFolders(activeSessionDirectoryPath(*state));
+    const std::vector<RecordingSessionListRow>& sessionRows =
+        cachedRecordingSessionFolders(*state, activeSessionDirectoryPath(*state));
     const SessionListLayout sessionListLayout = sessionListLayoutForClient(
         state,
         clientWidth,

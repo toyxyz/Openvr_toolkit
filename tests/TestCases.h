@@ -87,6 +87,7 @@ void testWin32SkeletonGltfExport();
 void testWin32SkeletonGltfFootFollowsToeDirection();
 void testWin32SkeletonGltfHandRollFollowsForearm();
 void testWin32SkeletonGltfLegChainKeepsRestAndAnimates();
+void testWin32SkeletonGltfPoseCompareLog();
 void testWin32StatusPanel();
 void testWin32String();
 void testWin32ViewportControlLayout();

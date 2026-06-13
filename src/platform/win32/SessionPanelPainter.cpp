@@ -7,6 +7,18 @@
 namespace ovtr::win32 {
 namespace {
 
+std::wstring sessionRowMetadata(const RecordingSessionListRow& row)
+{
+    std::wstring text = row.createdLabel;
+    if (row.frameCountKnown) {
+        if (!text.empty()) {
+            text += L" | ";
+        }
+        text += std::to_wstring(row.frameCount) + L" frames";
+    }
+    return text;
+}
+
 void paintSessionRow(
     HDC drawDc,
     const SessionListLayout& layout,
@@ -16,7 +28,7 @@ void paintSessionRow(
     const bool selected
 )
 {
-    const int rowBottom = rowTop + kDeviceListItemHeight;
+    const int rowBottom = rowTop + kSessionListItemHeight;
     if (selected) {
         UniqueBrush selectedBrush(CreateSolidBrush(RGB(38, 55, 78)));
         UniqueBrush accentBrush(CreateSolidBrush(RGB(98, 139, 190)));
@@ -26,15 +38,36 @@ void paintSessionRow(
         FillRect(drawDc, &accent, accentBrush.get());
     }
 
+    UniquePen dividerPen(CreatePen(PS_SOLID, 1, RGB(44, 50, 60)));
+    {
+        SelectObjectGuard penSelection(drawDc, dividerPen.get());
+        MoveToEx(drawDc, layout.contentRect.left, rowBottom - 1, nullptr);
+        LineTo(drawDc, textRight, rowBottom - 1);
+    }
+
+    const int textLeft = layout.contentRect.left + (selected ? 8 : 0);
     SetTextColor(drawDc, selected ? RGB(236, 242, 250) : RGB(202, 211, 224));
-    RECT textRect{layout.contentRect.left + (selected ? 8 : 0), rowTop, textRight, rowBottom};
+    RECT textRect{textLeft, rowTop + 3, textRight, rowTop + 22};
     DrawTextW(
         drawDc,
-        row.name.c_str(),
-        static_cast<int>(row.name.size()),
+        row.displayName.c_str(),
+        static_cast<int>(row.displayName.size()),
         &textRect,
-        DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS
+        DT_LEFT | DT_SINGLELINE | DT_END_ELLIPSIS
     );
+
+    const std::wstring metadata = sessionRowMetadata(row);
+    if (!metadata.empty()) {
+        SetTextColor(drawDc, selected ? RGB(190, 206, 226) : RGB(136, 148, 164));
+        RECT metadataRect{textLeft, rowTop + 22, textRight, rowBottom - 3};
+        DrawTextW(
+            drawDc,
+            metadata.c_str(),
+            static_cast<int>(metadata.size()),
+            &metadataRect,
+            DT_LEFT | DT_SINGLELINE | DT_END_ELLIPSIS
+        );
+    }
 }
 
 } // namespace
@@ -80,7 +113,7 @@ void paintSessionListPanel(
     if (rows.empty()) {
         SetTextColor(drawDc, RGB(202, 211, 224));
         RECT emptyRect{layout.contentRect.left, layout.contentRect.top, textRight,
-            layout.contentRect.top + kDeviceListItemHeight};
+            layout.contentRect.top + kSessionListItemHeight};
         DrawTextW(drawDc, L"No sessions", -1, &emptyRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
         return;
     }
@@ -93,7 +126,7 @@ void paintSessionListPanel(
     for (int i = first; i < last; ++i) {
         const RecordingSessionListRow& row = rows[static_cast<std::size_t>(i)];
         paintSessionRow(drawDc, layout, row, rowTop, textRight, row.name == state.selectedSessionName);
-        rowTop += kDeviceListItemHeight;
+        rowTop += kSessionListItemHeight;
     }
 
     const int maxScroll = maxSessionListScrollOffset(totalRows, layout.visibleItemCount);

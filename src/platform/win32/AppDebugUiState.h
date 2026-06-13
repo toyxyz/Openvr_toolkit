@@ -1,5 +1,8 @@
 #pragma once
 
+#include "platform/win32/RecordingSessionList.h"
+
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -17,6 +20,9 @@ struct AppDebugUiState {
     bool streamingPanelVisible = false;
     int sessionListScrollOffset = 0;
     std::wstring selectedSessionName;
+    std::filesystem::path sessionListCacheRoot;
+    std::vector<RecordingSessionListRow> sessionListCacheRows;
+    bool sessionListCacheValid = false;
     bool splitterDragging = false;
     bool debugResizeDragging = false;
 };

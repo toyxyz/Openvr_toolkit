@@ -1,6 +1,7 @@
 #include "platform/win32/Layout.h"
 
 #include "platform/win32/DeviceListLayoutMetrics.h"
+#include "platform/win32/RecordingSessionList.h"
 
 namespace ovtr::win32 {
 namespace {
@@ -38,7 +39,7 @@ SessionListLayout sessionListLayoutForClient(
     const int boxBottom = boxTop + boxHeight;
     const int visibleBodyHeight = boxHeight - kDeviceListBoxPadding * 2 - kDeviceListHeaderHeight;
     const int visibleItemCount = visibleBodyHeight > 0
-        ? visibleBodyHeight / kDeviceListItemHeight
+        ? visibleBodyHeight / kSessionListItemHeight
         : 0;
 
     if (boxRight <= boxLeft + 80 ||

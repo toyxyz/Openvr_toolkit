@@ -57,6 +57,8 @@ int main()
         ovtr::test::testWin32SkeletonGltfFootFollowsToeDirection();
         ovtr::test::testWin32SkeletonGltfHandRollFollowsForearm();
         ovtr::test::testWin32SkeletonGltfLegChainKeepsRestAndAnimates();
+        ovtr::test::testWin32SkeletonGltfPoseCompareLog();
+        ovtr::test::testWin32MappingPelvisRotation();
         ovtr::test::testWin32SideMenuVisibility();
         ovtr::test::testWin32Layout();
         ovtr::test::testWin32MappingModel();
@@ -66,7 +68,6 @@ int main()
         ovtr::test::testWin32MappingEstimatedArmPole();
         ovtr::test::testWin32MappingEstimatedChest();
         ovtr::test::testWin32MappingLegParentFallback();
-        ovtr::test::testWin32MappingPelvisRotation();
         ovtr::test::testWin32MappingPinnedTargets();
         ovtr::test::testWin32MappingFingerSolve();
         ovtr::test::testWin32MappingPanelLayout();

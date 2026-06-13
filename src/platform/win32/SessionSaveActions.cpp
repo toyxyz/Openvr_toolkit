@@ -163,6 +163,7 @@ bool saveLoadedSessionFolder(HWND hwnd, AppWindowState& state)
     state.loadedSessionFolder = target;
     state.selectedSessionName = target.filename().wstring();
     state.sessionName = state.selectedSessionName;
+    invalidateRecordingSessionListCache(state);
     appendDebugLog(state, L"Session saved: " + state.selectedSessionName);
     invalidateWindowLayout(hwnd);
     return true;

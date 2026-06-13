@@ -67,8 +67,8 @@ void showDeleteSessionBlockedMessage(HWND hwnd, const std::wstring& message)
 bool loadSelectedSessionFolder(HWND hwnd, AppWindowState& state)
 {
     const std::filesystem::path root = activeSessionDirectoryPath(state);
-    const std::vector<RecordingSessionListRow> rows =
-        listRecordingSessionFolders(root);
+    const std::vector<RecordingSessionListRow>& rows =
+        cachedRecordingSessionFolders(state, root);
     const RecordingSessionListRow* row = selectedSessionRow(rows, state.selectedSessionName);
     if (!row) {
         appendDebugLog(state, L"Load session ignored: no session selected");
@@ -131,8 +131,8 @@ bool closeLoadedSessionFolder(HWND hwnd, AppWindowState& state)
 bool deleteSelectedSessionFolder(HWND hwnd, AppWindowState& state)
 {
     const std::filesystem::path root = activeSessionDirectoryPath(state);
-    const std::vector<RecordingSessionListRow> rows =
-        listRecordingSessionFolders(root);
+    const std::vector<RecordingSessionListRow>& rows =
+        cachedRecordingSessionFolders(state, root);
     const RecordingSessionListRow* row = selectedSessionRow(rows, state.selectedSessionName);
     if (!row) {
         appendDebugLog(state, L"Delete session ignored: no session selected");
@@ -184,6 +184,7 @@ bool deleteSelectedSessionFolder(HWND hwnd, AppWindowState& state)
         state.currentSessionFolder.clear();
     }
     state.selectedSessionName.clear();
+    invalidateRecordingSessionListCache(state);
     appendDebugLog(state, message.empty() ? "Session folder deleted" : message);
     invalidateWindowLayout(hwnd);
     return true;

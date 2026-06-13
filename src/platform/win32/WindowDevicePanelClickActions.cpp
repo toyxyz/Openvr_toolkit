@@ -72,6 +72,7 @@ bool handleSessionToggleClick(
 
     state.sessionPanelVisible = !state.sessionPanelVisible;
     if (state.sessionPanelVisible) {
+        invalidateRecordingSessionListCache(state);
         state.devicePanelVisible = false;
         state.streamingPanelVisible = false;
         state.streamingTargetDropdownOpen = false;
@@ -264,8 +265,8 @@ bool handleSessionListClick(
     const POINT point
 )
 {
-    const std::vector<RecordingSessionListRow> rows =
-        listRecordingSessionFolders(activeSessionDirectoryPath(state));
+    const std::vector<RecordingSessionListRow>& rows =
+        cachedRecordingSessionFolders(state, activeSessionDirectoryPath(state));
     const SessionListLayout layout = sessionListLayoutForClient(
         &state,
         clientWidth,

@@ -124,6 +124,16 @@ void requireSameRotation(
     require(dot > 0.999f, message);
 }
 
+float rotationAngleDegrees(const std::array<float, 4>& a, const std::array<float, 4>& b)
+{
+    constexpr float kPi = 3.14159265358979323846f;
+    float dot = std::abs(a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]);
+    if (dot > 1.0f) {
+        dot = 1.0f;
+    }
+    return 2.0f * std::acos(dot) * 180.0f / kPi;
+}
+
 std::array<ovtr::win32::Vec3, ovtr::win32::kProfileSkeletonJointCount> gltfWorldPositions(
     const ovtr::win32::ProfileSkeletonJoints& rest,
     const ovtr::win32::SkeletonPose& bindPose,
@@ -185,6 +195,32 @@ void testWin32SkeletonGltfHandRollFollowsForearm()
     const auto armWorld = gltfWorldRotations(rest, armExported.front());
     require(dotVec(rotatedX(armWorld[kProfileJointLeftArm]), sourceSide[kProfileJointLeftArm]) > 0.999f, "left upper arm GLB x follows source side axis");
     require(dotVec(rotatedX(armWorld[kProfileJointRightArm]), sourceSide[kProfileJointRightArm]) > 0.999f, "right upper arm GLB x follows source side axis");
+
+    SkeletonPose firstBent = restPose;
+    firstBent.bones[kProfileJointLeftShoulder].localRotation =
+        ovtr::normalizeQuaternion({0.089847f, 0.001019f, 0.011292f, 0.995891f});
+    firstBent.bones[kProfileJointLeftArm].localRotation =
+        ovtr::normalizeQuaternion({-0.001442f, -0.385576f, -0.223463f, 0.895206f});
+    firstBent.bones[kProfileJointLeftForeArm].localRotation =
+        ovtr::normalizeQuaternion({0.574849f, 0.0f, 0.818260f, 0.0f});
+    firstBent.bones[kProfileJointLeftHand].localRotation =
+        ovtr::normalizeQuaternion({0.938280f, -0.331343f, 0.058729f, 0.079958f});
+    const std::vector<SkeletonPose> firstBentExported = makeSkeletonGltfExportPoses(rest, {firstBent});
+    const SkeletonPose firstBentBind = makeSkeletonGltfExportPose(rest, restPose, true);
+    require(
+        rotationAngleDegrees(
+            firstBentBind.bones[kProfileJointLeftForeArm].localRotation,
+            firstBentExported.front().bones[kProfileJointLeftForeArm].localRotation
+        ) < 130.0f,
+        "first bent left forearm export should keep the rest-pre-roll roll branch"
+    );
+    require(
+        rotationAngleDegrees(
+            firstBentBind.bones[kProfileJointLeftHand].localRotation,
+            firstBentExported.front().bones[kProfileJointLeftHand].localRotation
+        ) < 130.0f,
+        "first bent left hand export should keep the rest-pre-roll roll branch"
+    );
 
     ProfileSkeletonJoints curledJoints = rest;
     curledJoints[kProfileJointLeftHandMiddle2].positionMeters.y -= 0.04f;

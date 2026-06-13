@@ -154,6 +154,7 @@ SkeletonPose makeSkeletonGltfExportPoseInternal(
     std::array<std::array<float, 4>, kProfileSkeletonJointCount> worldRotations{};
     for (int joint = 0; joint < kProfileSkeletonJointCount; ++joint) {
         const std::size_t index = static_cast<std::size_t>(joint);
+        const int parent = skeletonGltfParentIndex(rest, joint);
         const bool animationPose = !alignRollToRest;
         if (animationPose && isHandJoint(joint)) {
             const auto parentRelativeRest =
@@ -172,7 +173,7 @@ SkeletonPose makeSkeletonGltfExportPoseInternal(
                 sourceSideAxes[index],
                 restBasis
             );
-            worldRotations[index] = previousWorld != nullptr ? closestSkeletonGltfRoll(handBasis, (*previousWorld)[index]) : skeletonGltfQuaternionFromBasis(handBasis);
+            worldRotations[index] = previousWorld != nullptr ? closestSkeletonGltfLocalRoll(handBasis, worldRotations[parent], (*previousWorld)[parent], (*previousWorld)[index]) : skeletonGltfQuaternionFromBasis(handBasis);
             continue;
         }
         if (animationPose && isProfileFingerJoint(joint)) {
@@ -194,7 +195,7 @@ SkeletonPose makeSkeletonGltfExportPoseInternal(
                 sourceSideAxes[static_cast<std::size_t>(legAimRollHintIndex(worldJoints, joint))],
                 legBasis
             );
-            worldRotations[index] = previousWorld != nullptr ? closestSkeletonGltfRoll(legBasis, (*previousWorld)[index]) : skeletonGltfQuaternionFromBasis(legBasis);
+            worldRotations[index] = previousWorld != nullptr ? closestSkeletonGltfLocalRoll(legBasis, worldRotations[parent], (*previousWorld)[parent], (*previousWorld)[index]) : skeletonGltfQuaternionFromBasis(legBasis);
             continue;
         }
         if (isArmAimJoint(joint)) {
@@ -204,7 +205,7 @@ SkeletonPose makeSkeletonGltfExportPoseInternal(
                 sourceSideAxes[index],
                 armBasis
             );
-            worldRotations[index] = previousWorld != nullptr ? closestSkeletonGltfRoll(armBasis, (*previousWorld)[index]) : skeletonGltfQuaternionFromBasis(armBasis);
+            worldRotations[index] = previousWorld != nullptr ? closestSkeletonGltfLocalRoll(armBasis, worldRotations[parent], (*previousWorld)[parent], (*previousWorld)[index]) : skeletonGltfQuaternionFromBasis(armBasis);
             continue;
         }
         if (isFootJoint(joint)) {
@@ -225,7 +226,7 @@ SkeletonPose makeSkeletonGltfExportPoseInternal(
                 sourceSideAxes[static_cast<std::size_t>(sideIndex >= 0 ? sideIndex : joint)],
                 rollBasis
             );
-            worldRotations[index] = previousWorld != nullptr ? closestSkeletonGltfRoll(footBasis, (*previousWorld)[index]) : skeletonGltfQuaternionFromBasis(footBasis);
+            worldRotations[index] = previousWorld != nullptr ? closestSkeletonGltfLocalRoll(footBasis, worldRotations[parent], (*previousWorld)[parent], (*previousWorld)[index]) : skeletonGltfQuaternionFromBasis(footBasis);
             continue;
         }
         SkeletonGltfBasis poseBasis = skeletonGltfExportBasisFor(posedExportJoints, joint);
@@ -285,7 +286,7 @@ std::vector<SkeletonPose> makeSkeletonGltfExportPoses(
 ) {
     std::vector<SkeletonPose> out;
     out.reserve(poses.size());
-    SkeletonPose bindPose = makeSkeletonGltfExportPose(rest, makeRestSkeletonPose(rest), true);
+    const SkeletonPose bindPose = makeSkeletonGltfExportPose(rest, makeRestSkeletonPose(rest), true);
     auto previousWorld = exportWorldRotations(rest, bindPose);
     for (const SkeletonPose& pose : poses) {
         out.push_back(makeSkeletonGltfExportPoseInternal(rest, pose, false, &previousWorld));

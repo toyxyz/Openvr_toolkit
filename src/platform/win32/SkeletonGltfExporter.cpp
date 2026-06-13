@@ -9,6 +9,7 @@
 #include "platform/win32/SkeletonGltfAnimationWriter.h"
 #include "platform/win32/SkeletonGltfHierarchy.h"
 #include "platform/win32/SkeletonGltfPose.h"
+#include "platform/win32/SkeletonGltfPoseCompareLog.h"
 #include "platform/win32/SkeletonGltfSkin.h"
 #include "platform/win32/SkeletonPose.h"
 #include "util/JsonWriter.h"
@@ -43,8 +44,9 @@ std::vector<float> frameTimes(const SkeletonRecordingClip& clip)
 {
     std::vector<float> times;
     times.reserve(clip.frames.size());
+    const double firstTime = clip.frames.front().timeSeconds;
     for (const SkeletonRecordingFrame& frame : clip.frames) {
-        times.push_back(static_cast<float>(frame.timeSeconds));
+        times.push_back(static_cast<float>(frame.timeSeconds - firstTime));
     }
     return times;
 }
@@ -63,12 +65,12 @@ int addFloatAccessor(
 
 std::vector<SkeletonPose> exportPoses(const SkeletonRecordingClip& clip, const ProfileSkeletonJoints& rest)
 {
-    std::vector<SkeletonPose> poses;
-    poses.reserve(clip.frames.size());
+    std::vector<SkeletonPose> sourcePoses;
+    sourcePoses.reserve(clip.frames.size());
     for (const SkeletonRecordingFrame& frame : clip.frames) {
-        poses.push_back(frame.pose);
+        sourcePoses.push_back(frame.pose);
     }
-    return makeSkeletonGltfExportPoses(rest, poses);
+    return makeSkeletonGltfExportPoses(rest, sourcePoses);
 }
 
 std::vector<float> jointTranslations(const std::vector<SkeletonPose>& poses, const int joint)
@@ -211,8 +213,10 @@ bool exportSkeletonRecordingToGlb(
     const ProfileSkeletonJoints rest = buildProfileSkeletonJoints(clip.profile);
     const SkeletonPose bindPose = makeSkeletonGltfExportPose(rest, makeRestSkeletonPose(rest), true);
     const std::vector<SkeletonPose> poses = exportPoses(clip, rest);
-    // Temporary CSV diagnostics remain in SkeletonGltfPoseCompareLog.* and
-    // SkeletonGltfForearmHingeLog.* for future export-axis investigations.
+    if (kSkeletonGltfPoseCompareCsvLogEnabled
+        && !writeSkeletonGltfPoseCompareLog(clip, rest, bindPose, poses, outputPath, error)) {
+        return false;
+    }
     const int inverseBindAccessor = addFloatAccessor(
         binary,
         views,
@@ -226,7 +230,7 @@ bool exportSkeletonRecordingToGlb(
         views,
         accessors,
         jointTranslations(poses, kProfileJointSpine),
-        static_cast<int>(clip.frames.size()),
+        static_cast<int>(poses.size()),
         "VEC3"
     );
     std::array<int, kProfileSkeletonJointCount> rotationAccessors{};
@@ -236,7 +240,7 @@ bool exportSkeletonRecordingToGlb(
             views,
             accessors,
             continuousJointRotationKeys(poses, joint),
-            static_cast<int>(clip.frames.size()),
+            static_cast<int>(poses.size()),
             "VEC4"
         );
     }
@@ -250,7 +254,7 @@ bool exportSkeletonRecordingToGlb(
             views,
             accessors,
             jointTranslations(poses, joint),
-            static_cast<int>(clip.frames.size()),
+            static_cast<int>(poses.size()),
             "VEC3"
         );
     }

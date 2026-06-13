@@ -26,6 +26,12 @@ std::array<float, 4> closestSkeletonGltfRoll(
     SkeletonGltfBasis basis,
     const std::array<float, 4>& previous
 ) noexcept;
+std::array<float, 4> closestSkeletonGltfLocalRoll(
+    SkeletonGltfBasis basis,
+    const std::array<float, 4>& currentParent,
+    const std::array<float, 4>& previousParent,
+    const std::array<float, 4>& previous
+) noexcept;
 std::array<float, 4> skeletonGltfSwingBetween(Vec3 from, Vec3 to) noexcept;
 Vec3 skeletonGltfPrimaryBoneDirection(const ProfileSkeletonJoints& joints, int joint) noexcept;
 

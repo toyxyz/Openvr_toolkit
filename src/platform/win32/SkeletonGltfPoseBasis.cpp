@@ -1,5 +1,6 @@
 #include "platform/win32/SkeletonGltfPoseBasis.h"
 
+#include "math/PoseTransform.h"
 #include "math/QuaternionUtils.h"
 #include "platform/win32/MappingTransformMath.h"
 
@@ -225,6 +226,22 @@ std::array<float, 4> closestSkeletonGltfRoll(
         SkeletonGltfBasis{scaleMappingVec3(basis.x, -1.0f), basis.y, scaleMappingVec3(basis.z, -1.0f)}
     );
     return quaternionAbsDot(flipped, previous) > quaternionAbsDot(q, previous) ? flipped : q;
+}
+
+std::array<float, 4> closestSkeletonGltfLocalRoll(
+    const SkeletonGltfBasis basis,
+    const std::array<float, 4>& currentParent,
+    const std::array<float, 4>& previousParent,
+    const std::array<float, 4>& previous
+) noexcept {
+    const std::array<float, 4> q = skeletonGltfQuaternionFromBasis(basis);
+    const std::array<float, 4> flipped = skeletonGltfQuaternionFromBasis(
+        SkeletonGltfBasis{scaleMappingVec3(basis.x, -1.0f), basis.y, scaleMappingVec3(basis.z, -1.0f)}
+    );
+    const auto previousLocal = ovtr::normalizeQuaternion(ovtr::multiplyQuaternion(ovtr::conjugateQuaternion(previousParent), previous));
+    const auto qLocal = ovtr::normalizeQuaternion(ovtr::multiplyQuaternion(ovtr::conjugateQuaternion(currentParent), q));
+    const auto flippedLocal = ovtr::normalizeQuaternion(ovtr::multiplyQuaternion(ovtr::conjugateQuaternion(currentParent), flipped));
+    return quaternionAbsDot(flippedLocal, previousLocal) > quaternionAbsDot(qLocal, previousLocal) ? flipped : q;
 }
 
 std::array<float, 4> skeletonGltfSwingBetween(const Vec3 from, const Vec3 to) noexcept

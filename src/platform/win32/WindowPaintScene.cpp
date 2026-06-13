@@ -44,9 +44,10 @@ void paintWindowScene(
     const DeviceListLayout deviceListLayout = state
         ? deviceListLayoutForClient(state, clientWidth, clientHeight)
         : DeviceListLayout{};
-    const std::vector<RecordingSessionListRow> sessionRows = state
-        ? listRecordingSessionFolders(activeSessionDirectoryPath(*state))
-        : std::vector<RecordingSessionListRow>{};
+    const std::vector<RecordingSessionListRow> emptySessionRows;
+    const std::vector<RecordingSessionListRow>& sessionRows = state
+        ? cachedRecordingSessionFolders(*state, activeSessionDirectoryPath(*state))
+        : emptySessionRows;
     const SessionListLayout sessionListLayout = state
         ? sessionListLayoutForClient(state, clientWidth, clientHeight, static_cast<int>(sessionRows.size()))
         : SessionListLayout{};

@@ -9,7 +9,6 @@
 #include "platform/win32/ViewportGlTextureBindingScope.h"
 #include "platform/win32/ViewportRenderModelMatcap.h"
 
-#include <cmath>
 #include <cstddef>
 #include <gl/GL.h>
 
@@ -27,11 +26,6 @@ Vec3 add(const Vec3 a, const Vec3 b) noexcept
 Vec3 translated(const Vec3 value, const Vec3 offset) noexcept
 {
     return add(value, offset);
-}
-
-float absDot(const Vec3 a, const Vec3 b) noexcept
-{
-    return std::abs(dotMappingVec3(a, b));
 }
 
 int handRootForFingerBone(const std::size_t index) noexcept
@@ -178,15 +172,11 @@ Vec3 boxBasisAxis(
     const std::array<Vec3, kProfileSkeletonJointCount>& forwardAxes,
     const std::size_t index
 ) noexcept {
-    if (index == kProfileJointLeftUpLeg || index == kProfileJointRightUpLeg) {
-        const int parent = joints[index].parentIndex;
-        const Vec3 boneAxis = parent >= 0
-            ? normalizeMappingVec3Or(subMappingVec3(joints[index].positionMeters, joints[static_cast<std::size_t>(parent)].positionMeters), {1.0f, 0.0f, 0.0f})
-            : Vec3{1.0f, 0.0f, 0.0f};
-        const Vec3 hipsSide = sideAxes[static_cast<std::size_t>(kProfileJointHips)];
-        return absDot(hipsSide, boneAxis) < 0.92f
-            ? hipsSide
-            : forwardAxes[static_cast<std::size_t>(kProfileJointHips)];
+    if (index == kProfileJointLeftUpLeg) {
+        return forwardAxes[static_cast<std::size_t>(kProfileJointHips)];
+    }
+    if (index == kProfileJointRightUpLeg) {
+        return forwardAxes[static_cast<std::size_t>(kProfileJointHips)];
     }
     if (index == kProfileJointLeftFoot) {
         return sideAxes[static_cast<std::size_t>(kProfileJointLeftLeg)];

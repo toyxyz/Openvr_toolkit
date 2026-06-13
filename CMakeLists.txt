@@ -838,6 +838,7 @@ if(OVTR_BUILD_TESTS)
                 tests/test_win32_skeleton_gltf.cpp
                 tests/test_win32_skeleton_gltf_hand_roll.cpp
                 tests/test_win32_skeleton_gltf_leg_roll.cpp
+                tests/test_win32_skeleton_gltf_pose_compare_log.cpp
                 tests/test_win32_status_panel.cpp
                 tests/test_win32_string.cpp
                 tests/test_win32_viewport_control_layout.cpp

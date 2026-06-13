@@ -79,7 +79,8 @@ MappingCoreSolveResult solveMappingCoreJoints(
     out[kProfileJointHips].positionMeters = pelvis.position;
     out[kProfileJointSpine2].positionMeters = chest.position;
     out[kProfileJointHead].positionMeters = head.position;
-    out[kProfileJointSpine].positionMeters = spineCurvePoint(rest, kProfileJointSpine, pelvisYaw, chest);
+    out[kProfileJointSpine].positionMeters =
+        transformMappingPoint(pelvis, restDelta(rest, kProfileJointSpine, kProfileJointHips));
     out[kProfileJointSpine1].positionMeters = spineCurvePoint(rest, kProfileJointSpine1, pelvisYaw, chest);
 
     MappingCoreSolveResult result;
@@ -92,9 +93,9 @@ MappingCoreSolveResult solveMappingCoreJoints(
     out[kProfileJointRightShoulder].positionMeters =
         transformMappingPoint(chest, restDelta(rest, kProfileJointRightShoulder, kProfileJointSpine2));
     out[kProfileJointLeftUpLeg].positionMeters =
-        transformMappingPoint(pelvisYaw, restDelta(rest, kProfileJointLeftUpLeg, kProfileJointHips));
+        transformMappingPoint(pelvis, restDelta(rest, kProfileJointLeftUpLeg, kProfileJointHips));
     out[kProfileJointRightUpLeg].positionMeters =
-        transformMappingPoint(pelvisYaw, restDelta(rest, kProfileJointRightUpLeg, kProfileJointHips));
+        transformMappingPoint(pelvis, restDelta(rest, kProfileJointRightUpLeg, kProfileJointHips));
     return result;
 }
 
