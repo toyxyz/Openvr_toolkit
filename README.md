@@ -2,6 +2,20 @@
 
 Native C++20 desktop tool for recording SteamVR/OpenVR tracker poses, solving mapping actors, and exporting sessions/skeleton motion.
 
+Download release : https://github.com/toyxyz/Openvr_toolkit/releases
+
+
+If you would like to support the development of this project, a paid version is also available here. 
+
+https://toyxyz.gumroad.com/l/akrhgz
+
+It offers the same features as the free version. Your support would be greatly appreciated.
+
+https://github.com/user-attachments/assets/5aafaa3e-3346-44ea-9441-c2d7087ac1f5
+
+
+
+
 ## Dependencies
 
 - Windows 10/11
