@@ -4,6 +4,8 @@ Native C++20 desktop tool for recording SteamVR/OpenVR tracker poses, solving ma
 
 Download release : https://github.com/toyxyz/Openvr_toolkit/releases
 
+Tutorial : https://www.youtube.com/watch?v=btdB7rOIkqo
+
 
 If you would like to support the development of this project, a paid version is also available here. 
 
