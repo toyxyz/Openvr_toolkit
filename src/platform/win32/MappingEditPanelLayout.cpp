@@ -11,7 +11,7 @@ constexpr int kPresetBoxHeight = 74;
 constexpr int kDetailHeight = kValueBoxHeight + kPanelPad + kPresetBoxHeight;
 constexpr int kActorNameHeight = 26;
 constexpr int kMinListRowHeight = 18;
-constexpr int kButtonSize = 24;
+constexpr int kButtonSize = 18;
 constexpr int kStepRowHeight = 26;
 constexpr int kValueRowHeight = 20;
 constexpr int kPresetControlHeight = 26;
@@ -42,7 +42,7 @@ MappingEditPanelLayout mappingEditPanelLayoutForPanel(const ProfilePanelLayout& 
     const int top = panel.panelRect.top + kPanelPad;
     const int bottom = panel.panelRect.bottom - kPanelPad;
     const int listTop = top + kActorNameHeight + 4;
-    const int available = bottom - listTop - kPanelPad - kStepRowHeight - 4 - kDetailHeight;
+    const int available = bottom - listTop - kPanelPad - kStepRowHeight - kPanelPad - kDetailHeight;
     if (available < kMinListRowHeight) {
         return layout;
     }

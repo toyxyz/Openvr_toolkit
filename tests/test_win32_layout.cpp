@@ -179,6 +179,11 @@ void testWin32Layout()
     const ovtr::win32::MappingEditPanelLayout editLayout =
         ovtr::win32::mappingEditPanelLayoutForPanel(editPanel);
     require(editLayout.valid, "mapping edit layout valid");
+    for (const ovtr::win32::MappingEditAxisButton& button :
+         ovtr::win32::mappingEditAxisButtonsForPanel(editPanel)) {
+        require(button.rect.top >= editLayout.valuesRect.top, "mapping edit axis button top stays inside values box");
+        require(button.rect.bottom <= editLayout.valuesRect.bottom, "mapping edit axis button bottom stays inside values box");
+    }
     require(
         ovtr::win32::mappingEditStepOptionsForPanel(editPanel).size() == 3,
         "mapping edit step dropdown has three options"

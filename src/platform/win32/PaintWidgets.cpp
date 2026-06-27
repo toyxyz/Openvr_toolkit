@@ -18,6 +18,26 @@ COLORREF buttonBorderColor(const bool active) noexcept
     return active ? RGB(92, 126, 168) : RGB(67, 74, 88);
 }
 
+int verticalLabelLineHeight(HDC drawDc, const int totalHeight, const int labelLength, const int preferredHeight) noexcept
+{
+    if (labelLength <= 0 || totalHeight <= 0) {
+        return 0;
+    }
+
+    TEXTMETRICW metrics{};
+    const int naturalLineHeight = GetTextMetricsW(drawDc, &metrics) ? metrics.tmHeight + 1 : 14;
+    const int paddedHeight = totalHeight > 8 ? totalHeight - 8 : totalHeight;
+    const int availableLineHeight = paddedHeight / labelLength;
+    int lineHeight = naturalLineHeight;
+    if (availableLineHeight > 0 && availableLineHeight < lineHeight) {
+        lineHeight = availableLineHeight;
+    }
+    if (lineHeight < 1) {
+        return 1;
+    }
+    return lineHeight;
+}
+
 void drawVerticalToggleButton(
     HDC drawDc,
     HFONT font,
@@ -38,15 +58,23 @@ void drawVerticalToggleButton(
     SelectObjectGuard fontSelection(drawDc, font);
 
     SetTextColor(drawDc, RGB(225, 231, 240));
+    SetBkMode(drawDc, TRANSPARENT);
     const int labelLength = static_cast<int>(std::wcslen(label));
     const int totalHeight = rect.bottom - rect.top;
-    const int lineHeight = totalHeight >= preferredHeight ? 14 : (totalHeight / (labelLength + 1));
+    const int lineHeight = verticalLabelLineHeight(drawDc, totalHeight, labelLength, preferredHeight);
     const int labelHeight = lineHeight * labelLength;
     int y = rect.top + (totalHeight - labelHeight) / 2;
+    const int savedDc = SaveDC(drawDc);
+    if (savedDc) {
+        IntersectClipRect(drawDc, rect.left, rect.top, rect.right, rect.bottom);
+    }
     for (int i = 0; i < labelLength; ++i) {
         RECT charRect{rect.left, y, rect.right, y + lineHeight};
         DrawTextW(drawDc, label + i, 1, &charRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
         y += lineHeight;
+    }
+    if (savedDc) {
+        RestoreDC(drawDc, savedDc);
     }
 }
 
