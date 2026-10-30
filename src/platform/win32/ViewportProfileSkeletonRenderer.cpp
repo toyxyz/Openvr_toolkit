@@ -1,14 +1,10 @@
 #include "platform/win32/ViewportProfileSkeletonRenderer.h"
 
-#include "platform/win32/AppLog.h"
-#include "platform/win32/MappingCalibrationSolve.h"
 #include "platform/win32/ProfileSkeleton.h"
-#include "platform/win32/SkeletonRecording.h"
 #include "platform/win32/ViewportBodySkeletonBoxRenderer.h"
 #include "platform/win32/ViewportDrawPrimitives.h"
 #include "platform/win32/ViewportGlStateScope.h"
 #include "platform/win32/ViewportSkeletonJointAxes.h"
-#include "platform/win32/VmcStreamingPose.h"
 #include "platform/win32/Win32String.h"
 
 #include <algorithm>
@@ -213,81 +209,28 @@ void drawProfileSkeletonPreview3D(
 }
 
 void drawMappingActors3D(
-    AppProfileState& profileState,
-    const AppRuntimeState& runtimeState,
-    const AppOriginState& originState,
-    AppRecordingState& recordingState,
-    AppStreamingState& streamingState,
-    AppDebugUiState& debugState,
+    const AppProfileState& profileState,
+    const AppDebugUiState& debugState,
     AppViewportState& viewportState
 )
 {
-    if (profileState.mappingActors.empty()) {
-        return;
-    }
     ScopedGlCapability lighting(GL_LIGHTING, false);
     ScopedGlCapability texture2D(GL_TEXTURE_2D, false);
-    const bool selectedCalibrated = std::any_of(
-        profileState.mappingActors.begin(),
-        profileState.mappingActors.end(),
-        [&](const MappingActor& actor) {
-            return actor.calibrated && actor.id == profileState.selectedMappingActorId;
-        }
-    );
-    bool streamedActor = false;
-    for (MappingActor& actor : profileState.mappingActors) {
-        if (actor.calibrated) {
-            updateCalibratedMappingActorJoints(
-                actor,
-                runtimeState.poses,
-                originState.originEnabled,
-                originState.originOffset,
-                originState.originRotationDegrees
-            );
-            if (actor.liveJointsValid) {
-                recordSkeletonFrameIfRecording(recordingState, actor, std::chrono::steady_clock::now());
-                const ProfileSkeletonJoints rest = buildProfileSkeletonJoints(actor.profile);
-                const bool shouldStream = !streamedActor &&
-                    (!selectedCalibrated || actor.id == profileState.selectedMappingActorId);
-                if (shouldStream) {
-                    std::string error;
-                    if (sendMappingActorVmcPose(streamingState, actor, error)) {
-                        streamingState.vmcSendErrorLogged = false;
-                    } else if (!streamingState.vmcSendErrorLogged) {
-                        appendDebugLog(debugState, L"VMC streaming send failed: " + widen(error));
-                        streamingState.vmcSendErrorLogged = true;
-                    }
-                    streamedActor = true;
-                }
-                drawSkeletonPose(
-                    viewportState,
-                    rest,
-                    actor.liveJoints,
-                    actor.liveSkeletonPose,
-                    computedProfileHeightCm(actor.profile) * 0.01f,
-                    actorOffset(),
-                    actor.skeletonColor
-                );
-                if (debugState.debugMonitorVisible) {
-                    drawSkeletonPoseJointAxes3D(rest, actor.liveJoints, actor.liveSkeletonPose, actorOffset());
-                }
-                if (debugState.debugMonitorVisible && actor.id == profileState.selectedMappingActorId) {
-                    drawMappingDebug(actor, actorOffset());
-                }
-                continue;
+    for (const MappingActor& actor : profileState.mappingActors) {
+        if (actor.calibrated && actor.liveJointsValid) {
+            const ProfileSkeletonJoints rest = buildProfileSkeletonJoints(actor.profile);
+            drawSkeletonPose(viewportState, rest, actor.liveJoints, actor.liveSkeletonPose,
+                computedProfileHeightCm(actor.profile) * 0.01f, actorOffset(), actor.skeletonColor);
+            if (debugState.debugMonitorVisible) {
+                drawSkeletonPoseJointAxes3D(rest, actor.liveJoints, actor.liveSkeletonPose, actorOffset());
+                if (actor.id == profileState.selectedMappingActorId) drawMappingDebug(actor, actorOffset());
             }
+            continue;
         }
         const ProfileSkeletonJoints joints = buildProfileSkeletonJoints(actor.profile);
-        drawSkeletonJoints(
-            viewportState,
-            joints,
-            computedProfileHeightCm(actor.profile) * 0.01f,
-            actorOffset(),
-            actor.skeletonColor
-        );
-        if (debugState.debugMonitorVisible) {
-            drawSkeletonJointAxes3D(joints, actorOffset());
-        }
+        drawSkeletonJoints(viewportState, joints, computedProfileHeightCm(actor.profile) * 0.01f,
+            actorOffset(), actor.skeletonColor);
+        if (debugState.debugMonitorVisible) drawSkeletonJointAxes3D(joints, actorOffset());
     }
 }
 

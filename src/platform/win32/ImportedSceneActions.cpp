@@ -1,4 +1,5 @@
 #include "platform/win32/ImportedSceneActions.h"
+#include "platform/win32/CombinedPlayback.h"
 
 #include "import/GltfImporter.h"
 #include "platform/win32/AppConfig.h"
@@ -55,6 +56,7 @@ void importGlbFromFile(HWND hwnd, AppWindowState& state)
     state.importedScenePlaybackSeconds = 0.0;
     state.importedSceneLastUpdate = std::chrono::steady_clock::now();
     state.importStatusMessage = "GLB imported: " + selectedPath.filename().string();
+    reconcileCombinedPlayback(state);
     appendDebugLog(state, state.importStatusMessage);
 
     layoutChildWindows(hwnd);
@@ -73,6 +75,7 @@ void closeImportedGlb(HWND hwnd, AppWindowState& state)
 
     resetImportedSceneRenderCacheWithContext(state);
     appendDebugLog(state, state.importStatusMessage);
+    reconcileCombinedPlayback(state);
     layoutChildWindows(hwnd);
     invalidateWindowLayout(hwnd);
 }

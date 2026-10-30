@@ -6,59 +6,22 @@ namespace ovtr::win32 {
 
 void populateImportedAnimationControlLayout(ViewportControlLayout& layout) noexcept
 {
-    layout.animationBarRect = RECT{
-        layout.barRect.left,
-        layout.barRect.top - kImportedAnimationBarHeight,
-        layout.barRect.right,
-        layout.barRect.top
-    };
-
-    const int buttonTop = layout.animationBarRect.top +
-        (kImportedAnimationBarHeight - kImportedAnimationButtonSize) / 2;
-    int x = layout.animationBarRect.left + 14;
-    layout.firstFrameButtonRect = RECT{
-        x,
-        buttonTop,
-        x + kImportedAnimationButtonSize,
-        buttonTop + kImportedAnimationButtonSize
-    };
-    x = layout.firstFrameButtonRect.right + 8;
-    layout.playPauseButtonRect = RECT{
-        x,
-        buttonTop,
-        x + kImportedAnimationButtonSize,
-        buttonTop + kImportedAnimationButtonSize
-    };
-    x = layout.playPauseButtonRect.right + 8;
-    layout.lastFrameButtonRect = RECT{
-        x,
-        buttonTop,
-        x + kImportedAnimationButtonSize,
-        buttonTop + kImportedAnimationButtonSize
-    };
-
-    layout.closeButtonRect = RECT{
-        layout.animationBarRect.right - 14 - kImportedAnimationCloseButtonWidth,
-        buttonTop,
-        layout.animationBarRect.right - 14,
-        buttonTop + kImportedAnimationButtonSize
-    };
-    layout.frameTextRect = RECT{
-        layout.closeButtonRect.left - 12 - kImportedAnimationFrameTextWidth,
-        layout.animationBarRect.top,
-        layout.closeButtonRect.left - 12,
-        layout.animationBarRect.bottom
-    };
-    layout.timelineRect = RECT{
-        layout.lastFrameButtonRect.right + 18,
-        layout.animationBarRect.top + 14,
-        layout.frameTextRect.left - 18,
-        layout.animationBarRect.bottom - 14
-    };
-
-    layout.animationValid =
-        layout.animationBarRect.bottom > layout.animationBarRect.top &&
-        layout.closeButtonRect.right > layout.closeButtonRect.left &&
+    layout.animationBarRect = RECT{layout.barRect.left,
+        layout.barRect.top - kImportedAnimationBarHeight, layout.barRect.right, layout.barRect.top};
+    const int top = layout.animationBarRect.top + 4;
+    const int center = (layout.animationBarRect.left + layout.animationBarRect.right) / 2;
+    const int size = kImportedAnimationButtonSize;
+    layout.firstFrameButtonRect = RECT{center - size - size / 2 - 2, top, center - size / 2 - 2, top + size};
+    layout.playPauseButtonRect = RECT{center - size / 2, top, center + size / 2, top + size};
+    layout.lastFrameButtonRect = RECT{center + size / 2 + 2, top, center + size + size / 2 + 2, top + size};
+    layout.closeButtonRect = RECT{layout.animationBarRect.right - 80, top,
+        layout.animationBarRect.right - 10, top + size};
+    layout.frameTextRect = RECT{layout.animationBarRect.left + 12, top,
+        layout.firstFrameButtonRect.left - 8, top + size};
+    layout.timelineRect = RECT{layout.animationBarRect.left + 14, top + size + 5,
+        layout.animationBarRect.right - 14, layout.animationBarRect.bottom - 5};
+    layout.animationValid = layout.animationBarRect.top >= kViewportLayoutTopBarHeight &&
+        layout.lastFrameButtonRect.right + 6 < layout.closeButtonRect.left &&
         layout.timelineRect.right - layout.timelineRect.left >= kImportedAnimationTimelineMinWidth;
 }
 

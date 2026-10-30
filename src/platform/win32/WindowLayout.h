@@ -20,6 +20,7 @@ int activeDebugMonitorHeight(const AppWindowState* state, int clientHeight);
 RECT deviceToggleButtonRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 RECT sessionToggleButtonRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 RECT streamingToggleButtonRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
+RECT videoToggleButtonRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 RECT profileToggleButtonRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 RECT mappingToggleButtonRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 RECT editToggleButtonRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
@@ -58,6 +59,7 @@ StreamingPanelLayout streamingPanelLayoutForClient(
     int clientWidth,
     int clientHeight
 );
+VideoPanelLayout videoPanelLayoutForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 RECT debugMessagesRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 RECT debugInfoRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);
 RECT debugResizeRectForClient(const AppWindowState* state, int clientWidth, int clientHeight);

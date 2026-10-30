@@ -37,6 +37,7 @@ bool handleDeviceToggleClick(
     if (state.devicePanelVisible) {
         state.sessionPanelVisible = false;
         state.streamingPanelVisible = false;
+        state.videoPanelVisible = false;
         state.streamingTargetDropdownOpen = false;
         closeStreamingHostEditor(hwnd, state);
         closeStreamingPortEditor(hwnd, state);
@@ -75,6 +76,7 @@ bool handleSessionToggleClick(
         invalidateRecordingSessionListCache(state);
         state.devicePanelVisible = false;
         state.streamingPanelVisible = false;
+        state.videoPanelVisible = false;
         state.streamingTargetDropdownOpen = false;
         closeStreamingHostEditor(hwnd, state);
         closeStreamingPortEditor(hwnd, state);
@@ -214,7 +216,8 @@ bool handleDeviceSplitterClick(
 )
 {
     const RECT splitterRect = splitterRectForClient(&state, clientWidth, clientHeight);
-    if (!(state.devicePanelVisible || state.sessionPanelVisible || state.streamingPanelVisible) ||
+    if (!(state.devicePanelVisible || state.sessionPanelVisible || state.streamingPanelVisible ||
+        state.videoPanelVisible) ||
         !PtInRect(&splitterRect, point)) {
         return false;
     }

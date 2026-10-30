@@ -1,4 +1,5 @@
 #include "platform/win32/ImportedSceneActions.h"
+#include "platform/win32/CombinedPlayback.h"
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/AppLog.h"
@@ -29,7 +30,7 @@ void seekImportedGlbFromTimeline(
     const POINT point
 )
 {
-    if (!seekImportedSceneFromTimeline(state, timelineRect, point)) {
+    if (!seekCombinedPlaybackFromTimeline(state, timelineRect, point)) {
         return;
     }
 
@@ -38,14 +39,14 @@ void seekImportedGlbFromTimeline(
 
 void toggleImportedGlbPlayback(HWND hwnd, AppWindowState& state)
 {
-    const ImportedScenePlaybackToggleResult result = toggleImportedScenePlayback(state);
-    if (result == ImportedScenePlaybackToggleResult::Ignored) {
+    if (!state.importedSceneLoaded) {
         return;
     }
+    toggleCombinedPlayback(state);
 
     appendDebugLog(
         state,
-        result == ImportedScenePlaybackToggleResult::Started
+        state.playbackTimeline.playing
             ? L"Imported GLB playback started"
             : L"Imported GLB playback paused"
     );
@@ -55,11 +56,14 @@ void toggleImportedGlbPlayback(HWND hwnd, AppWindowState& state)
 
 void startImportedGlbPlaybackForRecording(HWND hwnd, AppWindowState& state)
 {
-    if (!startImportedScenePlaybackForRecording(state)) {
+    if (!state.importedSceneLoaded || combinedPlaybackDuration(state) <= 0.0) {
         invalidateImportedAnimationBar(hwnd, state);
         return;
     }
-
+    if (state.playbackTimeline.seconds >= combinedPlaybackDuration(state)) seekCombinedPlayback(state, 0.0);
+    state.playbackTimeline.playing = true;
+    state.playbackTimeline.lastUpdate = PlaybackTimeline::Clock::now();
+    applyCombinedPlayback(state, false, state.playbackTimeline.lastUpdate);
     appendDebugLog(state, L"Imported GLB playback auto-started for recording");
     invalidateImportedAnimationBar(hwnd, state);
 }
@@ -71,22 +75,19 @@ bool handleImportedAnimationControlClick(
     const POINT point
 )
 {
-    if (!state.importedSceneLoaded || !layout.animationValid) {
+    if (!state.importedSceneLoaded || state.loadedSessionActive || !layout.animationValid) {
         return false;
     }
 
     if (PtInRect(&layout.firstFrameButtonRect, point)) {
-        state.importedScenePlaying = false;
-        setImportedScenePlaybackSeconds(state, 0.0);
+        state.playbackTimeline.playing = false;
+        seekCombinedPlayback(state, 0.0);
     } else if (PtInRect(&layout.playPauseButtonRect, point)) {
         toggleImportedGlbPlayback(hwnd, state);
         return true;
     } else if (PtInRect(&layout.lastFrameButtonRect, point)) {
-        state.importedScenePlaying = false;
-        setImportedScenePlaybackSeconds(state, importedSceneDurationSeconds(state));
-    } else if (PtInRect(&layout.closeButtonRect, point)) {
-        closeImportedGlb(hwnd, state);
-        return true;
+        state.playbackTimeline.playing = false;
+        seekCombinedPlayback(state, combinedPlaybackDuration(state));
     } else if (PtInRect(&layout.timelineRect, point)) {
         state.importedSceneTimelineDragging = true;
         SetCapture(hwnd);
@@ -96,9 +97,7 @@ bool handleImportedAnimationControlClick(
         return false;
     }
 
-    if (state.glWindow) {
-        renderViewport(state.glWindow);
-    }
+    state.viewportRenderDemand.dirty = true;
     invalidateStatusPanel(hwnd);
     InvalidateRect(hwnd, nullptr, FALSE);
     return true;

@@ -20,6 +20,7 @@ void paintDeviceRailAndSplitter(
         drawDc,
         font,
         static_cast<const AppDebugUiState&>(state),
+        state.videoPanelVisible,
         clientWidth,
         clientHeight,
         contentBottom

@@ -1,4 +1,5 @@
 #include "platform/win32/ViewportGlFonts.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/Win32GdiResources.h"
@@ -39,7 +40,7 @@ void createGlFontDisplayList(
         CLIP_DEFAULT_PRECIS,
         CLEARTYPE_QUALITY,
         DEFAULT_PITCH | FF_DONTCARE,
-        L"Segoe UI"
+        ui::fontFamily
     ));
     SelectObjectGuard fontSelection(deviceContext, font.get());
     wglUseFontBitmapsW(deviceContext, 0, 128, displayList.get());

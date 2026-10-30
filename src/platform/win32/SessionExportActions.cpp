@@ -13,6 +13,7 @@
 #include "platform/win32/SessionSkeletonExportClip.h"
 #include "platform/win32/SkeletonGltfExporter.h"
 #include "platform/win32/SkeletonRecording.h"
+#include "platform/win32/SessionVideoExport.h"
 #include "platform/win32/WindowLayout.h"
 
 #include <filesystem>
@@ -243,6 +244,38 @@ void exportLoadedPose(HWND hwnd, AppWindowState& state)
          exportDirectory = std::move(exportDirectory),
          sessionStem = std::move(sessionStem)](const ExportProgressReporter& reporter) {
             return loadedPoseExportWork(skeletonRequests, exportDirectory, sessionStem, reporter);
+        }
+    );
+}
+
+void exportLoadedVideo(HWND hwnd, AppWindowState& state)
+{
+    if (!state.loadedSessionActive) {
+        warnNoLoadedSession(hwnd, state, L"Export Video");
+        return;
+    }
+    if (state.loadedSession.videoPath.empty()) {
+        MessageBoxW(hwnd, L"This session does not contain a recorded video.",
+            L"Export Video", MB_OK | MB_ICONINFORMATION);
+        return;
+    }
+    if (blockExportIfBusy(hwnd, state)) return;
+
+    ovtr::RecordingSession session = loadedExportSession(state);
+    std::filesystem::path exportDirectory = loadedSessionExportDirectory(state);
+    beginExportProgress(
+        hwnd,
+        state,
+        "Exporting Video",
+        [session = std::move(session), exportDirectory = std::move(exportDirectory)](
+            const ExportProgressReporter& reporter) {
+            reporter.update(0.2f, "Copying session video");
+            const ovtr::ExportResult result = exportSessionVideo(session, exportDirectory);
+            if (!result.success) {
+                return progressResult(recordingExportFailureUiMessages(result.error));
+            }
+            reporter.update(1.0f, "Video export complete");
+            return progressResult(recordingExportSuccessUiMessages(result.outputPath, true, {}));
         }
     );
 }

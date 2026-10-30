@@ -1,4 +1,7 @@
 #include "platform/win32/ViewportRenderer.h"
+#include "platform/win32/ViewportBackdrop.h"
+#include "platform/win32/PerformanceCapture.h"
+#include "platform/win32/ViewportRedraw.h"
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/ViewportCamera.h"
@@ -131,12 +134,8 @@ void drawScene3D(AppWindowState& state, const int paneHeight, const CameraView& 
         static_cast<AppViewportState&>(state)
     );
     drawMappingActors3D(
-        static_cast<AppProfileState&>(state),
-        static_cast<const AppRuntimeState&>(state),
-        static_cast<const AppOriginState&>(state),
-        static_cast<AppRecordingState&>(state),
-        static_cast<AppStreamingState&>(state),
-        static_cast<AppDebugUiState&>(state),
+        static_cast<const AppProfileState&>(state),
+        static_cast<const AppDebugUiState&>(state),
         static_cast<AppViewportState&>(state)
     );
     drawTrackedDevices3D(
@@ -184,8 +183,7 @@ void renderPane(AppWindowState& state, const int fullHeight, const RenderPane& p
     const int glY = fullHeight - pane.rect.bottom;
     glViewport(pane.rect.left, glY, paneWidth, paneHeight);
     glScissor(pane.rect.left, glY, paneWidth, paneHeight);
-    setGlClearColor(state.viewportSettings.backgroundColor);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    drawViewportBackdrop(state.viewportSettings.backgroundColor);
 
     const bool perspective = pane.kind == ViewportPaneKind::Perspective;
     const CameraView camera = cameraForPane(state, pane.kind);
@@ -270,6 +268,8 @@ void renderQuadViewport(AppWindowState& state, const int width, const int height
 
 void renderViewport(HWND hwnd)
 {
+    if (!IsWindowVisible(hwnd) || IsIconic(GetAncestor(hwnd, GA_ROOT))) return;
+    PerformanceScope trace("render");
     AppWindowState* state = appStateForWindow(hwnd);
     if (!state || !state->glDeviceContext || !state->glContext) {
         return;
@@ -293,6 +293,7 @@ void renderViewport(HWND hwnd)
     glViewport(0, 0, width, height);
     drawViewportOverlays2D(*state, width, height);
     SwapBuffers(state->glDeviceContext.get());
+    markViewportPresented(*state);
     ++state->renderFrames;
 }
 

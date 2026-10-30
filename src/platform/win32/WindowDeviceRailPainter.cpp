@@ -1,4 +1,5 @@
 #include "platform/win32/WindowChromePainter.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/AppDebugUiState.h"
 #include "platform/win32/AppProfileState.h"
@@ -25,11 +26,16 @@ int activeDebugMonitorHeightForState(const AppDebugUiState& state, const int cli
     return clampDebugMonitorHeightForClient(state.debugMonitorHeight, clientHeight);
 }
 
-int leftPanelWidthForState(const AppDebugUiState& state, const int clientWidth)
+int leftPanelWidthForState(
+    const AppDebugUiState& state,
+    const bool videoPanelVisible,
+    const int clientWidth
+)
 {
     const int requestedWidth = state.leftPanelWidth > 0 ? state.leftPanelWidth : 0;
     return leftPanelWidthForClient(
-        state.devicePanelVisible || state.sessionPanelVisible || state.streamingPanelVisible,
+        state.devicePanelVisible || state.sessionPanelVisible || state.streamingPanelVisible ||
+            videoPanelVisible,
         requestedWidth,
         clientWidth
     );
@@ -57,10 +63,10 @@ void paintRightPanelFrame(
     const ProfilePanelLayout& panelLayout
 )
 {
-    UniqueBrush panelBrush(CreateSolidBrush(RGB(20, 23, 28)));
+    UniqueBrush panelBrush(CreateSolidBrush(ui::panel));
     FillRect(drawDc, &panelLayout.panelRect, panelBrush.get());
 
-    UniquePen panelPen(CreatePen(PS_SOLID, 1, RGB(58, 64, 76)));
+    UniquePen panelPen(CreatePen(PS_SOLID, 1, ui::border));
     SelectObjectGuard penSelection(drawDc, panelPen.get());
     SelectObjectGuard brushSelection(drawDc, GetStockObject(NULL_BRUSH));
     Rectangle(
@@ -72,11 +78,11 @@ void paintRightPanelFrame(
     );
 
     UniqueBrush splitterBrush(CreateSolidBrush(
-        state.profileSplitterDragging ? RGB(50, 60, 76) : RGB(28, 31, 38)
+        state.profileSplitterDragging ? ui::selection : ui::window
     ));
     FillRect(drawDc, &panelLayout.splitterRect, splitterBrush.get());
 
-    UniquePen splitterPen(CreatePen(PS_SOLID, 1, RGB(58, 64, 76)));
+    UniquePen splitterPen(CreatePen(PS_SOLID, 1, ui::border));
     {
         SelectObjectGuard splitterPenSelection(drawDc, splitterPen.get());
         MoveToEx(drawDc, panelLayout.splitterRect.left, panelLayout.splitterRect.top, nullptr);
@@ -88,7 +94,7 @@ void paintRightPanelFrame(
     UniquePen handlePen(CreatePen(
         PS_SOLID,
         1,
-        state.profileSplitterDragging ? RGB(128, 154, 190) : RGB(84, 92, 108)
+        state.profileSplitterDragging ? ui::accent : ui::scrollbar
     ));
     SelectObjectGuard handlePenSelection(drawDc, handlePen.get());
     const int handleX = panelLayout.splitterRect.left + (kSplitterWidth / 2);
@@ -110,10 +116,10 @@ void paintRightRail(
 )
 {
     RECT railRect{clientWidth - kDeviceToggleRailWidth, kTopBarHeight, clientWidth, contentBottom};
-    UniqueBrush railBrush(CreateSolidBrush(RGB(20, 23, 28)));
+    UniqueBrush railBrush(CreateSolidBrush(ui::panel));
     FillRect(drawDc, &railRect, railBrush.get());
 
-    UniquePen railPen(CreatePen(PS_SOLID, 1, RGB(43, 48, 59)));
+    UniquePen railPen(CreatePen(PS_SOLID, 1, ui::divider));
     {
         SelectObjectGuard penSelection(drawDc, railPen.get());
         MoveToEx(drawDc, railRect.left, railRect.top, nullptr);
@@ -142,16 +148,17 @@ void paintDeviceRailAndSplitter(
     HDC drawDc,
     HFONT font,
     const AppDebugUiState& state,
+    const bool videoPanelVisible,
     const int clientWidth,
     const int clientHeight,
     const int contentBottom
 )
 {
     RECT railRect{0, kTopBarHeight, kDeviceToggleRailWidth, contentBottom};
-    UniqueBrush railBrush(CreateSolidBrush(RGB(20, 23, 28)));
+    UniqueBrush railBrush(CreateSolidBrush(ui::panel));
     FillRect(drawDc, &railRect, railBrush.get());
 
-    UniquePen railPen(CreatePen(PS_SOLID, 1, RGB(43, 48, 59)));
+    UniquePen railPen(CreatePen(PS_SOLID, 1, ui::divider));
     {
         SelectObjectGuard penSelection(drawDc, railPen.get());
         MoveToEx(drawDc, kDeviceToggleRailWidth - 1, railRect.top, nullptr);
@@ -184,8 +191,13 @@ void paintDeviceRailAndSplitter(
         drawStreamingToggleButton(drawDc, font, streamingButtonRect, state.streamingPanelVisible);
     }
 
+    const RECT videoButtonRect = videoToggleButtonRectForClient(contentBottom, clientWidth, clientHeight);
+    if (videoButtonRect.right > videoButtonRect.left && videoButtonRect.bottom > videoButtonRect.top) {
+        drawVideoToggleButton(drawDc, font, videoButtonRect, videoPanelVisible);
+    }
+
     const RECT splitterRect = splitterRectForClient(
-        leftPanelWidthForState(state, clientWidth),
+        leftPanelWidthForState(state, videoPanelVisible, clientWidth),
         activeDebugMonitorHeightForState(state, clientHeight),
         clientHeight
     );
@@ -194,11 +206,11 @@ void paintDeviceRailAndSplitter(
     }
 
     UniqueBrush splitterBrush(CreateSolidBrush(
-        state.splitterDragging ? RGB(50, 60, 76) : RGB(28, 31, 38)
+        state.splitterDragging ? ui::selection : ui::window
     ));
     FillRect(drawDc, &splitterRect, splitterBrush.get());
 
-    UniquePen splitterPen(CreatePen(PS_SOLID, 1, RGB(58, 64, 76)));
+    UniquePen splitterPen(CreatePen(PS_SOLID, 1, ui::border));
     {
         SelectObjectGuard penSelection(drawDc, splitterPen.get());
         MoveToEx(drawDc, splitterRect.left, splitterRect.top, nullptr);
@@ -207,14 +219,15 @@ void paintDeviceRailAndSplitter(
         LineTo(drawDc, splitterRect.right - 1, splitterRect.bottom);
     }
 
-    if (!state.devicePanelVisible && !state.sessionPanelVisible && !state.streamingPanelVisible) {
+    if (!state.devicePanelVisible && !state.sessionPanelVisible && !state.streamingPanelVisible &&
+        !videoPanelVisible) {
         return;
     }
 
     UniquePen handlePen(CreatePen(
         PS_SOLID,
         1,
-        state.splitterDragging ? RGB(128, 154, 190) : RGB(84, 92, 108)
+        state.splitterDragging ? ui::accent : ui::scrollbar
     ));
     SelectObjectGuard penSelection(drawDc, handlePen.get());
     const int handleX = splitterRect.left + (kSplitterWidth / 2);

@@ -70,6 +70,16 @@ bool openLoadedSession(AppWindowState& state, const std::filesystem::path& folde
 
     session.framesPath = sessionFilePath(folder, session.framesPath, "frames.bin");
     session.frameIndexPath = sessionFilePath(folder, session.frameIndexPath, "frame_index.bin");
+    if (!session.videoPath.empty()) {
+        session.videoPath = sessionFilePath(folder, session.videoPath, "video.mp4");
+        std::error_code videoError;
+        if (!std::filesystem::is_regular_file(session.videoPath, videoError)) {
+            outError = videoError
+                ? "failed to inspect session video: " + videoError.message()
+                : "session video file is missing";
+            return false;
+        }
+    }
 
     BinarySessionReader reader;
     if (!reader.open(session.framesPath, session.frameIndexPath)) {
@@ -104,6 +114,11 @@ bool openLoadedSession(AppWindowState& state, const std::filesystem::path& folde
     }
 
     closeLoadedSession(state);
+    if (!session.videoPath.empty() &&
+        !state.sessionVideoPlayback->open(session.videoPath, outError)) {
+        outError = "failed to open session video: " + outError;
+        return false;
+    }
     state.loadedSessionPreviousSessionName = state.sessionName;
     if (hasMappingSnapshot) {
         backupLiveMappingForLoadedSession(
@@ -144,6 +159,9 @@ bool openLoadedSession(AppWindowState& state, const std::filesystem::path& folde
 bool closeLoadedSession(AppWindowState& state)
 {
     const bool wasActive = state.loadedSessionActive;
+    if (state.sessionVideoPlayback) {
+        state.sessionVideoPlayback->close();
+    }
     state.loadedSessionReader.close();
     state.loadedSessionActive = false;
     state.loadedSessionPlaying = false;

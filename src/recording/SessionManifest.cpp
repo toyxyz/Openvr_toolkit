@@ -87,7 +87,8 @@ std::string makeManifestJson(const RecordingSession& session, const SessionManif
     json << "  },\n";
     json << "  \"files\": {\n";
     writeJsonStringField(json, "frames", session.framesPath.generic_string(), true);
-    writeJsonStringField(json, "frameIndex", session.frameIndexPath.generic_string(), false);
+    writeJsonStringField(json, "frameIndex", session.frameIndexPath.generic_string(), true);
+    writeJsonStringField(json, "video", session.videoPath.generic_string(), false);
     json << "  },\n";
     writeDevicesJson(json, session.devices);
     json << "  \"stats\": {\n";

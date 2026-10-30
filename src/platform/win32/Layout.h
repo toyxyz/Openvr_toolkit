@@ -41,6 +41,7 @@ RECT splitterRectForClient(int leftPanelWidth, int activeDebugMonitorHeight, int
 RECT deviceToggleButtonRectForClient(int contentBottom, int clientWidth, int clientHeight) noexcept;
 RECT sessionToggleButtonRectForClient(int contentBottom, int clientWidth, int clientHeight) noexcept;
 RECT streamingToggleButtonRectForClient(int contentBottom, int clientWidth, int clientHeight) noexcept;
+RECT videoToggleButtonRectForClient(int contentBottom, int clientWidth, int clientHeight) noexcept;
 int defaultProfilePanelWidthForClient(int clientWidth) noexcept;
 int clampProfilePanelWidthForClient(int requestedWidth, int clientWidth) noexcept;
 int rightProfileAreaWidthForClient(bool profilePanelVisible, int clientWidth) noexcept;
@@ -89,6 +90,13 @@ StreamingPanelLayout streamingPanelLayoutForClient(
     int leftPanelWidth,
     int contentBottom
 ) noexcept;
+VideoPanelLayout videoPanelLayoutForClient(
+    bool videoPanelVisible,
+    int leftPanelWidth,
+    int contentBottom,
+    int cameraCount
+) noexcept;
+int videoCameraIndexFromPoint(const VideoPanelLayout& layout, POINT point, int cameraCount) noexcept;
 int maxDeviceListScrollOffset(int totalItemCount, int visibleItemCount) noexcept;
 int clampDeviceListScrollOffset(int scrollOffset, int totalItemCount, int visibleItemCount) noexcept;
 int deviceListItemTextRight(const DeviceListLayout& layout, int totalItemCount) noexcept;
@@ -120,7 +128,8 @@ ViewportControlLayout viewportControlLayoutForClient(
     bool showAnimationControls,
     int clientWidth,
     int clientHeight,
-    int rightReservedWidth
+    int rightReservedWidth,
+    bool showImportedSceneBar = false
 ) noexcept;
 RECT viewportRenderRectForClient(
     int leftPanelWidth,

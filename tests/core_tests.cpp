@@ -13,6 +13,11 @@ int main()
     _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
 #endif
     try {
+#ifdef _WIN32
+        ovtr::test::testWin32ViewportControlLayout();
+        ovtr::test::testWin32ViewportSettingsConfig();
+        ovtr::test::testWin32SessionPlayback();
+#endif
         ovtr::test::testSamplingScheduler();
         ovtr::test::testBinarySessionRoundTrip();
         ovtr::test::testBinarySessionRejectsTruncatedIndex();
@@ -90,7 +95,6 @@ int main()
         ovtr::test::testWin32RecordingActions();
         ovtr::test::testWin32RecordingCleanup();
         ovtr::test::testWin32RuntimeStatus();
-        ovtr::test::testWin32SessionPlayback();
         ovtr::test::testWin32SkeletonConnectorRollStabilization();
         ovtr::test::testWin32SkeletonLowerBoneIgnoresEndEffectorRotation();
         ovtr::test::testWin32SkeletonPoseRestWorldJoints();
@@ -99,9 +103,7 @@ int main()
         ovtr::test::testWin32SkeletonGltfExport();
         ovtr::test::testWin32StatusPanel();
         ovtr::test::testWin32String();
-        ovtr::test::testWin32ViewportControlLayout();
         ovtr::test::testWin32ViewportGpuMesh();
-        ovtr::test::testWin32ViewportSettingsConfig();
         ovtr::test::testWin32ViewportMath();
 #endif
     } catch (const std::exception& error) {

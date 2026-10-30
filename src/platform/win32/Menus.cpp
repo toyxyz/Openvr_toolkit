@@ -1,4 +1,6 @@
 #include "platform/win32/Menus.h"
+#include "platform/win32/UiTheme.h"
+#include "platform/win32/WindowPaintFonts.h"
 
 #include "platform/win32/Win32GdiResources.h"
 #include "platform/win32/Win32ScopedDcResources.h"
@@ -9,6 +11,14 @@ namespace ovtr::win32 {
 
 void appendPopupMenuItem(HMENU menu, PopupMenuItem& item)
 {
+    static const UniqueBrush menuBackground(CreateSolidBrush(ui::panel));
+    MENUINFO appearance{};
+    appearance.cbSize = sizeof(appearance);
+    appearance.fMask = MIM_BACKGROUND;
+    appearance.hbrBack = menuBackground.get();
+    if (!SetMenuInfo(menu, &appearance)) {
+        OutputDebugStringW(L"UI theme: setting popup menu background failed.\n");
+    }
     AppendMenuW(
         menu,
         MF_OWNERDRAW,
@@ -26,7 +36,8 @@ bool measurePopupMenuItem(HWND hwnd, MEASUREITEMSTRUCT& measure)
     const auto* item = reinterpret_cast<const PopupMenuItem*>(measure.itemData);
     WindowDc windowDc(hwnd);
     HDC dc = windowDc.get();
-    HFONT font = reinterpret_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT));
+    const auto fonts = createWindowPaintFonts();
+    HFONT font = fonts.bodyFont();
     SelectObjectGuard fontSelection(dc, font);
 
     SIZE textSize{96, 18};
@@ -40,7 +51,7 @@ bool measurePopupMenuItem(HWND hwnd, MEASUREITEMSTRUCT& measure)
     }
 
     measure.itemWidth = static_cast<UINT>(std::max<LONG>(textSize.cx + 72, 168));
-    measure.itemHeight = 34;
+    measure.itemHeight = 26;
     return true;
 }
 
@@ -54,11 +65,11 @@ bool drawPopupMenuItem(const DRAWITEMSTRUCT& draw)
     const bool selected = (draw.itemState & ODS_SELECTED) != 0;
     const bool disabled = (draw.itemState & ODS_DISABLED) != 0;
 
-    UniqueBrush backgroundBrush(CreateSolidBrush(selected ? RGB(210, 220, 234) : RGB(248, 248, 248)));
+    UniqueBrush backgroundBrush(CreateSolidBrush(selected ? ui::accent : ui::panel));
     FillRect(draw.hDC, &draw.rcItem, backgroundBrush.get());
 
     if (selected) {
-        UniquePen borderPen(CreatePen(PS_SOLID, 1, RGB(166, 184, 207)));
+        UniquePen borderPen(CreatePen(PS_SOLID, 1, ui::accent));
         SelectObjectGuard penSelection(draw.hDC, borderPen.get());
         SelectObjectGuard brushSelection(draw.hDC, GetStockObject(NULL_BRUSH));
         RoundRect(
@@ -76,16 +87,17 @@ bool drawPopupMenuItem(const DRAWITEMSTRUCT& draw)
     textRect.left += 28;
     textRect.right -= 18;
     SetBkMode(draw.hDC, TRANSPARENT);
-    SetTextColor(draw.hDC, disabled ? RGB(150, 150, 150) : RGB(18, 22, 28));
+    SetTextColor(draw.hDC, disabled ? ui::disabled : ui::text);
 
-    HFONT font = reinterpret_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT));
+    const auto fonts = createWindowPaintFonts();
+    HFONT font = fonts.bodyFont();
     SelectObjectGuard fontSelection(draw.hDC, font);
     DrawTextW(
         draw.hDC,
         item->label.c_str(),
         static_cast<int>(item->label.size()),
         &textRect,
-        DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS
+        DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX
     );
     return true;
 }

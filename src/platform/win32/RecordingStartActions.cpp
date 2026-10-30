@@ -59,19 +59,13 @@ const MappingActor* skeletonRecordingActor(const AppWindowState& state) noexcept
     return nullptr;
 }
 
-} // namespace
-
-void startRecordingNow(HWND hwnd, AppWindowState& state)
+void completeRecordingStart(
+    HWND hwnd,
+    AppWindowState& state,
+    RecordingStartPlan plan,
+    const bool recordVideo
+)
 {
-    const RecordingStartPlan plan = makeRecordingStartPlan(
-        static_cast<const AppRuntimeState&>(state),
-        static_cast<const AppDeviceState&>(state),
-        activeSessionDirectoryPath(state),
-        recordingSessionIdForName(state.sessionName, localTimestampForPath()),
-        utcTimestampIso(),
-        kTargetViewportFps
-    );
-
     bool recordingStarted = false;
     std::string recordingError;
     {
@@ -79,7 +73,6 @@ void startRecordingNow(HWND hwnd, AppWindowState& state)
         state.recordingDelayActive = false;
         state.exportStatusMessage.clear();
         state.currentSessionFolder = plan.sessionFolder;
-        state.recordingStart = std::chrono::steady_clock::now();
         state.recordingDroppedFrames = 0;
         state.recordingScheduler = ovtr::SamplingScheduler(kTargetViewportFps);
         state.recordingScheduler.reset(state.recordingStart);
@@ -93,27 +86,150 @@ void startRecordingNow(HWND hwnd, AppWindowState& state)
             beginSkeletonRecording(state.skeletonRecording, *actor);
         }
     }
+    if (!recordingStarted && recordVideo) {
+        std::string finalizeError;
+        if (!state.videoCapture->endRecording(finalizeError)) {
+            appendDebugLog(
+                state, "Video cleanup after recording start failure failed: " + finalizeError);
+        }
+    }
 
     appendDebugLog(state, "Starting recording: " + plan.sessionFolder.string());
     if (recordingStarted) {
         appendDebugLog(state, L"Recording started");
+        if (recordVideo) {
+            state.videoStatusMessage = "Video recording.";
+            appendDebugLog(state, L"Session video capture started");
+        }
         std::string snapshotError;
-        if (saveSessionMappingSnapshot(state, state.devices, plan.sessionFolder, snapshotError)) {
+        if (saveSessionMappingSnapshot(
+                state, state.devices, plan.sessionFolder, snapshotError)) {
             appendDebugLog(state, L"Session mapping snapshot saved");
         } else {
-            appendDebugLog(state, "Session mapping snapshot save failed: " + snapshotError);
+            appendDebugLog(
+                state, "Session mapping snapshot save failed: " + snapshotError);
         }
-        if (state.skeletonRecording.active) {
-            appendDebugLog(state, L"Skeleton GLB capture started");
-        } else {
-            appendDebugLog(state, L"Skeleton GLB capture skipped: no calibrated Mapping actor");
-        }
+        appendDebugLog(
+            state,
+            state.skeletonRecording.active
+                ? L"Skeleton GLB capture started"
+                : L"Skeleton GLB capture skipped: no calibrated Mapping actor");
         startImportedGlbPlaybackForRecording(hwnd, state);
     } else {
         appendDebugLog(state, "Recording start failed: " + recordingError);
     }
-
     invalidateStatusPanel(hwnd);
+}
+
+} // namespace
+
+void startRecordingNow(HWND hwnd, AppWindowState& state)
+{
+    if (state.pendingVideoRecordingStart) {
+        state.videoStatusMessage = "Video recording preparation is already running.";
+        invalidateStatusPanel(hwnd);
+        return;
+    }
+    RecordingStartPlan plan = makeRecordingStartPlan(
+        static_cast<const AppRuntimeState&>(state),
+        static_cast<const AppDeviceState&>(state),
+        activeSessionDirectoryPath(state),
+        recordingSessionIdForName(state.sessionName, localTimestampForPath()),
+        utcTimestampIso(),
+        kTargetViewportFps
+    );
+    const bool cameraSelected = !state.selectedVideoCameraLink.empty();
+    if (cameraSelected &&
+        (!state.videoCapture ||
+         state.videoCapture->previewState() != VideoPreviewState::Ready)) {
+        const std::string message =
+            state.videoCapture &&
+            state.videoCapture->previewState() == VideoPreviewState::Opening
+                ? "Wait for the selected camera to finish opening."
+                : "The selected camera is not ready. Select it again or choose Disable.";
+        state.recordingError = message;
+        state.videoStatusMessage = message;
+        appendDebugLog(state, "Recording blocked: " + message);
+        invalidateStatusPanel(hwnd);
+        return;
+    }
+    const bool recordVideo = cameraSelected;
+    if (recordVideo) {
+        plan.options.session.videoPath = "video.mp4";
+    }
+
+    state.recordingDelayActive = false;
+    std::string recordingError;
+    if (recordVideo && !state.videoCapture->beginRecording(
+            plan.sessionFolder / plan.options.session.videoPath, recordingError)) {
+        state.recordingError = recordingError;
+        appendDebugLog(state, "Video recording start failed: " + recordingError);
+        invalidateStatusPanel(hwnd);
+        return;
+    }
+    if (recordVideo) {
+        state.pendingVideoRecordingStart = std::move(plan);
+        state.videoStatusMessage = "Preparing video recording...";
+        appendDebugLog(state, L"Preparing session video encoder");
+        invalidateStatusPanel(hwnd);
+        return;
+    }
+    state.recordingStart = std::chrono::steady_clock::now();
+    completeRecordingStart(hwnd, state, std::move(plan), false);
+}
+
+void pollPreparedRecordingStart(HWND hwnd, AppWindowState& state)
+{
+    if (!state.pendingVideoRecordingStart || !state.videoCapture) return;
+    if (state.videoCapture->previewState() != VideoPreviewState::Ready) {
+        std::string cleanupError;
+        state.videoCapture->endRecording(cleanupError);
+        state.pendingVideoRecordingStart.reset();
+        state.recordingError = "The camera stopped while preparing video recording.";
+        if (!cleanupError.empty()) {
+            state.recordingError += " Cleanup failed: " + cleanupError;
+        }
+        state.videoStatusMessage = state.recordingError;
+        appendDebugLog(state, "Video recording preparation canceled: " +
+            state.recordingError);
+        invalidateStatusPanel(hwnd);
+        return;
+    }
+    const VideoRecordingPreparationState preparation =
+        state.videoCapture->preparationState();
+    if (preparation == VideoRecordingPreparationState::Pending) return;
+    if (preparation == VideoRecordingPreparationState::Failed) {
+        const std::string error = state.videoCapture->preparationError();
+        state.pendingVideoRecordingStart.reset();
+        state.recordingError = error.empty()
+            ? "Preparing video recording failed."
+            : error;
+        state.videoStatusMessage = state.recordingError;
+        appendDebugLog(
+            state, "Video recording preparation failed: " + state.recordingError);
+        invalidateStatusPanel(hwnd);
+        return;
+    }
+    if (preparation != VideoRecordingPreparationState::Ready) return;
+
+    state.recordingStart = std::chrono::steady_clock::now();
+    std::string activationError;
+    if (!state.videoCapture->activatePreparedRecording(activationError)) {
+        if (activationError == "Waiting for the first camera frame.") {
+            state.videoStatusMessage = activationError;
+            return;
+        }
+        state.pendingVideoRecordingStart.reset();
+        state.recordingError = activationError;
+        state.videoStatusMessage = activationError;
+        appendDebugLog(
+            state, "Activating prepared video recording failed: " + activationError);
+        invalidateStatusPanel(hwnd);
+        return;
+    }
+    RecordingStartPlan plan = std::move(*state.pendingVideoRecordingStart);
+    state.pendingVideoRecordingStart.reset();
+    completeRecordingStart(hwnd, state, std::move(plan), true);
 }
 
 } // namespace ovtr::win32

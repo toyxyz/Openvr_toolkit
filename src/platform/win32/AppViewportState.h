@@ -6,6 +6,7 @@
 #include <windows.h>
 
 #include "platform/win32/ConfigTypes.h"
+#include "app/ViewportRenderDemand.h"
 #include "platform/win32/ViewportGpuCapabilities.h"
 #include "platform/win32/ViewportGpuMesh.h"
 #include "platform/win32/ViewportMatcapShader.h"
@@ -33,6 +34,7 @@ inline constexpr float kDefaultCameraPanY = 0.0f;
 inline constexpr float kDefaultCameraPanZ = 0.0f;
 
 struct AppViewportState {
+    ViewportRenderDemand viewportRenderDemand;
     HWND glWindow = nullptr;
     UniqueWindowDc glDeviceContext;
     UniqueGlContext glContext;

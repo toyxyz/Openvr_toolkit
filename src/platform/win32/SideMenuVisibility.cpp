@@ -10,6 +10,7 @@ SideMenuVisibilitySnapshot captureSideMenuVisibility(const AppWindowState& state
         state.devicePanelVisible,
         state.sessionPanelVisible,
         state.streamingPanelVisible,
+        state.videoPanelVisible,
         state.profilePanelVisible,
         state.mappingPanelVisible,
         state.editPanelVisible
@@ -22,6 +23,7 @@ bool anySideMenuVisible(const AppWindowState& state) noexcept
     return snapshot.devicePanelVisible ||
         snapshot.sessionPanelVisible ||
         snapshot.streamingPanelVisible ||
+        snapshot.videoPanelVisible ||
         snapshot.profilePanelVisible ||
         snapshot.mappingPanelVisible ||
         snapshot.editPanelVisible;
@@ -34,6 +36,7 @@ void hideSideMenusForShortcut(AppWindowState& state) noexcept
     state.devicePanelVisible = false;
     state.sessionPanelVisible = false;
     state.streamingPanelVisible = false;
+    state.videoPanelVisible = false;
     state.profilePanelVisible = false;
     state.mappingPanelVisible = false;
     state.editPanelVisible = false;
@@ -47,6 +50,7 @@ void restoreSideMenusForShortcut(AppWindowState& state) noexcept
     state.devicePanelVisible = snapshot.devicePanelVisible;
     state.sessionPanelVisible = snapshot.sessionPanelVisible;
     state.streamingPanelVisible = snapshot.streamingPanelVisible;
+    state.videoPanelVisible = snapshot.videoPanelVisible;
     state.profilePanelVisible = snapshot.profilePanelVisible;
     state.mappingPanelVisible = snapshot.mappingPanelVisible;
     state.editPanelVisible = snapshot.editPanelVisible;

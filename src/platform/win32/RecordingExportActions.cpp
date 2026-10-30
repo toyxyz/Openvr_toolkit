@@ -11,6 +11,7 @@
 #include "platform/win32/SessionSkeletonExportBatch.h"
 #include "platform/win32/SessionSkeletonExportClip.h"
 #include "platform/win32/SkeletonGltfExporter.h"
+#include "platform/win32/SessionVideoExport.h"
 #include "platform/win32/WindowLayout.h"
 #include "platform/win32/WindowStateAccess.h"
 
@@ -50,6 +51,14 @@ ExportProgressResult currentSessionExportWork(
         true,
         {}
     );
+    if (plan.exportVideo && !plan.session.videoPath.empty()) {
+        reporter.update(0.65f, "Exporting session video");
+        const ovtr::ExportResult video = exportSessionVideo(plan.session, plan.exportDirectory);
+        if (!video.success) {
+            return progressResult(recordingExportFailureUiMessages(video.error));
+        }
+        messages.logMessages.push_back("Video exported: " + video.outputPath.string());
+    }
     if (skeletonRequests.empty()) {
         messages.logMessages.push_back("Skeleton GLB export skipped: no calibrated Mapping actor");
         reporter.update(1.0f, "Export complete");
@@ -77,6 +86,18 @@ void exportCurrentSession(HWND hwnd)
     }
 
     state->exportStatusMessage.clear();
+    if (state->pendingVideoRecordingStart) {
+        state->exportStatusMessage = "wait for video recording preparation";
+        appendDebugLog(*state, "Export blocked: video recording is preparing");
+        invalidateStatusPanel(hwnd);
+        return;
+    }
+    if (state->videoFinalizationPending) {
+        state->exportStatusMessage = "wait for video finalization";
+        appendDebugLog(*state, "Export blocked: video finalization is still running");
+        invalidateStatusPanel(hwnd);
+        return;
+    }
 
     const std::string blockReason = exportBlockReason(*state);
     if (!blockReason.empty()) {

@@ -1,4 +1,5 @@
 #include "platform/win32/WindowPaintFonts.h"
+#include "platform/win32/UiTheme.h"
 
 namespace ovtr::win32 {
 namespace {
@@ -28,9 +29,9 @@ UniqueFont createUiFont(const int height, const wchar_t* faceName)
 WindowPaintFonts createWindowPaintFonts()
 {
     WindowPaintFonts fonts;
-    fonts.body = createUiFont(17, L"Segoe UI");
-    fonts.status = createUiFont(15, L"Segoe UI");
-    fonts.debug = createUiFont(14, L"Consolas");
+    fonts.body = createUiFont(-13, ui::fontFamily);
+    fonts.status = createUiFont(-12, ui::fontFamily);
+    fonts.debug = createUiFont(-12, L"Consolas");
     return fonts;
 }
 

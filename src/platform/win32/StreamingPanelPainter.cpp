@@ -1,4 +1,5 @@
 #include "platform/win32/StreamingPanelPainter.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/StreamingOutputTarget.h"
@@ -14,9 +15,9 @@ namespace {
 
 void drawBox(HDC drawDc, const RECT& rect)
 {
-    UniqueBrush brush(CreateSolidBrush(RGB(20, 23, 28)));
+    UniqueBrush brush(CreateSolidBrush(ui::panel));
     FillRect(drawDc, &rect, brush.get());
-    UniquePen pen(CreatePen(PS_SOLID, 1, RGB(58, 64, 76)));
+    UniquePen pen(CreatePen(PS_SOLID, 1, ui::border));
     SelectObjectGuard penSelection(drawDc, pen.get());
     SelectObjectGuard brushSelection(drawDc, GetStockObject(NULL_BRUSH));
     Rectangle(drawDc, rect.left, rect.top, rect.right, rect.bottom);
@@ -32,9 +33,9 @@ void drawRow(
     const std::wstring& value,
     const bool dropdown
 ) {
-    UniqueBrush brush(CreateSolidBrush(RGB(18, 22, 28)));
+    UniqueBrush brush(CreateSolidBrush(ui::field));
     FillRect(drawDc, &boxRect, brush.get());
-    UniquePen pen(CreatePen(PS_SOLID, 1, RGB(67, 74, 88)));
+    UniquePen pen(CreatePen(PS_SOLID, 1, ui::buttonBorder));
     SelectObjectGuard penSelection(drawDc, pen.get());
     SelectObjectGuard brushSelection(drawDc, GetStockObject(NULL_BRUSH));
     Rectangle(drawDc, boxRect.left, boxRect.top, boxRect.right, boxRect.bottom);
@@ -42,18 +43,18 @@ void drawRow(
     LineTo(drawDc, labelRect.right + 8, boxRect.bottom);
 
     SelectObjectGuard fontSelection(drawDc, font);
-    SetTextColor(drawDc, RGB(168, 180, 196));
+    SetTextColor(drawDc, ui::muted);
     RECT drawLabel = labelRect;
     DrawTextW(drawDc, label, -1, &drawLabel, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 
-    SetTextColor(drawDc, RGB(225, 231, 240));
+    SetTextColor(drawDc, ui::text);
     RECT drawValue = valueRect;
     drawValue.left += 6;
     drawValue.right -= dropdown ? 18 : 6;
     DrawTextW(drawDc, value.c_str(), -1, &drawValue, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
     if (dropdown) {
         RECT glyph{valueRect.right - 18, valueRect.top, valueRect.right - 2, valueRect.bottom};
-        DrawTextW(drawDc, L"v", -1, &glyph, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+        ui::chevron(drawDc, glyph);
     }
 }
 
@@ -68,10 +69,10 @@ void drawDropdown(HDC drawDc, HFONT font, const AppWindowState& state, const REC
         const bool selected = (row == 0 && state.streamingOutputTarget == StreamingOutputTarget::None) ||
             (row == 1 && state.streamingOutputTarget == StreamingOutputTarget::Vmc);
         if (selected) {
-            UniqueBrush selectedBrush(CreateSolidBrush(RGB(48, 78, 118)));
+            UniqueBrush selectedBrush(CreateSolidBrush(ui::selection));
             FillRect(drawDc, &rowRect, selectedBrush.get());
         }
-        SetTextColor(drawDc, selected ? RGB(236, 242, 250) : RGB(202, 211, 224));
+        SetTextColor(drawDc, selected ? ui::onAccent : ui::text);
         rowRect.left += 8;
         DrawTextW(drawDc, labels[row], -1, &rowRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     }
@@ -107,7 +108,7 @@ void paintStreamingPanel(
     drawBox(drawDc, layout.boxRect);
 
     SelectObjectGuard headerSelection(drawDc, headerFont ? headerFont : bodyFont);
-    SetTextColor(drawDc, RGB(168, 180, 196));
+    SetTextColor(drawDc, ui::muted);
     RECT headerText = layout.headerRect;
     DrawTextW(drawDc, L"Streaming", -1, &headerText, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 
@@ -124,7 +125,7 @@ void paintStreamingPanel(
 
     if (layout.vmcVisible) {
         drawBox(drawDc, layout.vmcBoxRect);
-        SetTextColor(drawDc, RGB(168, 180, 196));
+        SetTextColor(drawDc, ui::muted);
         RECT vmcHeader = layout.vmcHeaderRect;
         DrawTextW(drawDc, L"VMC", -1, &vmcHeader, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
         drawRow(drawDc, bodyFont, layout.hostBoxRect, layout.hostLabelRect,

@@ -1,4 +1,5 @@
 #include "platform/win32/MappingEditPanelPainter.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/MappingEditPanelLayout.h"
@@ -15,9 +16,9 @@ namespace {
 
 void drawBox(HDC dc, const RECT& rect)
 {
-    UniqueBrush brush(CreateSolidBrush(RGB(18, 22, 28)));
+    UniqueBrush brush(CreateSolidBrush(ui::field));
     FillRect(dc, &rect, brush.get());
-    UniquePen pen(CreatePen(PS_SOLID, 1, RGB(67, 74, 88)));
+    UniquePen pen(CreatePen(PS_SOLID, 1, ui::buttonBorder));
     SelectObjectGuard penSelection(dc, pen.get());
     SelectObjectGuard brushSelection(dc, GetStockObject(NULL_BRUSH));
     Rectangle(dc, rect.left, rect.top, rect.right, rect.bottom);
@@ -36,7 +37,7 @@ const MappingActor* selectedActor(const AppWindowState& state) noexcept
 void drawActorName(HDC dc, HFONT font, const MappingEditPanelLayout& layout, const MappingActor* actor)
 {
     SelectObjectGuard fontSelection(dc, font);
-    SetTextColor(dc, RGB(225, 231, 240));
+    SetTextColor(dc, ui::text);
     RECT actorName = layout.actorNameRect;
     DrawTextW(
         dc,
@@ -79,13 +80,13 @@ std::wstring stepText(const float value)
 
 void drawButton(HDC dc, HFONT font, const RECT& rect, const wchar_t* text)
 {
-    UniqueBrush brush(CreateSolidBrush(RGB(30, 34, 42)));
-    UniquePen pen(CreatePen(PS_SOLID, 1, RGB(67, 74, 88)));
+    UniqueBrush brush(CreateSolidBrush(ui::button));
+    UniquePen pen(CreatePen(PS_SOLID, 1, ui::buttonBorder));
     SelectObjectGuard brushSelection(dc, brush.get());
     SelectObjectGuard penSelection(dc, pen.get());
     RoundRect(dc, rect.left, rect.top, rect.right, rect.bottom, 5, 5);
     SelectObjectGuard fontSelection(dc, font);
-    SetTextColor(dc, RGB(225, 231, 240));
+    SetTextColor(dc, ui::text);
     RECT textRect = rect;
     DrawTextW(dc, text, -1, &textRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 }
@@ -100,35 +101,35 @@ void drawStepSelector(
 {
     RECT label{layout.actorNameRect.left + 8, layout.stepValueRect.top, layout.stepValueRect.left - 6, layout.stepValueRect.bottom};
     SelectObjectGuard fontSelection(dc, font);
-    SetTextColor(dc, RGB(168, 180, 196));
+    SetTextColor(dc, ui::muted);
     DrawTextW(dc, L"Step", -1, &label, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 
-    UniqueBrush brush(CreateSolidBrush(RGB(30, 34, 42)));
-    UniquePen pen(CreatePen(PS_SOLID, 1, RGB(67, 74, 88)));
+    UniqueBrush brush(CreateSolidBrush(ui::button));
+    UniquePen pen(CreatePen(PS_SOLID, 1, ui::buttonBorder));
     SelectObjectGuard brushSelection(dc, brush.get());
     SelectObjectGuard penSelection(dc, pen.get());
     RoundRect(dc, layout.stepValueRect.left, layout.stepValueRect.top, layout.stepValueRect.right, layout.stepValueRect.bottom, 5, 5);
     RECT valueRect = layout.stepValueRect;
     valueRect.left += 8;
     valueRect.right -= 24;
-    SetTextColor(dc, RGB(225, 231, 240));
+    SetTextColor(dc, ui::text);
     const std::wstring text = stepText(state.mappingEditOffsetStepMeters);
     DrawTextW(dc, text.c_str(), -1, &valueRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     RECT arrowRect{layout.stepValueRect.right - 22, layout.stepValueRect.top, layout.stepValueRect.right - 6, layout.stepValueRect.bottom};
-    DrawTextW(dc, L"v", -1, &arrowRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    ui::chevron(dc, arrowRect);
 
     if (!state.mappingEditStepDropdownOpen) {
         return;
     }
     for (const MappingEditStepOptionLayout& option : mappingEditStepOptionsForPanel(panel)) {
         const bool selected = sameStep(option.stepMeters, state.mappingEditOffsetStepMeters);
-        UniqueBrush optionBrush(CreateSolidBrush(selected ? RGB(48, 78, 118) : RGB(30, 34, 42)));
+        UniqueBrush optionBrush(CreateSolidBrush(selected ? ui::selection : ui::button));
         FillRect(dc, &option.rowRect, optionBrush.get());
         SelectObjectGuard optionBorderBrush(dc, GetStockObject(NULL_BRUSH));
         Rectangle(dc, option.rowRect.left, option.rowRect.top, option.rowRect.right, option.rowRect.bottom);
         RECT textRect{option.rowRect.left + 8, option.rowRect.top, option.rowRect.right - 8, option.rowRect.bottom};
         const std::wstring optionText = stepText(option.stepMeters);
-        SetTextColor(dc, RGB(225, 231, 240));
+        SetTextColor(dc, ui::text);
         DrawTextW(dc, optionText.c_str(), -1, &textRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     }
 }
@@ -144,24 +145,24 @@ void drawRows(HDC dc, HFONT font, const AppWindowState& state, const ProfilePane
         layout.visibleRowCount
     );
     SelectObjectGuard fontSelection(dc, font);
-    UniquePen gridPen(CreatePen(PS_SOLID, 1, RGB(43, 48, 59)));
+    UniquePen gridPen(CreatePen(PS_SOLID, 1, ui::divider));
     SelectObjectGuard penSelection(dc, gridPen.get());
     for (const MappingEditPanelRowLayout& row : mappingEditRowsForPanel(panel, scrollOffset)) {
         if (row.slotIndex == state.selectedMappingOffsetSlot) {
-            UniqueBrush selectedBrush(CreateSolidBrush(RGB(48, 78, 118)));
+            UniqueBrush selectedBrush(CreateSolidBrush(ui::selection));
             FillRect(dc, &row.rowRect, selectedBrush.get());
         }
         MoveToEx(dc, layout.listRect.left, row.rowRect.bottom, nullptr);
         LineTo(dc, layout.listRect.right, row.rowRect.bottom);
         RECT label = row.labelRect;
-        SetTextColor(dc, RGB(225, 231, 240));
+        SetTextColor(dc, ui::text);
         DrawTextW(dc, mappingPanelRowLabel(row.slotIndex), -1, &label, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     }
     if (maxMappingEditOffsetScrollOffset(layout.visibleRowCount) > 0) {
-        UniqueBrush trackBrush(CreateSolidBrush(RGB(23, 27, 34)));
+        UniqueBrush trackBrush(CreateSolidBrush(ui::panel));
         FillRect(dc, &layout.listScrollbarRect, trackBrush.get());
         const RECT thumb = mappingEditOffsetScrollbarThumbRect(layout, scrollOffset);
-        UniqueBrush thumbBrush(CreateSolidBrush(RGB(88, 101, 123)));
+        UniqueBrush thumbBrush(CreateSolidBrush(ui::scrollbar));
         FillRect(dc, &thumb, thumbBrush.get());
     }
 }
@@ -171,7 +172,7 @@ void drawAxisValues(HDC dc, HFONT font, const MappingActor& actor, const AppWind
     const MappingEditPanelLayout layout = mappingEditPanelLayoutForPanel(panel);
     drawBox(dc, layout.valuesRect);
     SelectObjectGuard fontSelection(dc, font);
-    SetTextColor(dc, RGB(168, 180, 196));
+    SetTextColor(dc, ui::muted);
     RECT title{layout.valuesRect.left + 8, layout.valuesRect.top + 4, layout.valuesRect.right - 8, layout.valuesRect.top + 26};
     DrawTextW(dc, L"Offset position", -1, &title, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     RECT rotationTitle{layout.valuesRect.left + 8, layout.valuesRect.top + 92, layout.valuesRect.right - 8, layout.valuesRect.top + 112};
@@ -190,9 +191,9 @@ void drawAxisValues(HDC dc, HFONT font, const MappingActor& actor, const AppWind
         const RECT row{layout.valuesRect.left + 8, layout.valuesRect.top + 24 + axis * 20, layout.valuesRect.right - 8, layout.valuesRect.top + 44 + axis * 20};
         RECT label{row.left, row.top, row.left + 20, row.bottom};
         RECT valueRect{row.left + 54, row.top, row.right - 30, row.bottom};
-        SetTextColor(dc, RGB(168, 180, 196));
+        SetTextColor(dc, ui::muted);
         DrawTextW(dc, positionLabels[axis], -1, &label, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-        SetTextColor(dc, RGB(225, 231, 240));
+        SetTextColor(dc, ui::text);
         const std::wstring text = meterText(positionValues[axis]);
         DrawTextW(dc, text.c_str(), -1, &valueRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
         drawButton(dc, font, buttons[axis * 2].rect, L"-");
@@ -202,9 +203,9 @@ void drawAxisValues(HDC dc, HFONT font, const MappingActor& actor, const AppWind
         const RECT row{layout.valuesRect.left + 8, layout.valuesRect.top + 112 + axis * 20, layout.valuesRect.right - 8, layout.valuesRect.top + 132 + axis * 20};
         RECT label{row.left, row.top, row.left + 20, row.bottom};
         RECT valueRect{row.left + 54, row.top, row.right - 30, row.bottom};
-        SetTextColor(dc, RGB(168, 180, 196));
+        SetTextColor(dc, ui::muted);
         DrawTextW(dc, rotationLabels[axis], -1, &label, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-        SetTextColor(dc, RGB(225, 231, 240));
+        SetTextColor(dc, ui::text);
         const std::wstring text = scalarText(offset.rotation[static_cast<std::size_t>(axis)]);
         DrawTextW(dc, text.c_str(), -1, &valueRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
         const int buttonIndex = 6 + axis * 2;
@@ -227,7 +228,7 @@ void paintMappingEditPanelContent(HDC dc, HFONT font, const AppWindowState& stat
         drawActorName(dc, font, layout, actor);
         drawBox(dc, layout.listRect);
         SelectObjectGuard fontSelection(dc, font);
-        SetTextColor(dc, RGB(225, 231, 240));
+        SetTextColor(dc, ui::text);
         RECT text{layout.listRect.left + 8, layout.listRect.top + 8, layout.listRect.right - 8, layout.listRect.bottom - 8};
         DrawTextW(dc, L"Select a calibrated actor.", -1, &text, DT_LEFT | DT_TOP | DT_WORDBREAK);
         drawStepSelector(dc, font, state, panel, layout);

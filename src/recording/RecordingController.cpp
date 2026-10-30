@@ -102,4 +102,9 @@ bool RecordingController::stop(const double durationSeconds, const std::uint64_t
     return true;
 }
 
+void RecordingController::discardSessionVideoReference() noexcept
+{
+    session_.videoPath.clear();
+}
+
 } // namespace ovtr

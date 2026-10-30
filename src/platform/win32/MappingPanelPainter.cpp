@@ -1,4 +1,5 @@
 #include "platform/win32/MappingPanelPainter.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/DeviceList.h"
@@ -19,10 +20,10 @@ namespace {
 
 void drawTableBox(HDC drawDc, const RECT& rect)
 {
-    UniqueBrush boxBrush(CreateSolidBrush(RGB(18, 22, 28)));
+    UniqueBrush boxBrush(CreateSolidBrush(ui::field));
     FillRect(drawDc, &rect, boxBrush.get());
 
-    UniquePen borderPen(CreatePen(PS_SOLID, 1, RGB(67, 74, 88)));
+    UniquePen borderPen(CreatePen(PS_SOLID, 1, ui::buttonBorder));
     SelectObjectGuard penSelection(drawDc, borderPen.get());
     MoveToEx(drawDc, rect.left, rect.top, nullptr);
     LineTo(drawDc, rect.right - 1, rect.top);
@@ -34,18 +35,18 @@ void drawTableBox(HDC drawDc, const RECT& rect)
 void drawDropdownGlyph(HDC drawDc, const RECT& valueRect)
 {
     RECT glyphRect{valueRect.right - 18, valueRect.top, valueRect.right - 2, valueRect.bottom};
-    DrawTextW(drawDc, L"v", -1, &glyphRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    ui::chevron(drawDc, glyphRect);
 }
 
 void drawButton(HDC drawDc, HFONT font, const RECT& rect, const wchar_t* label)
 {
-    UniqueBrush buttonBrush(CreateSolidBrush(RGB(30, 34, 42)));
-    UniquePen buttonPen(CreatePen(PS_SOLID, 1, RGB(67, 74, 88)));
+    UniqueBrush buttonBrush(CreateSolidBrush(ui::button));
+    UniquePen buttonPen(CreatePen(PS_SOLID, 1, ui::buttonBorder));
     SelectObjectGuard brushSelection(drawDc, buttonBrush.get());
     SelectObjectGuard penSelection(drawDc, buttonPen.get());
     RoundRect(drawDc, rect.left, rect.top, rect.right, rect.bottom, 6, 6);
     SelectObjectGuard fontSelection(drawDc, font);
-    SetTextColor(drawDc, RGB(225, 231, 240));
+    SetTextColor(drawDc, ui::text);
     RECT textRect = rect;
     DrawTextW(drawDc, label, -1, &textRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 }
@@ -53,7 +54,7 @@ void drawButton(HDC drawDc, HFONT font, const RECT& rect, const wchar_t* label)
 void drawProfileBox(HDC drawDc, HFONT font, const AppWindowState& state, const MappingPanelControlsLayout& controls)
 {
     drawTableBox(drawDc, controls.profileBoxRect);
-    UniquePen dividerPen(CreatePen(PS_SOLID, 1, RGB(43, 48, 59)));
+    UniquePen dividerPen(CreatePen(PS_SOLID, 1, ui::divider));
     {
         SelectObjectGuard penSelection(drawDc, dividerPen.get());
         MoveToEx(drawDc, controls.profileLabelRect.right + 8, controls.profileBoxRect.top, nullptr);
@@ -61,11 +62,11 @@ void drawProfileBox(HDC drawDc, HFONT font, const AppWindowState& state, const M
     }
 
     SelectObjectGuard fontSelection(drawDc, font);
-    SetTextColor(drawDc, RGB(168, 180, 196));
+    SetTextColor(drawDc, ui::muted);
     RECT labelRect = controls.profileLabelRect;
     DrawTextW(drawDc, L"Profile", -1, &labelRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 
-    SetTextColor(drawDc, RGB(225, 231, 240));
+    SetTextColor(drawDc, ui::text);
     RECT valueRect = controls.profileValueRect;
     valueRect.right -= 18;
     DrawTextW(drawDc, state.profile.name.c_str(), -1, &valueRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
@@ -96,17 +97,17 @@ void drawLabeledTextBox(
 )
 {
     drawTableBox(drawDc, boxRect);
-    UniquePen dividerPen(CreatePen(PS_SOLID, 1, RGB(43, 48, 59)));
+    UniquePen dividerPen(CreatePen(PS_SOLID, 1, ui::divider));
     SelectObjectGuard penSelection(drawDc, dividerPen.get());
     MoveToEx(drawDc, labelRect.right + 8, boxRect.top, nullptr);
     LineTo(drawDc, labelRect.right + 8, boxRect.bottom);
 
     SelectObjectGuard fontSelection(drawDc, font);
-    SetTextColor(drawDc, RGB(168, 180, 196));
+    SetTextColor(drawDc, ui::muted);
     RECT drawLabelRect = labelRect;
     DrawTextW(drawDc, label, -1, &drawLabelRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 
-    SetTextColor(drawDc, RGB(225, 231, 240));
+    SetTextColor(drawDc, ui::text);
     RECT drawValueRect = valueRect;
     DrawTextW(
         drawDc,
@@ -146,8 +147,8 @@ void drawNameBox(HDC drawDc, HFONT font, const AppWindowState& state, const Mapp
 void drawPresetControls(HDC drawDc, HFONT font, const MappingPanelControlsLayout& controls)
 {
     drawButton(drawDc, font, controls.presetSaveButtonRect, L"Save");
-    UniqueBrush valueBrush(CreateSolidBrush(RGB(18, 22, 28)));
-    UniquePen valuePen(CreatePen(PS_SOLID, 1, RGB(67, 74, 88)));
+    UniqueBrush valueBrush(CreateSolidBrush(ui::field));
+    UniquePen valuePen(CreatePen(PS_SOLID, 1, ui::buttonBorder));
     SelectObjectGuard brushSelection(drawDc, valueBrush.get());
     SelectObjectGuard penSelection(drawDc, valuePen.get());
     Rectangle(
@@ -158,7 +159,7 @@ void drawPresetControls(HDC drawDc, HFONT font, const MappingPanelControlsLayout
         controls.presetValueRect.bottom
     );
     SelectObjectGuard fontSelection(drawDc, font);
-    SetTextColor(drawDc, RGB(225, 231, 240));
+    SetTextColor(drawDc, ui::text);
     RECT textRect = controls.presetValueRect;
     textRect.left += 8;
     textRect.right -= 18;
@@ -171,14 +172,14 @@ void drawActorList(HDC drawDc, HFONT font, const AppWindowState& state, const Ma
     drawButton(drawDc, font, controls.addActorButtonRect, L"Add actor");
     drawTableBox(drawDc, controls.actorListRect);
 
-    UniquePen gridPen(CreatePen(PS_SOLID, 1, RGB(43, 48, 59)));
+    UniquePen gridPen(CreatePen(PS_SOLID, 1, ui::divider));
     SelectObjectGuard penSelection(drawDc, gridPen.get());
     SelectObjectGuard fontSelection(drawDc, font);
-    SetTextColor(drawDc, RGB(225, 231, 240));
+    SetTextColor(drawDc, ui::text);
     for (const MappingActorRowLayout& row :
          mappingActorRowLayouts(controls, state.mappingActors.size(), state.mappingActorScrollOffset)) {
         if (state.mappingActors[row.actorIndex].id == state.selectedMappingActorId) {
-            UniqueBrush selectedBrush(CreateSolidBrush(RGB(48, 78, 118)));
+            UniqueBrush selectedBrush(CreateSolidBrush(ui::selection));
             FillRect(drawDc, &row.rowRect, selectedBrush.get());
         }
         MoveToEx(drawDc, controls.actorListRect.left, row.rowRect.bottom, nullptr);
@@ -217,7 +218,7 @@ void paintMappingPanelContent(
     drawActorList(drawDc, font, state, controls);
     drawMappingSoftIkFilter(drawDc, font, state, controls);
 
-    UniquePen gridPen(CreatePen(PS_SOLID, 1, RGB(43, 48, 59)));
+    UniquePen gridPen(CreatePen(PS_SOLID, 1, ui::divider));
     {
         SelectObjectGuard penSelection(drawDc, gridPen.get());
         const int dividerX = controls.tableRect.left +
@@ -233,7 +234,7 @@ void paintMappingPanelContent(
     for (const MappingPanelRowLayout& row : mappingRowLayoutsForPanel(layout, state.mappingScrollOffset)) {
         RECT labelRect = row.labelRect;
         RECT valueRect = row.valueRect;
-        SetTextColor(drawDc, RGB(168, 180, 196));
+        SetTextColor(drawDc, ui::muted);
         DrawTextW(
             drawDc,
             mappingPanelRowLabel(row.slotIndex),
@@ -241,7 +242,7 @@ void paintMappingPanelContent(
             &labelRect,
             DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS
         );
-        SetTextColor(drawDc, RGB(225, 231, 240));
+        SetTextColor(drawDc, ui::text);
         const std::wstring value = currentMappingText(state, row.slotIndex);
         valueRect.right -= 18;
         DrawTextW(drawDc, value.c_str(), -1, &valueRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);

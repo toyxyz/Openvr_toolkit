@@ -31,5 +31,6 @@ bool buildLoadedSessionSkeletonClip(
 );
 void exportLoadedDevice(HWND hwnd, AppWindowState& state);
 void exportLoadedPose(HWND hwnd, AppWindowState& state);
+void exportLoadedVideo(HWND hwnd, AppWindowState& state);
 
 } // namespace ovtr::win32

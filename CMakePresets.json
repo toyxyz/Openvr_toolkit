@@ -2,6 +2,18 @@
   "version": 6,
   "configurePresets": [
     {
+      "name": "release",
+      "displayName": "Optimized Windows App",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "OVTR_BUILD_TESTS": "ON",
+        "OVTR_BUILD_DESKTOP_APP": "OFF",
+        "OVTR_BUILD_WIN32_BOOTSTRAP_APP": "ON"
+      }
+    },
+    {
       "name": "default",
       "displayName": "Default Debug",
       "generator": "Ninja",
@@ -37,6 +49,10 @@
   ],
   "buildPresets": [
     {
+      "name": "release",
+      "configurePreset": "release"
+    },
+    {
       "name": "default",
       "configurePreset": "default"
     },
@@ -51,6 +67,13 @@
     }
   ],
   "testPresets": [
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
     {
       "name": "default",
       "configurePreset": "default",

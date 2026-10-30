@@ -10,5 +10,6 @@ namespace ovtr::win32 {
 struct AppWindowState;
 
 void startRecordingNow(HWND hwnd, AppWindowState& state);
+void pollPreparedRecordingStart(HWND hwnd, AppWindowState& state);
 
 } // namespace ovtr::win32

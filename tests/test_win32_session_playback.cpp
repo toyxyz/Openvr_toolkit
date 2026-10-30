@@ -1,4 +1,6 @@
 #include "TestCases.h"
+#include "CombinedPlaybackChecks.h"
+#include "platform/win32/MappingFrameUpdate.h"
 #include "TestSupport.h"
 
 #include "platform/win32/AppState.h"
@@ -133,16 +135,10 @@ void verifyLoadedSessionDrivesMappingSkeleton(const std::filesystem::path& root)
 
     ovtr::win32::setLoadedSessionPlaybackSeconds(state, 1.0);
     require(ovtr::win32::sampleLoadedSessionFrame(state), "loaded mapping samples second frame");
-    require(
-        ovtr::win32::updateCalibratedMappingActorJoints(
-            actor,
-            state.poses,
-            state.originEnabled,
-            state.originOffset,
-            state.originRotationDegrees
-        ),
-        "loaded mapping updates calibrated actor from session poses"
-    );
+    state.mappingActors.push_back(actor);
+    ovtr::win32::updateMappingActorsForFrame(state, state, state, state, state, state);
+    actor = state.mappingActors.back();
+    require(actor.liveJointsValid, "frame update solves loaded actor without a rendering context");
     const ovtr::win32::Vec3 secondWrist =
         actor.liveJoints[ovtr::win32::kProfileJointLeftForeArm].positionMeters;
     require(distanceBetween(firstWrist, secondWrist) > 0.05f, "loaded timeline pose drives mapping skeleton");
@@ -246,6 +242,7 @@ void testWin32SessionPlayback()
         "session playback manifest write failed: " + error
     );
 
+    verifyCombinedPlayback(root);
     ovtr::win32::AppWindowState state;
     state.sessionName = L"before_load";
     state.originEnabled = true;
@@ -267,6 +264,11 @@ void testWin32SessionPlayback()
     require(ovtr::win32::loadedSessionCurrentFrame(state) == 2, "loaded session current frame");
     require(state.poses.poses[0].position[0] == 2.0f, "loaded session second frame pose");
     require(state.loadedSessionLastSampledFrameValid, "loaded session records sampled frame continuity");
+    ovtr::win32::setLoadedSessionPlaybackSeconds(state, 0.0);
+    require(ovtr::win32::sampleLoadedSessionFrame(state), "sample first frame before caching check");
+    state.loadedSessionReader.close();
+    require(ovtr::win32::sampleLoadedSessionFrame(state), "unchanged frame needs no additional file read");
+    require(state.poses.poses[0].position[0] == 1.0f, "paused frame retains its cached pose");
     ovtr::win32::setLoadedSessionPlaybackSeconds(state, 0.0);
     require(!state.loadedSessionLastSampledFrameValid, "loaded session explicit seek resets continuity");
 

@@ -25,6 +25,10 @@ struct ViewportControlLayout {
     RECT sessionLabelRect{0, 0, 0, 0};
     RECT sessionValueRect{0, 0, 0, 0};
     RECT animationBarRect{0, 0, 0, 0};
+    RECT importedSceneBarRect{0, 0, 0, 0};
+    RECT importedSceneLabelRect{0, 0, 0, 0};
+    RECT importedSceneCloseButtonRect{0, 0, 0, 0};
+    bool importedSceneBarValid = false;
     RECT firstFrameButtonRect{0, 0, 0, 0};
     RECT playPauseButtonRect{0, 0, 0, 0};
     RECT lastFrameButtonRect{0, 0, 0, 0};
@@ -82,6 +86,17 @@ struct StreamingPanelLayout {
     RECT legSpacingValueRect{0, 0, 0, 0};
     bool valid = false;
     bool vmcVisible = false;
+};
+
+struct VideoPanelLayout {
+    RECT boxRect{0, 0, 0, 0};
+    RECT headerRect{0, 0, 0, 0};
+    RECT refreshButtonRect{0, 0, 0, 0};
+    RECT statusRect{0, 0, 0, 0};
+    RECT cameraListRect{0, 0, 0, 0};
+    RECT previewRect{0, 0, 0, 0};
+    int visibleCameraCount = 0;
+    bool valid = false;
 };
 
 struct ProfilePanelLayout {

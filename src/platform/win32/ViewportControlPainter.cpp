@@ -1,4 +1,6 @@
 #include "platform/win32/ViewportControlPainter.h"
+#include "platform/win32/ViewportImportedSceneBar.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/AppImportedSceneState.h"
 #include "platform/win32/AppLoadedSessionState.h"
@@ -20,16 +22,18 @@ void drawViewportIconButton(
     const bool active
 )
 {
-    UniqueBrush buttonBrush(CreateSolidBrush(active ? RGB(58, 42, 42) : RGB(30, 34, 42)));
-    UniquePen buttonPen(CreatePen(PS_SOLID, 1, active ? RGB(180, 72, 72) : RGB(67, 74, 88)));
-    SelectObjectGuard brushSelection(drawDc, buttonBrush.get());
-    SelectObjectGuard penSelection(drawDc, buttonPen.get());
-    RoundRect(drawDc, rect.left, rect.top, rect.right, rect.bottom, 6, 6);
+    const RECT surface{rect.left, rect.top + 7, rect.right, rect.bottom - 7};
+    ui::buttonSurface(drawDc, surface, active);
 }
 
 void drawViewportRecordButton(HDC drawDc, const RECT& rect, const bool active)
 {
-    drawViewportIconButton(drawDc, rect, active);
+    const RECT surface{rect.left, rect.top + 7, rect.right, rect.bottom - 7};
+    UniqueBrush surfaceBrush(CreateSolidBrush(active ? ui::recording : ui::button));
+    UniquePen surfacePen(CreatePen(PS_SOLID, 1, active ? ui::record : ui::buttonBorder));
+    SelectObjectGuard surfaceBrushSelection(drawDc, surfaceBrush.get());
+    SelectObjectGuard surfacePenSelection(drawDc, surfacePen.get());
+    RoundRect(drawDc, surface.left, surface.top, surface.right, surface.bottom, 5, 5);
 
     const int inset = active ? 10 : 11;
     RECT dotRect{
@@ -38,7 +42,7 @@ void drawViewportRecordButton(HDC drawDc, const RECT& rect, const bool active)
         rect.right - inset,
         rect.bottom - inset
     };
-    UniqueBrush dotBrush(CreateSolidBrush(active ? RGB(255, 88, 82) : RGB(228, 68, 64)));
+    UniqueBrush dotBrush(CreateSolidBrush(ui::record));
     SelectObjectGuard brushSelection(drawDc, dotBrush.get());
     SelectObjectGuard penSelection(drawDc, GetStockObject(NULL_PEN));
     Ellipse(drawDc, dotRect.left, dotRect.top, dotRect.right, dotRect.bottom);
@@ -52,7 +56,7 @@ void drawViewportQuadButton(HDC drawDc, const RECT& rect, const bool active)
     constexpr int gap = 3;
     const int cellWidth = (rect.right - rect.left - inset * 2 - gap) / 2;
     const int cellHeight = (rect.bottom - rect.top - inset * 2 - gap) / 2;
-    UniqueBrush cellBrush(CreateSolidBrush(active ? RGB(88, 128, 255) : RGB(154, 166, 188)));
+    UniqueBrush cellBrush(CreateSolidBrush(active ? ui::onAccent : ui::muted));
     SelectObjectGuard brushSelection(drawDc, cellBrush.get());
     SelectObjectGuard penSelection(drawDc, GetStockObject(NULL_PEN));
     for (int row = 0; row < 2; ++row) {
@@ -71,16 +75,16 @@ void drawViewportShowTextButton(HDC drawDc, HFONT font, const RECT& rect, const 
         SelectObject(drawDc, font);
     }
     SetBkMode(drawDc, TRANSPARENT);
-    SetTextColor(drawDc, active ? RGB(88, 128, 255) : RGB(154, 166, 188));
+    SetTextColor(drawDc, active ? ui::onAccent : ui::muted);
     RECT textRect = rect;
-    DrawTextW(drawDc, L"Txt", -1, &textRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    DrawTextW(drawDc, L"Labels", -1, &textRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 }
 
 void drawViewportShowModelButton(HDC drawDc, const RECT& rect, const bool active)
 {
     drawViewportIconButton(drawDc, rect, active);
 
-    UniquePen modelPen(CreatePen(PS_SOLID, 2, active ? RGB(88, 128, 255) : RGB(154, 166, 188)));
+    UniquePen modelPen(CreatePen(PS_SOLID, 2, active ? ui::onAccent : ui::muted));
     SelectObjectGuard penSelection(drawDc, modelPen.get());
     SelectObjectGuard brushSelection(drawDc, GetStockObject(NULL_BRUSH));
     const int left = rect.left + 14;
@@ -104,7 +108,7 @@ void drawViewportSmoothButton(HDC drawDc, HFONT font, const RECT& rect, const bo
         SelectObject(drawDc, font);
     }
     SetBkMode(drawDc, TRANSPARENT);
-    SetTextColor(drawDc, active ? RGB(88, 128, 255) : RGB(154, 166, 188));
+    SetTextColor(drawDc, active ? ui::onAccent : ui::muted);
     RECT textRect = rect;
     DrawTextW(drawDc, L"Smooth", -1, &textRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 }
@@ -116,7 +120,7 @@ void drawViewportLockButton(HDC drawDc, HFONT font, const RECT& rect, const bool
         SelectObject(drawDc, font);
     }
     SetBkMode(drawDc, TRANSPARENT);
-    SetTextColor(drawDc, active ? RGB(88, 128, 255) : RGB(154, 166, 188));
+    SetTextColor(drawDc, active ? ui::onAccent : ui::muted);
     RECT textRect = rect;
     DrawTextW(drawDc, L"Lock", -1, &textRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 }
@@ -127,9 +131,9 @@ void drawViewportSessionBox(HDC drawDc, HFONT font, const ViewportControlLayout&
         return;
     }
 
-    UniqueBrush boxBrush(CreateSolidBrush(RGB(20, 23, 28)));
+    UniqueBrush boxBrush(CreateSolidBrush(ui::panel));
     FillRect(drawDc, &layout.sessionBoxRect, boxBrush.get());
-    UniquePen boxPen(CreatePen(PS_SOLID, 1, RGB(67, 74, 88)));
+    UniquePen boxPen(CreatePen(PS_SOLID, 1, ui::buttonBorder));
     {
         SelectObjectGuard penSelection(drawDc, boxPen.get());
         SelectObjectGuard brushSelection(drawDc, GetStockObject(NULL_BRUSH));
@@ -146,11 +150,11 @@ void drawViewportSessionBox(HDC drawDc, HFONT font, const ViewportControlLayout&
         SelectObject(drawDc, font);
     }
     SetBkMode(drawDc, TRANSPARENT);
-    SetTextColor(drawDc, RGB(168, 180, 196));
+    SetTextColor(drawDc, ui::muted);
     RECT labelRect = layout.sessionLabelRect;
     DrawTextW(drawDc, L"Session", -1, &labelRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 
-    SetTextColor(drawDc, RGB(220, 228, 238));
+    SetTextColor(drawDc, ui::text);
     RECT valueRect = layout.sessionValueRect;
     DrawTextW(
         drawDc,
@@ -179,27 +183,29 @@ void drawViewportControlBar(
     if (!layout.valid) {
         return;
     }
+    SelectObjectGuard controlFont(drawDc, font);
+    drawImportedSceneInfoBar(drawDc, font, layout, importedSceneState);
 
-    if (loadedSessionState.loadedSessionActive) {
-        UniqueBrush animationBrush(CreateSolidBrush(RGB(20, 23, 28)));
+    if (loadedSessionState.loadedSessionActive && layout.animationValid) {
+        UniqueBrush animationBrush(CreateSolidBrush(ui::panel));
         FillRect(drawDc, &layout.animationBarRect, animationBrush.get());
-        UniquePen animationBorder(CreatePen(PS_SOLID, 1, RGB(54, 58, 66)));
+        UniquePen animationBorder(CreatePen(PS_SOLID, 1, ui::border));
         {
             SelectObjectGuard penSelection(drawDc, animationBorder.get());
             MoveToEx(drawDc, layout.animationBarRect.left, layout.animationBarRect.top, nullptr);
             LineTo(drawDc, layout.animationBarRect.right, layout.animationBarRect.top);
         }
         drawImportedAnimationButtons(drawDc, font, layout, loadedSessionState.loadedSessionPlaying);
-        drawLoadedSessionAnimationTimeline(drawDc, layout, loadedSessionState);
-        drawLoadedSessionAnimationFrameText(drawDc, font, layout, loadedSessionState);
+        drawCombinedAnimationTimeline(drawDc, layout, importedSceneState, loadedSessionState);
+        drawCombinedAnimationFrameText(drawDc, font, layout, importedSceneState, loadedSessionState);
     } else {
         drawImportedAnimationControls(drawDc, font, layout, importedSceneState);
     }
 
-    UniqueBrush barBrush(CreateSolidBrush(RGB(18, 20, 24)));
+    UniqueBrush barBrush(CreateSolidBrush(ui::toolbar));
     FillRect(drawDc, &layout.barRect, barBrush.get());
 
-    UniquePen borderPen(CreatePen(PS_SOLID, 1, RGB(54, 58, 66)));
+    UniquePen borderPen(CreatePen(PS_SOLID, 1, ui::border));
     {
         SelectObjectGuard penSelection(drawDc, borderPen.get());
         MoveToEx(drawDc, layout.barRect.left, layout.barRect.top, nullptr);

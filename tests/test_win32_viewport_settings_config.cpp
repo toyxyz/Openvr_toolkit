@@ -17,8 +17,8 @@ void testWin32ViewportSettingsConfig()
 
     const ovtr::win32::ViewportSettings defaults;
     require(defaults.labelTextColor.r == 255, "default label r");
-    require(defaults.gridColor.g == 36, "default grid g");
-    require(defaults.backgroundColor.b == 65, "default background b");
+    require(defaults.gridColor.g == 71, "default grid g");
+    require(defaults.backgroundColor.b == 61, "default background b");
     require(defaults.importedGlbColor.g == 104, "default imported glb g");
     require(defaults.renderModelOutlineColor.g == 133, "default render model outline g");
     require(defaults.renderModelMaterialColor.b == 255, "default render model material b");

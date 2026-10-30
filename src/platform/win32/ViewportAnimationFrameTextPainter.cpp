@@ -1,4 +1,6 @@
 #include "platform/win32/ViewportAnimationControlSections.h"
+#include "platform/win32/PlaybackTimelineView.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/AppImportedSceneState.h"
 #include "platform/win32/AppLoadedSessionState.h"
@@ -19,22 +21,29 @@ void drawAnimationFrameText(
 )
 {
     std::wostringstream frameText;
-    frameText << L"Frame " << currentFrame << L" / " << totalFrames;
+    frameText << L"Frame  " << currentFrame << L"    End  " << totalFrames;
     if (font) {
         SelectObject(drawDc, font);
     }
-    SetTextColor(drawDc, RGB(202, 211, 224));
+    SetTextColor(drawDc, ui::text);
     RECT frameTextRect = layout.frameTextRect;
     DrawTextW(
         drawDc,
         frameText.str().c_str(),
         -1,
         &frameTextRect,
-        DT_RIGHT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS
+        DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX
     );
 }
 
 } // namespace
+
+void drawCombinedAnimationFrameText(HDC dc, HFONT font, const ViewportControlLayout& layout,
+    const AppImportedSceneState& glb, const AppLoadedSessionState& session)
+{
+    const auto view = playbackTimelineView(glb, session);
+    drawAnimationFrameText(dc, font, layout, view.currentFrame, view.totalFrames);
+}
 
 void drawImportedAnimationFrameText(
     HDC drawDc,

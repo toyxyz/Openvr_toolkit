@@ -1,4 +1,7 @@
 build/
+recordings/
+__pycache__/
+*.pyc
 .vs/
 out/
 *.user

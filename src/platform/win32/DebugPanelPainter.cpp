@@ -1,4 +1,5 @@
 #include "platform/win32/DebugPanelPainter.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/DebugPanelContentPainter.h"
@@ -19,19 +20,19 @@ void paintDebugMonitorChrome(
 )
 {
     RECT debugPanelRect{0, debugMonitorTop, clientWidth, statusBarTop};
-    UniqueBrush debugPanelBrush(CreateSolidBrush(RGB(21, 23, 28)));
+    UniqueBrush debugPanelBrush(CreateSolidBrush(ui::panel));
     FillRect(drawDc, &debugPanelRect, debugPanelBrush.get());
 
     const RECT debugResizeRect =
         debugResizeRectForClient(activeDebugMonitorHeight, clientWidth, clientHeight);
     if (debugResizeRect.bottom > debugResizeRect.top) {
         UniqueBrush resizeBrush(CreateSolidBrush(
-            debugUiState.debugResizeDragging ? RGB(50, 60, 76) : RGB(25, 28, 35)
+            debugUiState.debugResizeDragging ? ui::selection : ui::window
         ));
         FillRect(drawDc, &debugResizeRect, resizeBrush.get());
     }
 
-    UniquePen debugBorderPen(CreatePen(PS_SOLID, 1, RGB(62, 67, 78)));
+    UniquePen debugBorderPen(CreatePen(PS_SOLID, 1, ui::divider));
     SelectObjectGuard penSelection(drawDc, debugBorderPen.get());
     MoveToEx(drawDc, 0, debugMonitorTop, nullptr);
     LineTo(drawDc, clientWidth, debugMonitorTop);

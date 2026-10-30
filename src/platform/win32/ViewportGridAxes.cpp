@@ -25,6 +25,7 @@ void drawGroundGrid3D(
     setGlColor(gridColor);
     glBegin(GL_LINES);
     for (int i = -lineCount; i <= lineCount; ++i) {
+        if (i == 0) continue; // The two colored floor axes occupy the center lines.
         const float value = static_cast<float>(i) * step;
         glVertex3f(value, 0.0f, -extent);
         glVertex3f(value, 0.0f, extent);
@@ -36,21 +37,19 @@ void drawGroundGrid3D(
 
 void drawAxes3D()
 {
-    constexpr float axisLength = 0.35f;
-    constexpr float axisLift = 0.003f;
+    constexpr float extent = 100.0f;
+    constexpr float axisLift = 0.001f;
 
-    // Lift the origin axes just above the grid plane to avoid line depth fighting.
-    ScopedGlLineWidth lineWidth(2.5f);
+    // Blender-style floor guides in the recorder's Y-up coordinate system.
+    // They span both sides of the origin; there is no vertical origin triad.
+    ScopedGlLineWidth lineWidth(1.25f);
     glBegin(GL_LINES);
-    glColor3f(0.95f, 0.12f, 0.10f);
-    glVertex3f(0.0f, axisLift, 0.0f);
-    glVertex3f(axisLength, axisLift, 0.0f);
-    glColor3f(0.20f, 0.85f, 0.28f);
-    glVertex3f(0.0f, axisLift, 0.0f);
-    glVertex3f(0.0f, axisLength + axisLift, 0.0f);
-    glColor3f(0.28f, 0.44f, 1.0f);
-    glVertex3f(0.0f, axisLift, 0.0f);
-    glVertex3f(0.0f, axisLift, axisLength);
+    setGlColor({147, 65, 77});
+    glVertex3f(-extent, axisLift, 0.0f);
+    glVertex3f(extent, axisLift, 0.0f);
+    setGlColor({93, 127, 56});
+    glVertex3f(0.0f, axisLift, -extent);
+    glVertex3f(0.0f, axisLift, extent);
     glEnd();
 }
 

@@ -48,6 +48,9 @@ RecordingSession prepareSessionForExport(
     if (session.frameIndexPath.empty()) {
         session.frameIndexPath = currentSessionFolder / "frame_index.bin";
     }
+    if (!session.videoPath.empty() && session.videoPath.is_relative()) {
+        session.videoPath = currentSessionFolder / session.videoPath;
+    }
     return session;
 }
 

@@ -80,6 +80,12 @@ void destroyAppWindowState(HWND hwnd)
         }
         stopExportProgressWorker(*state);
         stopPoseSamplingWorker(*state);
+        if (state->sessionVideoPlayback) {
+            state->sessionVideoPlayback->close();
+        }
+        if (state->videoCapture) {
+            state->videoCapture->stopPreview();
+        }
         state->vmcReceiver.stop();
         state->vmcSender.stop();
         destroyConfiguredAppIcon(*state);

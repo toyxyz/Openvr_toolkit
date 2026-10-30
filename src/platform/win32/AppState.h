@@ -1,4 +1,5 @@
 #pragma once
+#include "app/PlaybackTimeline.h"
 
 #include "platform/win32/AppDebugUiState.h"
 #include "platform/win32/AppDeviceState.h"
@@ -17,6 +18,7 @@
 #include "platform/win32/AppStreamingState.h"
 #include "platform/win32/AppTopBarState.h"
 #include "platform/win32/AppViewportState.h"
+#include "platform/win32/AppVideoState.h"
 
 namespace ovtr::win32 {
 
@@ -24,6 +26,7 @@ struct AppWindowState
     : AppRuntimeState
     , AppPoseSamplingState
     , AppViewportState
+    , AppVideoState
     , AppRecordingState
     , AppSessionState
     , AppOriginState
@@ -38,6 +41,7 @@ struct AppWindowState
     , AppIconState
     , AppTopBarState
     , AppDebugUiState {
+    PlaybackTimeline playbackTimeline;
 };
 
 } // namespace ovtr::win32

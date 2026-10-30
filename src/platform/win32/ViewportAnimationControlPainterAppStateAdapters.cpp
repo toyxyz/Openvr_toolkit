@@ -1,4 +1,6 @@
 #include "platform/win32/ViewportAnimationControlPainter.h"
+#include "platform/win32/ViewportImportedSceneBar.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/ViewportAnimationControlSections.h"
@@ -13,18 +15,19 @@ void drawImportedAnimationControls(
     const AppWindowState& state
 )
 {
+    drawImportedSceneInfoBar(drawDc, font, layout, state);
     if (state.loadedSessionActive && layout.animationValid) {
-        UniqueBrush barBrush(CreateSolidBrush(RGB(20, 23, 28)));
+        UniqueBrush barBrush(CreateSolidBrush(ui::panel));
         FillRect(drawDc, &layout.animationBarRect, barBrush.get());
-        UniquePen borderPen(CreatePen(PS_SOLID, 1, RGB(54, 58, 66)));
+        UniquePen borderPen(CreatePen(PS_SOLID, 1, ui::border));
         {
             SelectObjectGuard penSelection(drawDc, borderPen.get());
             MoveToEx(drawDc, layout.animationBarRect.left, layout.animationBarRect.top, nullptr);
             LineTo(drawDc, layout.animationBarRect.right, layout.animationBarRect.top);
         }
         drawImportedAnimationButtons(drawDc, font, layout, state.loadedSessionPlaying);
-        drawLoadedSessionAnimationTimeline(drawDc, layout, state);
-        drawLoadedSessionAnimationFrameText(drawDc, font, layout, state);
+        drawCombinedAnimationTimeline(drawDc, layout, state, state);
+        drawCombinedAnimationFrameText(drawDc, font, layout, state, state);
         return;
     }
     drawImportedAnimationControls(

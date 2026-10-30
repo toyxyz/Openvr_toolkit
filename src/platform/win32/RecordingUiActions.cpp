@@ -6,6 +6,7 @@
 #include "platform/win32/Dialogs.h"
 #include "platform/win32/RecordingSessionList.h"
 #include "platform/win32/RecordingStartActions.h"
+#include "platform/win32/RecordingVideoFinalization.h"
 #include "platform/win32/SkeletonRecording.h"
 #include "platform/win32/WindowLayout.h"
 #include "platform/win32/WindowStateAccess.h"
@@ -37,8 +38,26 @@ void toggleRecording(HWND hwnd)
     if (!state) {
         return;
     }
+    if (state->pendingVideoRecordingStart) {
+        state->videoStatusMessage = "Preparing video recording...";
+        appendDebugLog(*state, L"Recording toggle ignored: video encoder is preparing");
+        invalidateStatusPanel(hwnd);
+        return;
+    }
     if (state->loadedSessionActive) {
         appendDebugLog(*state, L"Recording blocked: close loaded session first");
+        invalidateStatusPanel(hwnd);
+        return;
+    }
+    if (state->videoFinalizationPending) {
+        state->videoStatusMessage = "Wait for video finalization to complete.";
+        appendDebugLog(*state, L"Recording blocked: video finalization is still running");
+        invalidateStatusPanel(hwnd);
+        return;
+    }
+    if (state->videoCaptureSwitch.valid() || state->videoCameraChangeQueued) {
+        state->videoStatusMessage = "Wait for the camera change to complete.";
+        appendDebugLog(*state, L"Recording blocked: camera change is still running");
         invalidateStatusPanel(hwnd);
         return;
     }
@@ -85,6 +104,22 @@ void toggleRecording(HWND hwnd)
 
     if (stopAttempted) {
         appendDebugLog(*state, L"Stopping recording");
+        if (state->videoCapture && !state->recorder.session().videoPath.empty()) {
+            std::string finalizationRequestError;
+            if (requestRecordingVideoFinalization(
+                    hwnd,
+                    *state,
+                    stopSucceeded,
+                    stopError,
+                    stoppedFrameCount,
+                    stoppedDroppedFrames,
+                    finalizationRequestError)) {
+                return;
+            }
+            stopSucceeded = false;
+            stopError = finalizationRequestError;
+            state->recordingError = finalizationRequestError;
+        }
         if (stopSucceeded) {
             std::wostringstream stream;
             stream << L"Recording stopped: frames " << stoppedFrameCount

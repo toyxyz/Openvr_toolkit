@@ -261,7 +261,8 @@ int leftPanelWidthForClient(const AppWindowState* state, const int clientWidth)
         ? state->leftPanelWidth
         : 0;
     return leftPanelWidthForClient(
-        !state || state->devicePanelVisible || state->sessionPanelVisible || state->streamingPanelVisible,
+        !state || state->devicePanelVisible || state->sessionPanelVisible || state->streamingPanelVisible ||
+            state->videoPanelVisible,
         requestedWidth,
         clientWidth
     );

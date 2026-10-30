@@ -1,4 +1,5 @@
 #include "platform/win32/WindowClickActionSections.h"
+#include "platform/win32/CombinedPlayback.h"
 
 #include "platform/win32/AppConfig.h"
 #include "platform/win32/AppState.h"
@@ -26,27 +27,26 @@ bool handleLoadedSessionControlClick(
     }
 
     if (PtInRect(&layout.firstFrameButtonRect, point)) {
-        setLoadedSessionPlaybackSeconds(state, 0.0);
+        state.playbackTimeline.playing = false;
+        seekCombinedPlayback(state, 0.0);
     } else if (PtInRect(&layout.playPauseButtonRect, point)) {
-        toggleLoadedSessionPlayback(state);
+        toggleCombinedPlayback(state);
     } else if (PtInRect(&layout.lastFrameButtonRect, point)) {
-        setLoadedSessionPlaybackSeconds(state, loadedSessionDurationSeconds(state));
+        state.playbackTimeline.playing = false;
+        seekCombinedPlayback(state, combinedPlaybackDuration(state));
     } else if (PtInRect(&layout.closeButtonRect, point)) {
         closeLoadedSessionFolder(hwnd, state);
         return true;
     } else if (PtInRect(&layout.timelineRect, point)) {
         state.loadedSessionTimelineDragging = true;
-        seekLoadedSessionFromTimeline(state, layout.timelineRect, point);
+        seekCombinedPlaybackFromTimeline(state, layout.timelineRect, point);
         SetCapture(hwnd);
     } else {
         return false;
     }
 
-    sampleLoadedSessionFrame(state);
+    state.viewportRenderDemand.dirty = true;
     InvalidateRect(hwnd, &layout.animationBarRect, FALSE);
-    if (state.glWindow) {
-        renderViewport(state.glWindow);
-    }
     return true;
 }
 
@@ -65,6 +65,11 @@ bool handleViewportControlClick(
         clientWidth,
         clientHeight
     );
+    if (state.importedSceneLoaded && viewportControls.importedSceneBarValid &&
+        PtInRect(&viewportControls.importedSceneCloseButtonRect, point)) {
+        closeImportedGlb(hwnd, state);
+        return true;
+    }
     if (handleLoadedSessionControlClick(hwnd, state, viewportControls, point)) {
         return true;
     }

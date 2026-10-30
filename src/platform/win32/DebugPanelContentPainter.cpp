@@ -1,4 +1,5 @@
 #include "platform/win32/DebugPanelContentPainter.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/AppDebugUiState.h"
 #include "platform/win32/DebugPanelContentSections.h"
@@ -50,7 +51,7 @@ void paintDebugMonitorContent(
         paintDebugMessagesContent(drawDc, effectiveBodyFont, debugUiState, messagesBodyRect);
 
     SelectObject(drawDc, titleFont ? titleFont : bodyFont);
-    SetTextColor(drawDc, RGB(226, 230, 236));
+    SetTextColor(drawDc, ui::text);
     RECT debugTitleRect{
         kContentMargin,
         debugMonitorTop + kDebugPanelPaddingTop,

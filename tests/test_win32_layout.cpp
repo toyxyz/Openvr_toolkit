@@ -157,7 +157,7 @@ void testWin32Layout()
         "state profile splitter rect"
     );
     require(
-        sameRect(ovtr::win32::viewportRenderRectForClient(&state, 1200, 800), 508, 32, 840, 496),
+        sameRect(ovtr::win32::viewportRenderRectForClient(&state, 1200, 800), 508, 32, 840, 402),
         "state viewport render rect reserves profile panel"
     );
     state.profilePanelWidth = 400;
@@ -239,6 +239,19 @@ void testWin32Layout()
     require(
         sameRect(ovtr::win32::sessionToggleButtonRectForClient(764, 1200, 800), 4, 148, 28, 260),
         "session toggle button rect"
+    );
+    require(
+        sameRect(ovtr::win32::videoToggleButtonRectForClient(764, 1200, 800), 4, 404, 28, 484),
+        "video toggle button rect"
+    );
+    const ovtr::win32::VideoPanelLayout videoLayout =
+        ovtr::win32::videoPanelLayoutForClient(true, 500, 764, 3);
+    require(videoLayout.valid && videoLayout.visibleCameraCount == 3, "video panel layout");
+    require(
+        ovtr::win32::videoCameraIndexFromPoint(
+            videoLayout, POINT{videoLayout.cameraListRect.left + 2, videoLayout.cameraListRect.top + 36}, 3
+        ) == 1,
+        "video camera row hit test"
     );
     const ovtr::win32::SessionListLayout tallSessionList =
         ovtr::win32::sessionListLayoutForClient(true, 500, 1100, false, 0, 20);

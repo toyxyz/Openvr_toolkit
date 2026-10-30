@@ -1,4 +1,5 @@
 #include "platform/win32/StatusBarPainter.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/Layout.h"
 #include "platform/win32/Win32GdiResources.h"
@@ -22,10 +23,10 @@ void paintStatusBar(
 )
 {
     RECT statusBarRect{0, statusBarTop, clientWidth, clientHeight};
-    UniqueBrush statusBarBrush(CreateSolidBrush(RGB(18, 20, 24)));
+    UniqueBrush statusBarBrush(CreateSolidBrush(ui::toolbar));
     FillRect(drawDc, &statusBarRect, statusBarBrush.get());
 
-    UniquePen statusBorderPen(CreatePen(PS_SOLID, 1, RGB(54, 58, 66)));
+    UniquePen statusBorderPen(CreatePen(PS_SOLID, 1, ui::border));
     {
         SelectObjectGuard penSelection(drawDc, statusBorderPen.get());
         MoveToEx(drawDc, 0, statusBarTop, nullptr);
@@ -42,7 +43,7 @@ void paintStatusBar(
     RECT messageRect{kContentMargin, statusBarTop, statusSplitX - 12, clientHeight};
     RECT metricsRect{statusSplitX, statusBarTop, debugButtonRect.left - 12, clientHeight};
 
-    SetTextColor(drawDc, RGB(226, 230, 236));
+    SetTextColor(drawDc, ui::text);
     DrawTextW(
         drawDc,
         statusMessage.c_str(),
@@ -50,7 +51,7 @@ void paintStatusBar(
         &messageRect,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS
     );
-    SetTextColor(drawDc, RGB(166, 176, 190));
+    SetTextColor(drawDc, ui::muted);
     if (metricsRect.right > metricsRect.left) {
         DrawTextW(
             drawDc,
@@ -62,12 +63,12 @@ void paintStatusBar(
     }
 
     UniqueBrush buttonBrush(CreateSolidBrush(
-        state && state->debugMonitorVisible ? RGB(48, 63, 82) : RGB(30, 34, 42)
+        state && state->debugMonitorVisible ? ui::accent : ui::button
     ));
     UniquePen buttonPen(CreatePen(
         PS_SOLID,
         1,
-        state && state->debugMonitorVisible ? RGB(92, 126, 168) : RGB(67, 74, 88)
+        state && state->debugMonitorVisible ? ui::accent : ui::buttonBorder
     ));
     {
         SelectObjectGuard brushSelection(drawDc, buttonBrush.get());
@@ -84,7 +85,7 @@ void paintStatusBar(
     }
 
     SelectObject(drawDc, font);
-    SetTextColor(drawDc, RGB(225, 231, 240));
+    SetTextColor(drawDc, ui::text);
     RECT debugButtonTextRect = debugButtonRect;
     DrawTextW(
         drawDc,

@@ -1,6 +1,7 @@
 #include "platform/win32/ViewportWindow.h"
 
 #include "platform/win32/ViewportRenderer.h"
+#include "platform/win32/ViewportRedraw.h"
 #include "platform/win32/ViewportWindowInput.h"
 #include "platform/win32/Win32ScopedDcResources.h"
 #include "platform/win32/WindowInput.h"
@@ -18,14 +19,14 @@ LRESULT CALLBACK viewportProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpa
     case WM_ERASEBKGND:
         return 1;
     case WM_SIZE:
-        renderViewport(hwnd);
+        requestViewportRedraw(hwnd);
         return 0;
     case WM_PAINT: {
         PaintDc paint(hwnd);
         if (!paint) {
             return 0;
         }
-        renderViewport(hwnd);
+        requestViewportRedraw(hwnd);
         return 0;
     }
     case WM_LBUTTONDOWN: {

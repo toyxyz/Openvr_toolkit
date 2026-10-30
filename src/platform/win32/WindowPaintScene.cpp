@@ -1,4 +1,5 @@
 #include "platform/win32/WindowPaintScene.h"
+#include "platform/win32/WindowPartialPaint.h"
 
 #include "platform/win32/AppConfig.h"
 #include "platform/win32/AppState.h"
@@ -11,6 +12,7 @@
 #include "platform/win32/SessionPanelPainter.h"
 #include "platform/win32/StatusBarPainter.h"
 #include "platform/win32/StreamingPanelPainter.h"
+#include "platform/win32/VideoPanelPainter.h"
 #include "platform/win32/ViewportControlPainter.h"
 #include "platform/win32/WindowChromePainter.h"
 #include "platform/win32/WindowLayout.h"
@@ -33,6 +35,9 @@ void paintWindowScene(
 )
 {
     const int statusBarTop = clientHeight > kStatusBarHeight ? clientHeight - kStatusBarHeight : 0;
+    if (paintOnlyUpdatedControls(drawDc, state, fonts, clientWidth, clientHeight, statusBarTop)) {
+        return;
+    }
     const int debugMonitorHeight = activeDebugMonitorHeight(state, clientHeight);
     const int debugMonitorTop = statusBarTop > debugMonitorHeight
         ? statusBarTop - debugMonitorHeight
@@ -54,6 +59,9 @@ void paintWindowScene(
     const StreamingPanelLayout streamingPanelLayout = state
         ? streamingPanelLayoutForClient(state, clientWidth, clientHeight)
         : StreamingPanelLayout{};
+    const VideoPanelLayout videoPanelLayout = state
+        ? videoPanelLayoutForClient(state, clientWidth, clientHeight)
+        : VideoPanelLayout{};
     const MarkerListLayout markerListLayout = state
         ? markerListLayoutForClient(state, clientWidth, clientHeight)
         : MarkerListLayout{};
@@ -80,6 +88,7 @@ void paintWindowScene(
             *state,
             streamingPanelLayout
         );
+        paintVideoPanel(drawDc, fonts.bodyFont(), fonts.statusFont(), *state, videoPanelLayout);
         paintMarkerListPanel(drawDc, fonts.bodyFont(), fonts.statusFont(), *state, markerListLayout);
         paintOriginPanel(
             drawDc,

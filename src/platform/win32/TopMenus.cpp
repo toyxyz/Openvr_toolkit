@@ -24,6 +24,7 @@ constexpr UINT kFileMenuImportGlbId = 1201;
 constexpr UINT kFileMenuSaveSessionId = 1202;
 constexpr UINT kFileMenuExportDeviceId = 1203;
 constexpr UINT kFileMenuExportPoseId = 1204;
+constexpr UINT kFileMenuExportVideoId = 1205;
 
 void setActiveTopBarMenu(HWND hwnd, AppWindowState& state, const ActiveTopBarMenu activeMenu)
 {
@@ -103,21 +104,24 @@ void showTopFileMenu(HWND hwnd, AppWindowState& state, const RECT& fileRect)
         return;
     }
 
-    std::array<PopupMenuItem, 4> menuItems{{
+    std::array<PopupMenuItem, 5> menuItems{{
         PopupMenuItem{kFileMenuImportGlbId, L"Import GLB..."},
         PopupMenuItem{kFileMenuSaveSessionId, L"Save Session"},
         PopupMenuItem{kFileMenuExportDeviceId, L"Export Device"},
         PopupMenuItem{kFileMenuExportPoseId, L"Export Pose"},
+        PopupMenuItem{kFileMenuExportVideoId, L"Export Video"},
     }};
     PopupMenuItem& importItem = menuItems[0];
     PopupMenuItem& saveSessionItem = menuItems[1];
     PopupMenuItem& exportDeviceItem = menuItems[2];
     PopupMenuItem& exportPoseItem = menuItems[3];
+    PopupMenuItem& exportVideoItem = menuItems[4];
     appendPopupMenuItem(menu.get(), importItem);
     AppendMenuW(menu.get(), MF_SEPARATOR, 0, nullptr);
     appendPopupMenuItem(menu.get(), saveSessionItem);
     appendPopupMenuItem(menu.get(), exportDeviceItem);
     appendPopupMenuItem(menu.get(), exportPoseItem);
+    appendPopupMenuItem(menu.get(), exportVideoItem);
 
     POINT menuPoint{fileRect.left, fileRect.bottom};
     ClientToScreen(hwnd, &menuPoint);
@@ -130,6 +134,8 @@ void showTopFileMenu(HWND hwnd, AppWindowState& state, const RECT& fileRect)
         exportLoadedDevice(hwnd, state);
     } else if (command == kFileMenuExportPoseId) {
         exportLoadedPose(hwnd, state);
+    } else if (command == kFileMenuExportVideoId) {
+        exportLoadedVideo(hwnd, state);
     }
 }
 

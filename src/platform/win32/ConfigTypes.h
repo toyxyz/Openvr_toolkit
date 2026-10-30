@@ -24,8 +24,8 @@ enum class SkeletonDisplayType {
 
 struct ViewportSettings {
     RgbColor labelTextColor{255, 255, 255};
-    RgbColor gridColor{34, 36, 43};
-    RgbColor backgroundColor{37, 50, 65};
+    RgbColor gridColor{71, 71, 71};
+    RgbColor backgroundColor{61, 61, 61};
     RgbColor importedGlbColor{66, 104, 255};
     RgbColor renderModelOutlineColor{255, 133, 32};
     RgbColor renderModelMaterialColor{255, 255, 255};

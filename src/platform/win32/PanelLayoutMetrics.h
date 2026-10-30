@@ -10,6 +10,7 @@ inline constexpr int kPanelDeviceToggleButtonWidth = 24;
 inline constexpr int kPanelDeviceToggleButtonHeight = 96;
 inline constexpr int kPanelSessionToggleButtonHeight = 112;
 inline constexpr int kPanelStreamingToggleButtonHeight = 128;
+inline constexpr int kPanelVideoToggleButtonHeight = 80;
 inline constexpr int kPanelProfileToggleRailWidth = 32;
 inline constexpr int kPanelProfileToggleButtonWidth = 24;
 inline constexpr int kPanelProfileToggleButtonHeight = 112;

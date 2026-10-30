@@ -1,4 +1,5 @@
 #include "platform/win32/MappingPanelScrollPainter.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/MappingActorLayout.h"
@@ -15,7 +16,7 @@ void drawScrollbar(HDC drawDc, const RECT& tableRect, const int visibleRows, con
     }
 
     RECT track{tableRect.right - 8, tableRect.top, tableRect.right, tableRect.bottom};
-    UniqueBrush trackBrush(CreateSolidBrush(RGB(34, 38, 47)));
+    UniqueBrush trackBrush(CreateSolidBrush(ui::timeline));
     FillRect(drawDc, &track, trackBrush.get());
 
     const int trackHeight = track.bottom - track.top;
@@ -29,7 +30,7 @@ void drawScrollbar(HDC drawDc, const RECT& tableRect, const int visibleRows, con
 
     const int thumbTop = track.top + (scrollOffset * (trackHeight - thumbHeight)) / maxOffset;
     RECT thumb{track.left, thumbTop, track.right, thumbTop + thumbHeight};
-    UniqueBrush thumbBrush(CreateSolidBrush(RGB(88, 101, 123)));
+    UniqueBrush thumbBrush(CreateSolidBrush(ui::scrollbar));
     FillRect(drawDc, &thumb, thumbBrush.get());
 }
 
@@ -43,7 +44,7 @@ void drawActorScrollbar(HDC drawDc, const MappingPanelControlsLayout& controls, 
 
     RECT track{controls.actorListRect.right - 8, controls.actorListRect.top,
                controls.actorListRect.right, controls.actorListRect.bottom};
-    UniqueBrush trackBrush(CreateSolidBrush(RGB(34, 38, 47)));
+    UniqueBrush trackBrush(CreateSolidBrush(ui::timeline));
     FillRect(drawDc, &track, trackBrush.get());
 
     const int trackHeight = track.bottom - track.top;
@@ -53,7 +54,7 @@ void drawActorScrollbar(HDC drawDc, const MappingPanelControlsLayout& controls, 
     }
     const int top = track.top + (state.mappingActorScrollOffset * (trackHeight - thumbHeight)) / maxOffset;
     RECT thumb{track.left, top, track.right, top + thumbHeight};
-    UniqueBrush thumbBrush(CreateSolidBrush(RGB(88, 101, 123)));
+    UniqueBrush thumbBrush(CreateSolidBrush(ui::scrollbar));
     FillRect(drawDc, &thumb, thumbBrush.get());
 }
 

@@ -66,6 +66,7 @@ bool handleMainWindowLeftClickAtPoint(
         handleDeviceToggleClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleSessionToggleClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleStreamingToggleClick(hwnd, state, clientWidth, clientHeight, point) ||
+        handleVideoToggleClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleProfileToggleClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleMappingToggleClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleEditToggleClick(hwnd, state, clientWidth, clientHeight, point) ||
@@ -78,6 +79,7 @@ bool handleMainWindowLeftClickAtPoint(
         handleDeviceSplitterClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleSessionListClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleStreamingPanelClick(hwnd, state, clientWidth, clientHeight, point) ||
+        handleVideoPanelClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleMarkerListClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleDeviceListClick(hwnd, state, clientWidth, clientHeight, point) ||
         handleDebugToggleClick(hwnd, state, clientWidth, clientHeight, point);

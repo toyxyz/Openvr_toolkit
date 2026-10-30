@@ -72,6 +72,7 @@ struct RecordingSession {
     std::vector<DeviceDescriptor> devices;
     std::filesystem::path framesPath;
     std::filesystem::path frameIndexPath;
+    std::filesystem::path videoPath;
 };
 
 std::string toString(DeviceClass deviceClass);

@@ -1,4 +1,5 @@
 #include "platform/win32/OriginPanelPainter.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/AppOriginState.h"
 #include "platform/win32/PaintWidgets.h"
@@ -25,10 +26,10 @@ void paintOriginPanel(
         return;
     }
 
-    UniqueBrush panelBrush(CreateSolidBrush(RGB(20, 23, 28)));
+    UniqueBrush panelBrush(CreateSolidBrush(ui::panel));
     FillRect(drawDc, &layout.boxRect, panelBrush.get());
 
-    UniquePen panelPen(CreatePen(PS_SOLID, 1, RGB(58, 64, 76)));
+    UniquePen panelPen(CreatePen(PS_SOLID, 1, ui::border));
     {
         SelectObjectGuard penSelection(drawDc, panelPen.get());
         SelectObjectGuard brushSelection(drawDc, GetStockObject(NULL_BRUSH));
@@ -42,7 +43,7 @@ void paintOriginPanel(
     }
 
     SelectObject(drawDc, labelFont);
-    SetTextColor(drawDc, RGB(168, 180, 196));
+    SetTextColor(drawDc, ui::muted);
     RECT originTitleRect{
         layout.boxRect.left + kOriginPanelPadding,
         layout.boxRect.top + 8,

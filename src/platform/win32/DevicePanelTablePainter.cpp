@@ -1,4 +1,5 @@
 #include "platform/win32/DevicePanelTablePainter.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/AppDeviceState.h"
 #include "platform/win32/DevicePanelRowsPainter.h"
@@ -22,10 +23,10 @@ void paintDeviceListTable(
     const bool showScrollbar = maxScrollOffset > 0;
     const DeviceListTableMetrics metrics = deviceListTableMetricsForLayout(layout, totalDeviceRows);
 
-    UniqueBrush headerBrush(CreateSolidBrush(RGB(24, 28, 35)));
+    UniqueBrush headerBrush(CreateSolidBrush(ui::header));
     FillRect(drawDc, &layout.headerRect, headerBrush.get());
 
-    UniquePen gridPenResource(CreatePen(PS_SOLID, 1, RGB(43, 48, 59)));
+    UniquePen gridPenResource(CreatePen(PS_SOLID, 1, ui::divider));
     HPEN gridPen = gridPenResource.get();
     {
         SelectObjectGuard penSelection(drawDc, gridPen);
@@ -38,7 +39,7 @@ void paintDeviceListTable(
     }
 
     SelectObject(drawDc, headerFont ? headerFont : bodyFont);
-    SetTextColor(drawDc, RGB(168, 180, 196));
+    SetTextColor(drawDc, ui::muted);
     RECT nameHeaderRect{metrics.nameColumnLeft, layout.headerRect.top, metrics.nameColumnRight, layout.headerRect.bottom};
     RECT modelHeaderRect{metrics.modelColumnLeft, layout.headerRect.top, metrics.modelColumnRight, layout.headerRect.bottom};
     RECT serialHeaderRect{metrics.serialColumnLeft, layout.headerRect.top, metrics.itemTextRight, layout.headerRect.bottom};

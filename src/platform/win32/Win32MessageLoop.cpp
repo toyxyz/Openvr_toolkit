@@ -3,18 +3,14 @@
 #include <mmsystem.h>
 
 #include "platform/win32/Win32AppWindow.h"
+#include "app/FrameLoopSchedule.h"
 
 #include "platform/win32/FrameUpdate.h"
 
 #include <chrono>
+#include <stdexcept>
 
 namespace ovtr::win32 {
-namespace {
-
-constexpr double kTargetViewportFps = 90.0;
-
-} // namespace
-
 int runMessageAndFrameLoop(HWND hwnd)
 {
     timeBeginPeriod(1);
@@ -22,11 +18,9 @@ int runMessageAndFrameLoop(HWND hwnd)
     MSG message{};
     bool running = true;
     auto nextFrame = std::chrono::steady_clock::now();
-    const auto frameInterval = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
-        std::chrono::duration<double>(1.0 / kTargetViewportFps)
-    );
 
     while (running && IsWindow(hwnd)) {
+        const auto batchStarted = std::chrono::steady_clock::now();
         while (PeekMessageW(&message, nullptr, 0, 0, PM_REMOVE)) {
             if (message.message == WM_QUIT) {
                 running = false;
@@ -35,6 +29,9 @@ int runMessageAndFrameLoop(HWND hwnd)
 
             TranslateMessage(&message);
             DispatchMessageW(&message);
+            if (ovtr::shouldYieldMessages(std::chrono::steady_clock::now(), batchStarted, nextFrame)) {
+                break;
+            }
         }
 
         if (!running || !IsWindow(hwnd)) {
@@ -45,17 +42,17 @@ int runMessageAndFrameLoop(HWND hwnd)
         if (now >= nextFrame) {
             refreshPoseAndViewport(hwnd);
 
-            do {
-                nextFrame += frameInterval;
-            } while (nextFrame <= now);
+            nextFrame = ovtr::nextViewportFrame(now, std::chrono::steady_clock::now());
         }
 
         const auto afterWork = std::chrono::steady_clock::now();
         const auto timeUntilNextFrame = nextFrame - afterWork;
-        if (timeUntilNextFrame > std::chrono::milliseconds(2)) {
-            Sleep(1);
-        } else {
-            Sleep(0);
+        if (timeUntilNextFrame > ovtr::FrameClock::duration::zero()) {
+            const auto timeout = std::chrono::ceil<std::chrono::milliseconds>(timeUntilNextFrame);
+            if (MsgWaitForMultipleObjectsEx(0, nullptr, static_cast<DWORD>(timeout.count()),
+                QS_ALLINPUT, MWMO_INPUTAVAILABLE) == WAIT_FAILED) {
+                throw std::runtime_error("Waiting for UI input failed: " + std::to_string(GetLastError()));
+            }
         }
     }
 

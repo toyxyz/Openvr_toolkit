@@ -1,4 +1,5 @@
 #include "platform/win32/DevicePanelScrollbarPainter.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/Win32GdiResources.h"
 
@@ -18,7 +19,7 @@ void paintDeviceListScrollbar(
         layout.contentRect.right,
         layout.contentRect.bottom
     };
-    UniqueBrush trackBrush(CreateSolidBrush(RGB(34, 38, 47)));
+    UniqueBrush trackBrush(CreateSolidBrush(ui::timeline));
     FillRect(drawDc, &scrollbarTrack, trackBrush.get());
 
     const int trackHeight = scrollbarTrack.bottom - scrollbarTrack.top;
@@ -34,7 +35,7 @@ void paintDeviceListScrollbar(
     const int thumbTop = scrollbarTrack.top +
         (maxScrollOffset > 0 ? (scrollOffset * travel) / maxScrollOffset : 0);
     RECT thumbRect{scrollbarTrack.left, thumbTop, scrollbarTrack.right, thumbTop + thumbHeight};
-    UniqueBrush thumbBrush(CreateSolidBrush(RGB(88, 101, 123)));
+    UniqueBrush thumbBrush(CreateSolidBrush(ui::scrollbar));
     FillRect(drawDc, &thumbRect, thumbBrush.get());
 }
 

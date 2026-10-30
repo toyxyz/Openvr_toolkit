@@ -24,6 +24,7 @@ public:
     bool resume();
     bool stop(double durationSeconds, std::uint64_t droppedFrames);
     void reset();
+    void discardSessionVideoReference() noexcept;
 
     RecorderState state() const;
     const RecordingSession& session() const;

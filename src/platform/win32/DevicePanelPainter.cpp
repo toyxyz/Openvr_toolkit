@@ -1,4 +1,5 @@
 #include "platform/win32/DevicePanelPainter.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/AppDeviceState.h"
 #include "platform/win32/AppRuntimeState.h"
@@ -44,10 +45,10 @@ void paintDeviceListPanelRows(
     );
 
     RECT deviceBoxRect = layout.boxRect;
-    UniqueBrush boxBrush(CreateSolidBrush(RGB(20, 23, 28)));
+    UniqueBrush boxBrush(CreateSolidBrush(ui::panel));
     FillRect(drawDc, &deviceBoxRect, boxBrush.get());
 
-    UniquePen boxPen(CreatePen(PS_SOLID, 1, RGB(58, 64, 76)));
+    UniquePen boxPen(CreatePen(PS_SOLID, 1, ui::border));
     {
         SelectObjectGuard penSelection(drawDc, boxPen.get());
         SelectObjectGuard brushSelection(drawDc, GetStockObject(NULL_BRUSH));

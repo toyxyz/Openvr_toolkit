@@ -19,6 +19,7 @@ struct RecordingExportPlan {
     std::vector<ovtr::ExportStaticPoseTrack> staticTracks;
     std::filesystem::path exportDirectory;
     double exportSampleRate = 60.0;
+    bool exportVideo = true;
 };
 
 RecordingExportPlan makeRecordingExportPlan(

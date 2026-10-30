@@ -1,4 +1,5 @@
 #include "platform/win32/MappingPanelDropdownPainter.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/AppState.h"
 #include "platform/win32/DeviceList.h"
@@ -25,8 +26,8 @@ std::wstring deviceOptionText(const DeviceListRow& row)
 
 void drawPopupFrame(HDC drawDc, const RECT& popupRect)
 {
-    UniqueBrush popupBrush(CreateSolidBrush(RGB(24, 28, 35)));
-    UniquePen popupPen(CreatePen(PS_SOLID, 1, RGB(92, 126, 168)));
+    UniqueBrush popupBrush(CreateSolidBrush(ui::header));
+    UniquePen popupPen(CreatePen(PS_SOLID, 1, ui::accent));
     SelectObjectGuard brushSelection(drawDc, popupBrush.get());
     SelectObjectGuard penSelection(drawDc, popupPen.get());
     Rectangle(drawDc, popupRect.left, popupRect.top, popupRect.right, popupRect.bottom);
@@ -78,7 +79,7 @@ void drawMappingDeviceDropdown(
     drawPopupFrame(drawDc, popupRect);
 
     SelectObjectGuard fontSelection(drawDc, font);
-    SetTextColor(drawDc, RGB(225, 231, 240));
+    SetTextColor(drawDc, ui::text);
     const int rowHeight = row.rowRect.bottom - row.rowRect.top;
     for (int option = 0; option < optionCount && popupRect.top + option * rowHeight < popupRect.bottom; ++option) {
         RECT optionRect{popupRect.left + 6, popupRect.top + option * rowHeight,
@@ -108,7 +109,7 @@ void drawMappingProfileDropdown(
     drawPopupFrame(drawDc, popupRect);
 
     SelectObjectGuard fontSelection(drawDc, font);
-    SetTextColor(drawDc, RGB(225, 231, 240));
+    SetTextColor(drawDc, ui::text);
     const int rowHeight = controls.profileBoxRect.bottom - controls.profileBoxRect.top;
     const int visibleRows = optionCount > 0 ? optionCount : 1;
     for (int option = 0; option < visibleRows && popupRect.top + option * rowHeight < popupRect.bottom; ++option) {
@@ -138,7 +139,7 @@ void drawMappingPresetDropdown(
     drawPopupFrame(drawDc, popupRect);
 
     SelectObjectGuard fontSelection(drawDc, font);
-    SetTextColor(drawDc, RGB(225, 231, 240));
+    SetTextColor(drawDc, ui::text);
     const int rowHeight = controls.presetValueRect.bottom - controls.presetValueRect.top;
     const int visibleRows = optionCount > 0 ? optionCount : 1;
     for (int option = 0; option < visibleRows && popupRect.top + option * rowHeight < popupRect.bottom; ++option) {

@@ -1,4 +1,5 @@
 #include "platform/win32/WindowChromePainter.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/AppTopBarState.h"
 #include "platform/win32/PaintWidgets.h"
@@ -25,10 +26,10 @@ void paintTopBar(
         return;
     }
 
-    UniqueBrush topBarBrush(CreateSolidBrush(RGB(18, 20, 24)));
+    UniqueBrush topBarBrush(CreateSolidBrush(ui::toolbar));
     FillRect(drawDc, &topBarRect, topBarBrush.get());
 
-    UniquePen topBarPen(CreatePen(PS_SOLID, 1, RGB(54, 58, 66)));
+    UniquePen topBarPen(CreatePen(PS_SOLID, 1, ui::border));
     {
         SelectObjectGuard penSelection(drawDc, topBarPen.get());
         MoveToEx(drawDc, 0, topBarRect.bottom - 1, nullptr);
@@ -46,7 +47,7 @@ void paintTopBar(
         drawDc,
         font,
         topBarSettingRectForClient(clientWidth, clientHeight),
-        L"Setting",
+        L"Settings",
         state && state->activeTopBarMenu == ActiveTopBarMenu::Setting
     );
 }

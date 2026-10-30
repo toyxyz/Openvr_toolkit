@@ -1,4 +1,5 @@
 #include "platform/win32/MappingSoftIkFilter.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/AppLog.h"
 #include "platform/win32/AppState.h"
@@ -25,9 +26,9 @@ const wchar_t* enabledText(const bool enabled) noexcept
 
 void drawBox(HDC drawDc, const RECT& rect)
 {
-    UniqueBrush brush(CreateSolidBrush(RGB(18, 22, 28)));
+    UniqueBrush brush(CreateSolidBrush(ui::field));
     FillRect(drawDc, &rect, brush.get());
-    UniquePen pen(CreatePen(PS_SOLID, 1, RGB(67, 74, 88)));
+    UniquePen pen(CreatePen(PS_SOLID, 1, ui::buttonBorder));
     SelectObjectGuard penSelection(drawDc, pen.get());
     MoveToEx(drawDc, rect.left, rect.top, nullptr);
     LineTo(drawDc, rect.right - 1, rect.top);
@@ -39,7 +40,7 @@ void drawBox(HDC drawDc, const RECT& rect)
 void drawGlyph(HDC drawDc, const RECT& valueRect)
 {
     RECT glyph{valueRect.right - 18, valueRect.top, valueRect.right - 2, valueRect.bottom};
-    DrawTextW(drawDc, L"v", -1, &glyph, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    ui::chevron(drawDc, glyph);
 }
 
 RECT valueRectForSlot(const MappingPanelControlsLayout& controls, const int slot) noexcept
@@ -85,7 +86,7 @@ void refreshFilter(HWND hwnd, const AppWindowState& state)
 void drawMappingSoftIkFilter(HDC drawDc, HFONT font, const AppWindowState& state, const MappingPanelControlsLayout& controls)
 {
     drawBox(drawDc, controls.filterBoxRect);
-    UniquePen pen(CreatePen(PS_SOLID, 1, RGB(43, 48, 59)));
+    UniquePen pen(CreatePen(PS_SOLID, 1, ui::divider));
     SelectObjectGuard penSelection(drawDc, pen.get());
     MoveToEx(drawDc, controls.filterArmLabelRect.right + 8, controls.filterBoxRect.top, nullptr);
     LineTo(drawDc, controls.filterArmLabelRect.right + 8, controls.filterBoxRect.bottom);
@@ -97,7 +98,7 @@ void drawMappingSoftIkFilter(HDC drawDc, HFONT font, const AppWindowState& state
     LineTo(drawDc, controls.filterBoxRect.right, controls.filterPinFootLabelRect.top);
 
     SelectObjectGuard fontSelection(drawDc, font);
-    SetTextColor(drawDc, RGB(168, 180, 196));
+    SetTextColor(drawDc, ui::muted);
     RECT armLabel = controls.filterArmLabelRect;
     RECT legLabel = controls.filterLegLabelRect;
     RECT pinHandLabel = controls.filterPinHandLabelRect;
@@ -107,7 +108,7 @@ void drawMappingSoftIkFilter(HDC drawDc, HFONT font, const AppWindowState& state
     DrawTextW(drawDc, L"Pin Hand", -1, &pinHandLabel, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
     DrawTextW(drawDc, L"Pin Foot", -1, &pinFootLabel, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 
-    SetTextColor(drawDc, RGB(225, 231, 240));
+    SetTextColor(drawDc, ui::text);
     RECT armValue = controls.filterArmValueRect;
     RECT legValue = controls.filterLegValueRect;
     RECT pinHandValue = controls.filterPinHandValueRect;
@@ -136,7 +137,7 @@ void drawMappingSoftIkFilterDropdown(
     drawBox(drawDc, popup);
 
     SelectObjectGuard fontSelection(drawDc, font);
-    SetTextColor(drawDc, RGB(225, 231, 240));
+    SetTextColor(drawDc, ui::text);
     const int rowHeight = valueRect.bottom - valueRect.top + 6;
     for (int option = 0; option < static_cast<int>(kMappingSoftIkStrengthOptions.size()); ++option) {
         RECT optionRect{popup.left + 6, popup.top + option * rowHeight, popup.right - 6, popup.top + (option + 1) * rowHeight};

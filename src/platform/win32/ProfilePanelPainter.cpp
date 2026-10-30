@@ -1,4 +1,5 @@
 #include "platform/win32/ProfilePanelPainter.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/ProfileModel.h"
 #include "platform/win32/ProfilePanelLayout.h"
@@ -41,8 +42,8 @@ std::wstring valueForTarget(const BodyProfile& profile, const ProfileEditTarget&
 
 void drawButton(HDC drawDc, HFONT font, const RECT& rect, const wchar_t* label, const bool active)
 {
-    UniqueBrush brush(CreateSolidBrush(active ? RGB(48, 63, 82) : RGB(30, 34, 42)));
-    UniquePen pen(CreatePen(PS_SOLID, 1, active ? RGB(92, 126, 168) : RGB(67, 74, 88)));
+    UniqueBrush brush(CreateSolidBrush(active ? ui::accent : ui::button));
+    UniquePen pen(CreatePen(PS_SOLID, 1, active ? ui::accent : ui::buttonBorder));
     {
         SelectObjectGuard brushSelection(drawDc, brush.get());
         SelectObjectGuard penSelection(drawDc, pen.get());
@@ -51,17 +52,17 @@ void drawButton(HDC drawDc, HFONT font, const RECT& rect, const wchar_t* label, 
 
     SelectObjectGuard fontSelection(drawDc, font);
     SetBkMode(drawDc, TRANSPARENT);
-    SetTextColor(drawDc, RGB(225, 231, 240));
+    SetTextColor(drawDc, ui::text);
     RECT textRect = rect;
     DrawTextW(drawDc, label, -1, &textRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 }
 
 void drawTableBox(HDC drawDc, const RECT& rect)
 {
-    UniqueBrush boxBrush(CreateSolidBrush(RGB(18, 22, 28)));
+    UniqueBrush boxBrush(CreateSolidBrush(ui::field));
     FillRect(drawDc, &rect, boxBrush.get());
 
-    UniquePen borderPen(CreatePen(PS_SOLID, 1, RGB(67, 74, 88)));
+    UniquePen borderPen(CreatePen(PS_SOLID, 1, ui::buttonBorder));
     SelectObjectGuard penSelection(drawDc, borderPen.get());
     MoveToEx(drawDc, rect.left, rect.top, nullptr);
     LineTo(drawDc, rect.right - 1, rect.top);
@@ -78,7 +79,7 @@ void drawScrollbar(HDC drawDc, const RECT& tableRect, const int visibleRows, con
     }
 
     RECT track{tableRect.right - 8, tableRect.top, tableRect.right, tableRect.bottom};
-    UniqueBrush trackBrush(CreateSolidBrush(RGB(34, 38, 47)));
+    UniqueBrush trackBrush(CreateSolidBrush(ui::timeline));
     FillRect(drawDc, &track, trackBrush.get());
 
     const int trackHeight = track.bottom - track.top;
@@ -93,7 +94,7 @@ void drawScrollbar(HDC drawDc, const RECT& tableRect, const int visibleRows, con
     const int travel = trackHeight - thumbHeight;
     const int thumbTop = track.top + (scrollOffset * travel) / maxOffset;
     RECT thumb{track.left, thumbTop, track.right, thumbTop + thumbHeight};
-    UniqueBrush thumbBrush(CreateSolidBrush(RGB(88, 101, 123)));
+    UniqueBrush thumbBrush(CreateSolidBrush(ui::scrollbar));
     FillRect(drawDc, &thumb, thumbBrush.get());
 }
 
@@ -114,7 +115,7 @@ void paintProfilePanelContent(
     SetBkMode(drawDc, TRANSPARENT);
     SelectObject(drawDc, font);
     drawTableBox(drawDc, controls.tableRect);
-    UniqueBrush headerBrush(CreateSolidBrush(RGB(24, 28, 35)));
+    UniqueBrush headerBrush(CreateSolidBrush(ui::header));
     RECT headerRect = controls.tableRect;
     headerRect.left += 1;
     headerRect.top += 1;
@@ -122,7 +123,7 @@ void paintProfilePanelContent(
     headerRect.bottom = headerRect.top + controls.rowHeight;
     FillRect(drawDc, &headerRect, headerBrush.get());
 
-    UniquePen gridPen(CreatePen(PS_SOLID, 1, RGB(43, 48, 59)));
+    UniquePen gridPen(CreatePen(PS_SOLID, 1, ui::divider));
     {
         SelectObjectGuard penSelection(drawDc, gridPen.get());
         const int dividerX = controls.tableRect.left +
@@ -139,9 +140,9 @@ void paintProfilePanelContent(
         RECT labelRect = row.labelRect;
         RECT valueRect = row.valueRect;
         const std::wstring value = valueForTarget(state.profile, row.target);
-        SetTextColor(drawDc, RGB(168, 180, 196));
+        SetTextColor(drawDc, ui::muted);
         DrawTextW(drawDc, labelForTarget(row.target), -1, &labelRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
-        SetTextColor(drawDc, RGB(225, 231, 240));
+        SetTextColor(drawDc, ui::text);
         DrawTextW(drawDc, value.c_str(), -1, &valueRect, DT_RIGHT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
     }
 

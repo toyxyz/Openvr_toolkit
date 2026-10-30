@@ -1,4 +1,5 @@
 #include "platform/win32/DevicePanelRowPainter.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/Win32GdiResources.h"
 
@@ -42,8 +43,8 @@ void paintDeviceListRow(
     const int rowBottom = itemY + kDeviceListItemHeight;
     const bool selected = row.runtimeIndex == selectedRuntimeIndex;
     if (selected) {
-        UniqueBrush selectedRowBrush(CreateSolidBrush(RGB(38, 55, 78)));
-        UniqueBrush selectedAccentBrush(CreateSolidBrush(RGB(98, 139, 190)));
+        UniqueBrush selectedRowBrush(CreateSolidBrush(ui::selection));
+        UniqueBrush selectedAccentBrush(CreateSolidBrush(ui::accent));
         RECT highlightRect{layout.contentRect.left, itemY + 1, metrics.itemTextRight, rowBottom};
         FillRect(drawDc, &highlightRect, selectedRowBrush.get());
 
@@ -59,7 +60,7 @@ void paintDeviceListRow(
     };
     RECT modelRect{metrics.modelColumnLeft, itemY, metrics.modelColumnRight, rowBottom};
     RECT serialRect{metrics.serialColumnLeft, itemY, metrics.itemTextRight, rowBottom};
-    SetTextColor(drawDc, selected ? RGB(236, 242, 250) : RGB(202, 211, 224));
+    SetTextColor(drawDc, selected ? ui::onAccent : ui::text);
     DrawTextW(
         drawDc,
         row.customName.c_str(),
@@ -83,7 +84,7 @@ void paintDeviceListRow(
     );
 
     if (drawBottomGridLine) {
-        UniquePen gridPen(CreatePen(PS_SOLID, 1, RGB(43, 48, 59)));
+        UniquePen gridPen(CreatePen(PS_SOLID, 1, ui::divider));
         SelectObjectGuard penSelection(drawDc, gridPen.get());
         MoveToEx(drawDc, layout.contentRect.left, rowBottom, nullptr);
         LineTo(drawDc, metrics.itemTextRight, rowBottom);

@@ -61,12 +61,8 @@ void runPoseSamplingWorker(HWND hwnd, AppWindowState& state)
             } while (nextSample <= now);
         }
 
-        const auto remaining = nextSample - Clock::now();
-        if (remaining > std::chrono::milliseconds(2)) {
-            Sleep(1);
-        } else {
-            Sleep(0);
-        }
+        // Sleep to the deadline instead of spinning through its final 2 ms.
+        std::this_thread::sleep_until(nextSample);
     }
 }
 

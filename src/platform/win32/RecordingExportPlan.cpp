@@ -81,6 +81,7 @@ RecordingExportPlan makeRecordingExportPlan(
     plan.exportSampleRate = static_cast<double>(
         sanitizedExportSampleRate(recordingState.recordExportSampleRate, kDefaultRecordExportSampleRate)
     );
+    plan.exportVideo = recordingState.exportVideo;
     return plan;
 }
 

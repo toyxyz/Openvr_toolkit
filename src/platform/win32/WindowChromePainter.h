@@ -17,6 +17,7 @@ void paintDeviceRailAndSplitter(
     HDC drawDc,
     HFONT font,
     const AppDebugUiState& state,
+    bool videoPanelVisible,
     int clientWidth,
     int clientHeight,
     int contentBottom

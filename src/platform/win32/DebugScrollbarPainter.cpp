@@ -1,4 +1,5 @@
 #include "platform/win32/DebugScrollbarPainter.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/Layout.h"
 #include "platform/win32/Win32GdiResources.h"
@@ -25,9 +26,9 @@ void paintDebugScrollbar(
         return;
     }
 
-    UniqueBrush trackBrush(CreateSolidBrush(RGB(34, 38, 47)));
+    UniqueBrush trackBrush(CreateSolidBrush(ui::timeline));
     FillRect(drawDc, &scrollbar.trackRect, trackBrush.get());
-    UniqueBrush thumbBrush(CreateSolidBrush(RGB(88, 101, 123)));
+    UniqueBrush thumbBrush(CreateSolidBrush(ui::scrollbar));
     FillRect(drawDc, &scrollbar.thumbRect, thumbBrush.get());
 }
 

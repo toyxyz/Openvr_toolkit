@@ -18,12 +18,8 @@ void drawProfileSkeletonPreview3D(
     AppViewportState& viewportState
 );
 void drawMappingActors3D(
-    AppProfileState& profileState,
-    const AppRuntimeState& runtimeState,
-    const AppOriginState& originState,
-    AppRecordingState& recordingState,
-    AppStreamingState& streamingState,
-    AppDebugUiState& debugState,
+    const AppProfileState& profileState,
+    const AppDebugUiState& debugState,
     AppViewportState& viewportState
 );
 void drawMappingActorLabels3D(const AppProfileState& profileState, GLuint fontBase);

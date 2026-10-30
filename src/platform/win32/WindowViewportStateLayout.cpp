@@ -24,7 +24,8 @@ ViewportControlLayout viewportControlLayoutForClient(
         state->importedSceneLoaded || state->loadedSessionActive,
         clientWidth,
         clientHeight,
-        rightReservedWidth
+        rightReservedWidth,
+        state->importedSceneLoaded
     );
 }
 

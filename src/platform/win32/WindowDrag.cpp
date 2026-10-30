@@ -1,4 +1,6 @@
 #include "platform/win32/WindowInput.h"
+#include "platform/win32/CombinedPlayback.h"
+#include "platform/win32/PerformanceCapture.h"
 
 #include <windowsx.h>
 
@@ -42,16 +44,15 @@ bool handleMainWindowMouseMove(HWND hwnd, LPARAM lparam)
         return true;
     }
     if (state->loadedSessionTimelineDragging) {
+        PerformanceCapture::instance().input();
+        PerformanceScope trace("timeline_input");
         const ViewportControlLayout viewportControls = viewportControlLayoutForClient(
             state,
             clientWidth,
             clientHeight
         );
-        seekLoadedSessionFromTimeline(*state, viewportControls.timelineRect, point);
-        sampleLoadedSessionFrame(*state);
-        if (state->glWindow) {
-            renderViewport(state->glWindow);
-        }
+        seekCombinedPlaybackFromTimeline(*state, viewportControls.timelineRect, point);
+        state->viewportRenderDemand.dirty = true;
         InvalidateRect(hwnd, &viewportControls.animationBarRect, FALSE);
         SetCursor(LoadCursor(nullptr, IDC_HAND));
         return true;
@@ -96,7 +97,8 @@ bool handleMainWindowMouseMove(HWND hwnd, LPARAM lparam)
     }
 
     const RECT splitterRect = splitterRectForClient(state, clientWidth, clientHeight);
-    if ((state->devicePanelVisible || state->sessionPanelVisible || state->streamingPanelVisible) &&
+    if ((state->devicePanelVisible || state->sessionPanelVisible || state->streamingPanelVisible ||
+        state->videoPanelVisible) &&
         PtInRect(&splitterRect, point)) {
         SetCursor(LoadCursor(nullptr, IDC_SIZEWE));
         return true;

@@ -1,4 +1,5 @@
 #include "platform/win32/SessionActions.h"
+#include "platform/win32/CombinedPlayback.h"
 
 #include "platform/win32/AppConfig.h"
 #include "platform/win32/AppLog.h"
@@ -66,6 +67,19 @@ void showDeleteSessionBlockedMessage(HWND hwnd, const std::wstring& message)
 
 bool loadSelectedSessionFolder(HWND hwnd, AppWindowState& state)
 {
+    if (state.pendingVideoRecordingStart) {
+        state.videoStatusMessage =
+            "Wait for video recording preparation before loading a session.";
+        appendDebugLog(state, L"Load session blocked: video recording is preparing");
+        invalidateStatusPanel(hwnd);
+        return false;
+    }
+    if (state.videoFinalizationPending) {
+        state.videoStatusMessage = "Wait for video finalization before loading a session.";
+        appendDebugLog(state, L"Load session blocked: video finalization is still running");
+        invalidateStatusPanel(hwnd);
+        return false;
+    }
     const std::filesystem::path root = activeSessionDirectoryPath(state);
     const std::vector<RecordingSessionListRow>& rows =
         cachedRecordingSessionFolders(state, root);
@@ -92,6 +106,7 @@ bool loadSelectedSessionFolder(HWND hwnd, AppWindowState& state)
         refreshStatus(hwnd, true);
         return false;
     }
+    reconcileCombinedPlayback(state);
     state.sessionName = row->name;
     if (state.sessionEditWindow && IsWindow(state.sessionEditWindow)) {
         SetWindowTextW(state.sessionEditWindow, state.sessionName.c_str());
@@ -113,6 +128,7 @@ bool closeLoadedSessionFolder(HWND hwnd, AppWindowState& state)
         return false;
     }
     state.devices.clear();
+    reconcileCombinedPlayback(state);
     state.poses = {};
     if (state.sessionEditWindow && IsWindow(state.sessionEditWindow)) {
         SetWindowTextW(state.sessionEditWindow, state.sessionName.c_str());
@@ -130,6 +146,19 @@ bool closeLoadedSessionFolder(HWND hwnd, AppWindowState& state)
 
 bool deleteSelectedSessionFolder(HWND hwnd, AppWindowState& state)
 {
+    if (state.pendingVideoRecordingStart) {
+        state.videoStatusMessage =
+            "Wait for video recording preparation before deleting a session.";
+        appendDebugLog(state, L"Delete session blocked: video recording is preparing");
+        invalidateStatusPanel(hwnd);
+        return false;
+    }
+    if (state.videoFinalizationPending) {
+        state.videoStatusMessage = "Wait for video finalization before deleting a session.";
+        appendDebugLog(state, L"Delete session blocked: video finalization is still running");
+        invalidateStatusPanel(hwnd);
+        return false;
+    }
     const std::filesystem::path root = activeSessionDirectoryPath(state);
     const std::vector<RecordingSessionListRow>& rows =
         cachedRecordingSessionFolders(state, root);

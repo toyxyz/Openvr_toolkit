@@ -30,6 +30,7 @@ bool handleStreamingToggleClick(
     if (state.streamingPanelVisible) {
         state.devicePanelVisible = false;
         state.sessionPanelVisible = false;
+        state.videoPanelVisible = false;
         if (state.originEditWindow) {
             closeOriginEditor(hwnd, state);
         }

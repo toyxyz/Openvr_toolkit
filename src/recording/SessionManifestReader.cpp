@@ -114,6 +114,7 @@ bool readManifestJson(
     if (const JsonValue* files = root.find("files"); files && files->type == JsonValue::Type::Object) {
         outSession.framesPath = jsonStringMember(*files, "frames");
         outSession.frameIndexPath = jsonStringMember(*files, "frameIndex");
+        outSession.videoPath = jsonStringMember(*files, "video");
     }
     if (const JsonValue* stats = root.find("stats"); stats && stats->type == JsonValue::Type::Object) {
         outStats.frameCount = jsonUint64Member(*stats, "frameCount");

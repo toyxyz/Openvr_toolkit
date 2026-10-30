@@ -28,6 +28,7 @@ struct AppRecordingState {
     float recordExportSampleRate = 60.0f;
     bool startRecordingOnCalibration = false;
     bool exportAfterRecording = false;
+    bool exportVideo = true;
     bool applyNoiseFilterOnExport = false;
     float noiseFilterCutoffHz = 8.0f;
     OutlierRepairStrength outlierRepairStrength = OutlierRepairStrength::Light;

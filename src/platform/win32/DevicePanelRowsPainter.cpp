@@ -1,4 +1,5 @@
 #include "platform/win32/DevicePanelRowsPainter.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/AppDeviceState.h"
 #include "platform/win32/DevicePanelRowPainter.h"
@@ -15,7 +16,7 @@ void paintDeviceListRows(
 )
 {
     SelectObject(drawDc, bodyFont);
-    SetTextColor(drawDc, RGB(202, 211, 224));
+    SetTextColor(drawDc, ui::text);
     int itemY = layout.contentRect.top;
     if (deviceRows.empty()) {
         paintEmptyDeviceListRow(drawDc, layout, metrics, itemY);

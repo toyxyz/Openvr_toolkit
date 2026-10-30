@@ -1,4 +1,5 @@
 #include "platform/win32/PaintWidgets.h"
+#include "platform/win32/UiTheme.h"
 
 #include "platform/win32/AppOriginState.h"
 #include "platform/win32/Layout.h"
@@ -14,8 +15,8 @@ namespace {
 
 void drawOriginStepperButton(HDC drawDc, const RECT& rect, const wchar_t* label)
 {
-    UniqueBrush buttonBrush(CreateSolidBrush(RGB(30, 34, 42)));
-    UniquePen buttonPen(CreatePen(PS_SOLID, 1, RGB(67, 74, 88)));
+    UniqueBrush buttonBrush(CreateSolidBrush(ui::button));
+    UniquePen buttonPen(CreatePen(PS_SOLID, 1, ui::buttonBorder));
     {
         SelectObjectGuard brushSelection(drawDc, buttonBrush.get());
         SelectObjectGuard penSelection(drawDc, buttonPen.get());
@@ -23,7 +24,7 @@ void drawOriginStepperButton(HDC drawDc, const RECT& rect, const wchar_t* label)
     }
 
     RECT textRect = rect;
-    SetTextColor(drawDc, RGB(225, 231, 240));
+    SetTextColor(drawDc, ui::text);
     DrawTextW(drawDc, label, -1, &textRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 }
 
@@ -45,7 +46,7 @@ void drawOriginStepperRow(
     }
 
     SelectObject(drawDc, labelFont);
-    SetTextColor(drawDc, RGB(168, 180, 196));
+    SetTextColor(drawDc, ui::muted);
     RECT rowLabelRect = originStepperRowLabelRect(layout, rotation);
     DrawTextW(
         drawDc,
@@ -64,7 +65,7 @@ void drawOriginStepperRow(
         }
 
         SelectObject(drawDc, labelFont);
-        SetTextColor(drawDc, RGB(168, 180, 196));
+        SetTextColor(drawDc, ui::muted);
         RECT axisRect = axisLayout.axisLabelRect;
         DrawTextW(
             drawDc,
@@ -78,7 +79,7 @@ void drawOriginStepperRow(
         drawOriginStepperButton(drawDc, axisLayout.minusButton.rect, L"-");
         const std::wstring valueText =
             formatOriginStepperValue(values[static_cast<std::size_t>(axisLayout.axis)]);
-        SetTextColor(drawDc, RGB(202, 211, 224));
+        SetTextColor(drawDc, ui::text);
         RECT valueRect = axisLayout.valueRect;
         DrawTextW(
             drawDc,

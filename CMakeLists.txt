@@ -124,6 +124,7 @@ add_library(openvr_tracker_recorder_core STATIC
     src/recording/RecordingControllerState.cpp
     src/recording/SamplingScheduler.cpp
     src/recording/SessionManifest.cpp
+    src/recording/SessionManifestRecovery.cpp
     src/recording/SessionManifestReader.cpp
     src/util/BinaryBuffer.cpp
     src/util/Identifier.cpp
@@ -386,6 +387,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/RecordingStartPlan.cpp
         src/platform/win32/RecordingStateQueries.cpp
         src/platform/win32/RecordingUiActions.cpp
+        src/platform/win32/RecordingVideoFinalization.cpp
         src/platform/win32/SkeletonGltfAnimationKeys.cpp
         src/platform/win32/SkeletonGltfAnimationWriter.cpp
         src/platform/win32/SkeletonGltfExporter.cpp
@@ -405,6 +407,7 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/RuntimeStatusLogging.cpp
         src/platform/win32/SessionActions.cpp
         src/platform/win32/SessionExportActions.cpp
+        src/platform/win32/SessionVideoExport.cpp
         src/platform/win32/SessionMappingSnapshotApply.cpp
         src/platform/win32/SessionMappingSnapshotRead.cpp
         src/platform/win32/SessionMappingSnapshotWrite.cpp
@@ -426,6 +429,18 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/TopMenuSettingsActions.cpp
         src/platform/win32/TopMenus.cpp
         src/platform/win32/TopBarLayout.cpp
+        src/platform/win32/VideoCameraCatalog.cpp
+        src/platform/win32/VideoCameraRefresh.cpp
+        src/platform/win32/VideoCaptureCamera.cpp
+        src/platform/win32/VideoCaptureEncoder.cpp
+        src/platform/win32/VideoCaptureRecording.cpp
+        src/platform/win32/VideoCaptureService.cpp
+        src/platform/win32/VideoCaptureWorker.cpp
+        src/platform/win32/VideoPlaybackReader.cpp
+        src/platform/win32/VideoPlaybackService.cpp
+        src/platform/win32/VideoPlaybackWorker.cpp
+        src/platform/win32/VideoPanelLayout.cpp
+        src/platform/win32/VideoPanelPainter.cpp
         src/platform/win32/ViewportAnimationControlLayout.cpp
         src/platform/win32/ViewportAnimationFrameTextPainter.cpp
         src/platform/win32/ViewportAnimationControlPainter.cpp
@@ -528,6 +543,8 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
         src/platform/win32/WindowTopBarClickActions.cpp
         src/platform/win32/WindowViewportStateLayout.cpp
         src/platform/win32/WindowViewportClickActions.cpp
+        src/platform/win32/WindowVideoPanelClickActions.cpp
+        src/platform/win32/WindowVideoStateLayout.cpp
         src/platform/win32/Win32AppLifecycle.cpp
         src/platform/win32/Win32AppWindow.cpp
         src/platform/win32/Win32AppWindowMessages.cpp
@@ -555,6 +572,10 @@ if(WIN32 AND OVTR_BUILD_WIN32_BOOTSTRAP_APP)
             ole32
             opengl32
             windowscodecs
+            mf
+            mfplat
+            mfreadwrite
+            mfuuid
             winmm
             ws2_32
     )
@@ -768,6 +789,7 @@ if(OVTR_BUILD_TESTS)
                 src/platform/win32/SessionEditor.cpp
                 src/platform/win32/SessionListLayout.cpp
                 src/platform/win32/SessionExportActions.cpp
+                src/platform/win32/SessionVideoExport.cpp
                 src/platform/win32/SessionMappingSnapshotApply.cpp
                 src/platform/win32/SessionMappingSnapshotRead.cpp
                 src/platform/win32/SessionMappingSnapshotWrite.cpp
@@ -780,6 +802,17 @@ if(OVTR_BUILD_TESTS)
                 src/platform/win32/StatusPanelAppStateAdapters.cpp
                 src/platform/win32/StatusBarText.cpp
                 src/platform/win32/TopBarLayout.cpp
+                src/platform/win32/VideoPanelLayout.cpp
+                src/platform/win32/VideoCameraCatalog.cpp
+                src/platform/win32/VideoCameraRefresh.cpp
+                src/platform/win32/VideoCaptureCamera.cpp
+                src/platform/win32/VideoCaptureEncoder.cpp
+                src/platform/win32/VideoCaptureRecording.cpp
+                src/platform/win32/VideoCaptureService.cpp
+                src/platform/win32/VideoCaptureWorker.cpp
+                src/platform/win32/VideoPlaybackReader.cpp
+                src/platform/win32/VideoPlaybackService.cpp
+                src/platform/win32/VideoPlaybackWorker.cpp
                 src/platform/win32/ViewportAnimationControlLayout.cpp
                 src/platform/win32/ViewportCamera.cpp
                 src/platform/win32/ViewportControlLayout.cpp
@@ -801,6 +834,7 @@ if(OVTR_BUILD_TESTS)
                 src/platform/win32/WindowSessionStateLayoutAppStateAdapters.cpp
                 src/platform/win32/WindowStateLayout.cpp
                 src/platform/win32/WindowViewportStateLayout.cpp
+                src/platform/win32/WindowVideoStateLayout.cpp
                 src/platform/win32/Win32String.cpp
                 tests/test_win32_config_store_basics.cpp
                 tests/test_win32_config_store.cpp
@@ -856,6 +890,10 @@ if(OVTR_BUILD_TESTS)
                 comdlg32
                 shell32
                 ole32
+                mf
+                mfplat
+                mfreadwrite
+                mfuuid
                 opengl32
                 glad_vendor
                 ws2_32

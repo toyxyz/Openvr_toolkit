@@ -18,6 +18,7 @@ void testRecordingController()
     session.sessionName = "Controller Test Session";
     session.createdAtUtc = "2026-05-25T00:00:00Z";
     session.appVersion = "0.1.0";
+    session.videoPath = "video.mp4";
 
     ovtr::RecordingController controller;
     const ovtr::RecordingStartOptions options{testDir, session};
@@ -30,6 +31,8 @@ void testRecordingController()
     require(std::filesystem::exists(testDir / "manifest.json"), "controller did not write manifest");
     require(std::filesystem::exists(testDir / "frames.bin"), "controller did not write frames");
     require(std::filesystem::exists(testDir / "frame_index.bin"), "controller did not write frame index");
+    controller.discardSessionVideoReference();
+    require(controller.session().videoPath.empty(), "controller should discard failed session video");
 
     std::filesystem::remove_all(testDir, ignored);
 }

@@ -2,6 +2,7 @@
 #include <windows.h>
 
 #include "platform/win32/Win32AppWindow.h"
+#include "platform/win32/UiWindowFrame.h"
 
 #include "platform/win32/Win32AppWindowInternal.h"
 
@@ -9,10 +10,10 @@ namespace ovtr::win32 {
 
 HWND createMainWindow(HINSTANCE instance)
 {
-    return CreateWindowExW(
+    HWND hwnd = CreateWindowExW(
         0,
         kMainWindowClassName,
-        L"toyxyz_openvr_toolkit",
+        L"toyxyz OpenVR Toolkit",
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
@@ -23,6 +24,8 @@ HWND createMainWindow(HINSTANCE instance)
         instance,
         nullptr
     );
+    if (hwnd) applyDarkWindowFrame(hwnd);
+    return hwnd;
 }
 
 } // namespace ovtr::win32

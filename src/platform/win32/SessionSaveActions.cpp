@@ -70,6 +70,9 @@ bool writeSavedManifest(AppWindowState& state, const std::filesystem::path& targ
     session.sessionName = session.sessionId;
     session.framesPath = target / "frames.bin";
     session.frameIndexPath = target / "frame_index.bin";
+    if (!session.videoPath.empty()) {
+        session.videoPath = target / session.videoPath.filename();
+    }
     if (!writeManifestJson(session, state.loadedSessionStats, target / "manifest.json", error)) {
         return false;
     }

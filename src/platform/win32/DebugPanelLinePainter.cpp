@@ -1,4 +1,5 @@
 #include "platform/win32/DebugPanelLinePainter.h"
+#include "platform/win32/UiTheme.h"
 
 namespace ovtr::win32 {
 namespace {
@@ -48,7 +49,7 @@ void paintDebugInfoLines(
 )
 {
     SelectObject(drawDc, bodyFont);
-    SetTextColor(drawDc, RGB(176, 185, 198));
+    SetTextColor(drawDc, ui::muted);
     paintDebugLines(drawDc, debugLines, bodyRect, textRight, firstLineIndex, lastLineIndex);
 }
 
@@ -63,7 +64,7 @@ void paintDebugMessageLines(
 )
 {
     SelectObject(drawDc, bodyFont);
-    SetTextColor(drawDc, RGB(176, 185, 198));
+    SetTextColor(drawDc, ui::muted);
     if (messageLines.empty()) {
         const std::wstring emptyMessage = L"No debug messages yet.";
         RECT lineRect{bodyRect.left, bodyRect.top, textRight, bodyRect.top + kDebugPanelLineHeight};

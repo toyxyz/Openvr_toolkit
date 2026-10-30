@@ -61,12 +61,16 @@ bool handleMainWindowSetCursor(HWND hwnd, LPARAM lparam)
          PtInRect(&viewportControls.recordButtonRect, point))) {
         return setHandCursor();
     }
-    if (viewportControls.animationValid &&
+    if (viewportControls.importedSceneBarValid &&
+        PtInRect(&viewportControls.importedSceneCloseButtonRect, point)) {
+        return setHandCursor();
+    }
+    if (viewportControls.animationValid && (state->loadedSessionActive || state->importedSceneLoaded) &&
         (PtInRect(&viewportControls.firstFrameButtonRect, point) ||
          PtInRect(&viewportControls.playPauseButtonRect, point) ||
          PtInRect(&viewportControls.lastFrameButtonRect, point) ||
          PtInRect(&viewportControls.timelineRect, point) ||
-         PtInRect(&viewportControls.closeButtonRect, point))) {
+         (state->loadedSessionActive && PtInRect(&viewportControls.closeButtonRect, point)))) {
         return setHandCursor();
     }
 
@@ -90,6 +94,15 @@ bool handleMainWindowSetCursor(HWND hwnd, LPARAM lparam)
     }
     const RECT streamingButtonRect = streamingToggleButtonRectForClient(state, clientWidth, clientHeight);
     if (PtInRect(&streamingButtonRect, point)) {
+        return setHandCursor();
+    }
+    const RECT videoButtonRect = videoToggleButtonRectForClient(state, clientWidth, clientHeight);
+    if (PtInRect(&videoButtonRect, point)) {
+        return setHandCursor();
+    }
+    const VideoPanelLayout videoLayout = videoPanelLayoutForClient(state, clientWidth, clientHeight);
+    if (videoLayout.valid && (PtInRect(&videoLayout.refreshButtonRect, point) ||
+        PtInRect(&videoLayout.cameraListRect, point))) {
         return setHandCursor();
     }
     const StreamingPanelLayout streamingLayout = streamingPanelLayoutForClient(state, clientWidth, clientHeight);
@@ -174,7 +187,8 @@ bool handleMainWindowSetCursor(HWND hwnd, LPARAM lparam)
     }
 
     const RECT splitterRect = splitterRectForClient(state, clientWidth, clientHeight);
-    if ((state->devicePanelVisible || state->sessionPanelVisible || state->streamingPanelVisible) &&
+    if ((state->devicePanelVisible || state->sessionPanelVisible || state->streamingPanelVisible ||
+        state->videoPanelVisible) &&
         (state->splitterDragging || PtInRect(&splitterRect, point))) {
         SetCursor(LoadCursor(nullptr, IDC_SIZEWE));
         return true;

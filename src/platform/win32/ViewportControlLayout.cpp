@@ -37,7 +37,8 @@ ViewportControlLayout viewportControlLayoutForClient(
     const bool showAnimationControls,
     const int clientWidth,
     const int clientHeight,
-    const int rightReservedWidth
+    const int rightReservedWidth,
+    const bool showImportedSceneBar
 ) noexcept
 {
     ViewportControlLayout layout;
@@ -50,7 +51,8 @@ ViewportControlLayout viewportControlLayoutForClient(
     const int availableWidth = right - left;
     const int availableHeight = contentBottom - kViewportLayoutTopBarHeight;
     const int controlHeight = kViewportControlBarHeight +
-        (showAnimationControls ? kImportedAnimationBarHeight : 0);
+        (showAnimationControls ? kImportedAnimationBarHeight : 0) +
+        (showImportedSceneBar ? kImportedSceneInfoBarHeight : 0);
     if (availableWidth < 240 || availableHeight < 180 + controlHeight) {
         return layout;
     }
@@ -129,8 +131,18 @@ ViewportControlLayout viewportControlLayoutForClient(
     layout.valid = layout.recordButtonRect.right > layout.recordButtonRect.left &&
         layout.barRect.bottom > layout.barRect.top;
 
-    if (showAnimationControls) {
+    // Keep the timeline visible even before a session is loaded.
+    if (showAnimationControls || availableHeight >= kViewportControlBarHeight + kImportedAnimationBarHeight + 80) {
         populateImportedAnimationControlLayout(layout);
+    }
+    if (showImportedSceneBar && layout.animationValid) {
+        const RECT& animation = layout.animationBarRect;
+        layout.importedSceneBarRect = RECT{animation.left,
+            animation.top - kImportedSceneInfoBarHeight, animation.right, animation.top};
+        const int top = layout.importedSceneBarRect.top + 4;
+        layout.importedSceneCloseButtonRect = RECT{animation.right - 80, top, animation.right - 10, top + 24};
+        layout.importedSceneLabelRect = RECT{animation.left + 12, top, animation.right - 90, top + 24};
+        layout.importedSceneBarValid = true;
     }
     return layout;
 }
@@ -155,7 +167,7 @@ RECT viewportRenderRectForClient(
 {
     const int left = leftPanelWidth + kViewportLayoutSplitterWidth;
     const int right = clientWidth - rightReservedWidth;
-    const int bottom = controls.animationValid
+    const int bottom = controls.importedSceneBarValid ? controls.importedSceneBarRect.top : controls.animationValid
         ? controls.animationBarRect.top
         : (controls.valid ? controls.barRect.top : contentBottom);
     return RECT{left, kViewportLayoutTopBarHeight, right, bottom};
